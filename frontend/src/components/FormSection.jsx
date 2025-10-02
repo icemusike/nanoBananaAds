@@ -2,37 +2,55 @@ import { Info } from 'lucide-react';
 
 const INDUSTRIES = [
   { value: 'tech_saas', label: 'Tech/SaaS' },
+  { value: 'ai_automation', label: 'AI & Automation' },
+  { value: 'business_services', label: 'Business Services (General)' },
+  { value: 'phone_services_general', label: 'Phone & Communication Services' },
+  { value: 'call_center', label: 'Call Center & Customer Support' },
+  { value: 'virtual_assistant', label: 'Virtual Assistant Services' },
   { value: 'finance', label: 'Finance & Banking' },
   { value: 'healthcare', label: 'Healthcare & Medical' },
+  { value: 'dental', label: 'Dental Practices' },
   { value: 'legal', label: 'Legal Services' },
+  { value: 'accounting', label: 'Accounting & Bookkeeping' },
   { value: 'creative', label: 'Creative & Design' },
-  { value: 'phone_services_general', label: 'Phone Services' },
   { value: 'home_services', label: 'Home Services' },
   { value: 'ecommerce', label: 'E-commerce & Retail' },
   { value: 'real_estate', label: 'Real Estate' },
+  { value: 'property_management', label: 'Property Management' },
   { value: 'education', label: 'Education & E-learning' },
   { value: 'fitness', label: 'Fitness & Wellness' },
   { value: 'food_beverage', label: 'Food & Beverage' },
+  { value: 'restaurants', label: 'Restaurants & Cafes' },
   { value: 'consulting', label: 'Consulting & Professional Services' },
   { value: 'marketing', label: 'Marketing & Advertising' },
   { value: 'construction', label: 'Construction & Contractors' },
+  { value: 'hvac', label: 'HVAC & Plumbing' },
   { value: 'beauty', label: 'Beauty & Cosmetics' },
+  { value: 'salon_spa', label: 'Salons & Spas' },
   { value: 'travel', label: 'Travel & Hospitality' },
   { value: 'automotive', label: 'Automotive' },
   { value: 'insurance', label: 'Insurance' },
   { value: 'nonprofit', label: 'Non-profit & Charity' },
+  { value: 'general', label: 'General Business' },
 ];
 
 const CATEGORIES = [
   { value: 'b2b_software', label: 'B2B Software/SaaS' },
+  { value: 'ai_software', label: 'AI-Powered Software' },
+  { value: 'automation_tools', label: 'Automation Tools' },
   { value: 'phone_services', label: 'Phone/Answering Services' },
-  { value: 'ecommerce_products', label: 'E-commerce Products' },
+  { value: 'call_automation', label: 'Call Automation & AI Phone Systems' },
+  { value: 'communication_platform', label: 'Communication Platform' },
+  { value: 'business_tools', label: 'Business Tools & Productivity' },
   { value: 'professional_services', label: 'Professional Services' },
   { value: 'local_services', label: 'Local Services' },
+  { value: 'service_business', label: 'Service-Based Business (General)' },
+  { value: 'ecommerce_products', label: 'E-commerce Products' },
   { value: 'digital_products', label: 'Digital Products' },
   { value: 'physical_products', label: 'Physical Products' },
   { value: 'courses_education', label: 'Courses & Education' },
   { value: 'membership_subscription', label: 'Membership/Subscription' },
+  { value: 'lead_generation', label: 'Lead Generation Service' },
 ];
 
 const ASPECT_RATIOS = [
@@ -54,6 +72,21 @@ const TONES = [
   { value: 'direct and no-nonsense', label: 'Direct & No-Nonsense' },
   { value: 'conversational and relatable', label: 'Conversational & Relatable' },
   { value: 'exclusive and elite', label: 'Exclusive & Elite' },
+];
+
+const COPYWRITING_STYLES = [
+  { value: 'default', label: 'AI Optimized (Default)' },
+  { value: 'alex_hormozi', label: 'Alex Hormozi - Value-Stacking & Direct ROI' },
+  { value: 'dan_kennedy', label: 'Dan Kennedy - No-BS Direct Response' },
+  { value: 'gary_halbert', label: 'Gary Halbert - Empathy & Story-Driven' },
+  { value: 'eugene_schwartz', label: 'Eugene Schwartz - Desire & Sophistication' },
+  { value: 'david_ogilvy', label: 'David Ogilvy - Research-Based Persuasion' },
+  { value: 'joe_sugarman', label: 'Joe Sugarman - Psychological Triggers' },
+  { value: 'russell_brunson', label: 'Russell Brunson - Funnel & Story Selling' },
+  { value: 'frank_kern', label: 'Frank Kern - Casual Authority & Results' },
+  { value: 'todd_brown', label: 'Todd Brown - Unique Mechanism & Big Ideas' },
+  { value: 'john_carlton', label: 'John Carlton - Aggressive & Bold Claims' },
+  { value: 'clayton_makepeace', label: 'Clayton Makepeace - Fear & Urgency Master' },
 ];
 
 export default function FormSection({ formData, onInputChange, templates }) {
@@ -314,6 +347,27 @@ export default function FormSection({ formData, onInputChange, templates }) {
 
         <div className="space-y-4">
           <div>
+            <label className="label">
+              Copywriting Style
+              <span className="text-primary-400 ml-2 text-xs font-normal">✨ Expert Frameworks</span>
+            </label>
+            <select
+              value={formData.copywritingStyle || 'default'}
+              onChange={(e) => onInputChange('copywritingStyle', e.target.value)}
+              className="select-field"
+            >
+              {COPYWRITING_STYLES.map(style => (
+                <option key={style.value} value={style.value}>
+                  {style.label}
+                </option>
+              ))}
+            </select>
+            <p className="text-xs text-gray-500 mt-1">
+              Choose a legendary copywriter's style to emulate
+            </p>
+          </div>
+
+          <div>
             <label className="label">Tone</label>
             <select
               value={formData.tone}
@@ -339,6 +393,9 @@ export default function FormSection({ formData, onInputChange, templates }) {
               placeholder="E.g., Never miss a call again, 24/7 availability"
               className="input-field"
             />
+            <p className="text-xs text-gray-500 mt-1">
+              Your unique selling proposition - what makes you different
+            </p>
           </div>
 
           <div>
@@ -350,6 +407,9 @@ export default function FormSection({ formData, onInputChange, templates }) {
               placeholder="E.g., Learn More, Get Started, Try Free"
               className="input-field"
             />
+            <p className="text-xs text-gray-500 mt-1">
+              What action should readers take?
+            </p>
           </div>
         </div>
       </div>

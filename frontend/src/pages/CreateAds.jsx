@@ -48,6 +48,7 @@ export default function CreateAds() {
     colorPalette: '',
     aspectRatio: 'square',
     tone: 'professional yet approachable',
+    copywritingStyle: 'default',
     valueProposition: '',
     callToAction: 'Learn More',
     imageDescription: '',

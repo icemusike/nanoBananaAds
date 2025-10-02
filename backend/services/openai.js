@@ -43,6 +43,7 @@ class OpenAIService {
       visualDescription,
       imageDescription,
       tone = 'professional yet approachable',
+      copywritingStyle = 'default',
       valueProposition,
       callToAction = 'Learn More'
     } = params;
@@ -154,6 +155,7 @@ Format your response as valid JSON with these exact keys:
       visualDescription,
       imageDescription,
       tone,
+      copywritingStyle,
       valueProposition,
       callToAction,
       competitorDifferentiators,
@@ -188,27 +190,45 @@ Format your response as valid JSON with these exact keys:
       prompt += `\n**Urgency Factor**: ${urgencyFactor}`;
     }
 
+    // Get copywriting style instructions if not default
+    const styleInstructions = copywritingStyle && copywritingStyle !== 'default'
+      ? `\n\n**🎯 COPYWRITING STYLE TO EMULATE**:\n${this.getCopywritingStyleInstructions(copywritingStyle)}\n\nIMPORTANT: Apply this legendary copywriter's techniques throughout your ad copy. Study their style and replicate their proven patterns.`
+      : '';
+
+    prompt += styleInstructions;
+
     prompt += `
 
 **ENHANCED REQUIREMENTS for Maximum Ad Performance**:
 
-1. **Image-Copy Coherence (CRITICAL)**:
+1. **Headline Mastery** (40 characters max):
+   - Use power words that trigger curiosity, fear, or desire
+   - Lead with a number when possible ("3 Ways...", "247 Calls...")
+   - Ask a provocative question that targets pain points
+   - Make a bold, specific claim or promise
+   - Create a curiosity gap (make them want to learn more)
+   - Examples of high-performing patterns:
+     * "How [Target Audience] [Achieve Desire] Without [Common Objection]"
+     * "[Number] [Benefit] That [Result] in [Timeframe]"
+     * "The [Adjective] Way to [Benefit] (Even If [Objection])"
+     * "Warning: [Consequence of Not Acting]"
+   - Test against: Does it stop the scroll? Does it promise value?
+
+2. **Description Excellence** (30 characters max):
+   - Focus on the PRIMARY benefit or transformation
+   - Use actionable language
+   - Amplify the headline's promise
+   - Examples: "No More Missed Calls", "24/7 Availability", "Boost Revenue Now"
+   - Make it work WITH the headline (not repeat it)
+
+3. **Image-Copy Coherence (CRITICAL)**:
    - Reference visual elements from the image description in your copy
    - If the image shows people, mention the relatable situation they're in
    - If the image shows a product/dashboard, highlight what's visible
    - Create a seamless story between what viewers see and what they read
    - Example: If image shows "team celebrating," copy could start with "Imagine your team celebrating wins like this..."
 
-2. **Headline** (max 40 characters):
-   - Punchy, attention-grabbing, references the visual when possible
-   - Front-load the main benefit
-   - Create curiosity gap
-
-3. **Description** (max 30 characters):
-   - Highlight the main benefit
-   - Reinforce the CTA
-
-4. **Primary Text** (125-150 words):
+4. **Primary Text Mastery** (125-150 words):
    - **Opening Hook**: Reference the visual scene or emotion shown in the image
    - **Connection**: Bridge from what they see to what they need
    - **3-4 Key Benefits**: Specific, measurable, relatable to ${targetAudience}
@@ -681,6 +701,138 @@ Generate angles that are insightful, creative, and grounded in proven direct res
     };
 
     return guidance[industry] || 'Focus on unique value propositions, pain point solutions, and differentiation from competitors';
+  }
+
+  /**
+   * Get copywriting style-specific instructions
+   * @private
+   */
+  getCopywritingStyleInstructions(style) {
+    const styleGuides = {
+      'alex_hormozi': `
+**Alex Hormozi Style - Value-Stacking & Direct ROI:**
+- Lead with a bold, specific claim or transformation
+- Stack value: Show multiple benefits and bonuses
+- Use "You get X, Y, and Z" format
+- Emphasize ROI and tangible results with numbers
+- Remove risk with guarantees
+- Use comparison: "Most people do X, but here's why Y is better"
+- Create urgency through scarcity (limited spots, time-sensitive)
+- Be direct and no-fluff - cut to the value immediately
+- Example: "Get 247 qualified leads in 30 days (or we work for free)"`,
+
+      'dan_kennedy': `
+**Dan Kennedy Style - No-BS Direct Response:**
+- Start with a provocative question or challenge
+- Be bold and slightly controversial
+- Use "Who Else Wants..." or "How to..." headlines
+- Long-form copy that builds case methodically
+- Address skepticism head-on
+- Use specifics over generalities (exact numbers, timeframes)
+- Create enemies (us vs. them positioning)
+- Include deadline-driven offers
+- Example: "Who Else Wants To Fire Their Receptionist And Still Never Miss A Call?"`,
+
+      'gary_halbert': `
+**Gary Halbert Style - Empathy & Story-Driven:**
+- Start with deep empathy for the reader's pain
+- Tell a relatable story or scenario
+- Use "imagine" or "picture this" language
+- Make it personal and conversational
+- Focus on emotional desires, not just logic
+- Use simple, clear language (5th grade reading level)
+- Build curiosity with "secrets" or "discoveries"
+- Example: "If you've ever felt frustrated hanging up on potential customers..."`,
+
+      'eugene_schwartz': `
+**Eugene Schwartz Style - Desire & Sophistication:**
+- Match market sophistication (aware/unaware of solutions)
+- Amplify existing desires rather than create new ones
+- Use mechanism: HOW your solution works uniquely
+- Create a "big idea" or unique concept
+- Mass desire channeled to your specific solution
+- Use fascinations: tease benefits without revealing
+- Example: "The 'Set It And Forget It' System That Answers Your Phone Better Than Any Human..."`,
+
+      'david_ogilvy': `
+**David Ogilvy Style - Research-Based Persuasion:**
+- Lead with a factual, informative headline
+- Use testimonials and specific results
+- Be educational and authoritative
+- Include facts, figures, and research
+- Long copy that informs while persuading
+- Professional, credible tone
+- Use subheads to guide readers
+- Example: "At 60 miles an hour, the loudest noise comes from your phone ringing..."`,
+
+      'joe_sugarman': `
+**Joe Sugarman Style - Psychological Triggers:**
+- Use curiosity gaps throughout
+- Apply consistency principle (small yes to big yes)
+- Leverage authority and credibility indicators
+- Create belonging (join others who already benefit)
+- Use power words: discover, secret, guarantee, proven
+- Smooth reading flow with short sentences
+- Overcome objections preemptively
+- Example: "There's a hidden reason 847 dentists never miss patient calls..."`,
+
+      'russell_brunson': `
+**Russell Brunson Style - Funnel & Story Selling:**
+- Use the "Epiphany Bridge" (your discovery story)
+- Follow "Hook, Story, Offer" structure
+- Make villain = the old way of doing things
+- Position your solution as the new opportunity
+- Use "imagine" scenarios frequently
+- Build desire through origin story
+- Include social proof from others' results
+- Example: "I discovered this by accident when our receptionist quit..."`,
+
+      'frank_kern': `
+**Frank Kern Style - Casual Authority & Results:**
+- Be conversational and laid-back
+- Use "real talk" and authenticity
+- Lead with results, not process
+- Include a "because" (psychological trigger)
+- Use second person ("you") extensively
+- Demonstrate expertise through casual teaching
+- Include light humor or relatability
+- Example: "Look, I'm going to be straight with you..."`,
+
+      'todd_brown': `
+**Todd Brown Style - Unique Mechanism & Big Ideas:**
+- Lead with a "big idea" or unique mechanism
+- Name your methodology or system
+- Focus on ONE breakthrough concept
+- Use proprietary language (give it a name)
+- Position against alternatives
+- Build intrigue around "how" it works
+- Create a movement or new category
+- Example: "Introducing: The 'Human-Free Reception System'..."`,
+
+      'john_carlton': `
+**John Carlton Style - Aggressive & Bold Claims:**
+- Start with a shocking statement or bold claim
+- Use swagger and confidence
+- Challenge the reader directly
+- Include warnings and "this isn't for everyone" copy
+- Use street-smart, slightly edgy language
+- Make bold promises backed by proof
+- Create FOMO through exclusivity
+- Example: "WARNING: This works so well, you might need to hire more staff..."`,
+
+      'clayton_makepeace': `
+**Clayton Makepeace Style - Fear & Urgency Master:**
+- Start with a threat or warning
+- Use fear-based motivation (what they'll lose)
+- Create urgency through consequences of inaction
+- Use "what if" scenarios
+- Build up the problem before revealing solution
+- Include specific timeframes and deadlines
+- Use power words: crisis, danger, mistake, warning
+- Example: "How Many Customers Did You Lose Today While Your Phone Rang Unanswered?"`
+    };
+
+    return styleGuides[style] || '';
   }
 
   /**

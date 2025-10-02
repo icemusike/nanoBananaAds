@@ -22,6 +22,7 @@ router.post('/generate', async (req, res) => {
       colorPalette,
       aspectRatio,
       tone,
+      copywritingStyle,
       valueProposition,
       callToAction,
       customDetails,
@@ -161,6 +162,7 @@ router.post('/generate', async (req, res) => {
         visualDescription: imageDescription || `A ${template} style image showing ${description}`,
         imageDescription: imageDescription,
         tone: finalTone,
+        copywritingStyle: copywritingStyle || 'default',
         valueProposition,
         callToAction,
         apiKey: openaiApiKey
