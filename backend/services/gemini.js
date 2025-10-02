@@ -77,6 +77,26 @@ class GeminiService {
       }
 
       console.log('🎯 Requesting image generation from Gemini...');
+      console.log('\n' + '='.repeat(80));
+      console.log('📤 GEMINI IMAGE GENERATION REQUEST');
+      console.log('='.repeat(80));
+
+      if (options.referenceImage && options.referenceImage.data) {
+        console.log('🖼️  WITH REFERENCE IMAGE');
+        console.log('   📋 MIME Type:', options.referenceImage.mimeType);
+        console.log('   📏 Image Size:', Math.round(options.referenceImage.data.length / 1024), 'KB');
+        console.log('\n📝 TEXT PROMPT:');
+        console.log('─'.repeat(80));
+        console.log(contentParts[0].text);
+      } else {
+        console.log('📝 TEXT PROMPT (No Reference Image):');
+        console.log('─'.repeat(80));
+        console.log(prompt);
+      }
+
+      console.log('─'.repeat(80));
+      console.log('🔧 MODEL:', 'gemini-2.5-flash-image-preview');
+      console.log('='.repeat(80) + '\n');
 
       // Generate content - Gemini 2.5 Flash can generate images
       const result = await model.generateContent(contentParts);

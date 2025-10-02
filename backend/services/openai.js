@@ -55,12 +55,8 @@ class OpenAIService {
 
       const prompt = this.buildAdCopyPrompt(params);
 
-      const completion = await this.openai.chat.completions.create({
-        model: 'gpt-4o-mini', // Using gpt-4o-mini for reliability
-        messages: [
-          {
-            role: 'system',
-            content: `You are an expert Facebook advertising copywriter specializing in B2B and service-based businesses. You create high-converting ad copy that:
+      // System message content
+      const systemMessage = `You are an expert Facebook advertising copywriter specializing in B2B and service-based businesses. You create high-converting ad copy that:
 - Speaks directly to the target audience's pain points
 - Uses proven direct response copywriting techniques
 - Includes strategic use of emojis (increases CTR by 241%)
@@ -78,7 +74,33 @@ Format your response as valid JSON with these exact keys:
   "alternativeHeadlines": ["2-3 alternative headline options"],
   "keyBenefits": ["3-5 key benefits highlighted"],
   "toneAnalysis": "Brief analysis of the tone used and why it works for this audience"
-}`
+}`;
+
+      // Log the complete request being sent to OpenAI
+      console.log('\n' + '='.repeat(80));
+      console.log('📤 OPENAI AD COPY GENERATION REQUEST');
+      console.log('='.repeat(80));
+      console.log('🔧 MODEL: gpt-4o-mini');
+      console.log('🌡️  TEMPERATURE: 0.8');
+      console.log('📊 MAX TOKENS: 2000');
+      console.log('─'.repeat(80));
+      console.log('💬 SYSTEM MESSAGE:');
+      console.log('─'.repeat(80));
+      console.log(systemMessage);
+      console.log('\n' + '─'.repeat(80));
+      console.log('👤 USER PROMPT:');
+      console.log('─'.repeat(80));
+      console.log(prompt);
+      console.log('─'.repeat(80));
+      console.log('📏 Prompt Length:', prompt.length, 'characters');
+      console.log('='.repeat(80) + '\n');
+
+      const completion = await this.openai.chat.completions.create({
+        model: 'gpt-4o-mini', // Using gpt-4o-mini for reliability
+        messages: [
+          {
+            role: 'system',
+            content: systemMessage
           },
           {
             role: 'user',
@@ -268,12 +290,27 @@ Return as JSON array: ["headline1", "headline2", ...]`;
 
     try {
       console.log('🎨 Starting DALL-E 3 image generation...');
-      console.log('📝 Prompt length:', prompt.length, 'characters');
 
       // Simplify prompt for DALL-E (max 4000 chars, but we'll keep it concise)
       const simplifiedPrompt = prompt.length > 1000
         ? this.simplifyPromptForDallE(prompt)
         : prompt;
+
+      console.log('\n' + '='.repeat(80));
+      console.log('📤 DALL-E 3 IMAGE GENERATION REQUEST');
+      console.log('='.repeat(80));
+      console.log('🔧 MODEL: dall-e-3');
+      console.log('📐 SIZE:', options.size || '1024x1024');
+      console.log('💎 QUALITY:', options.quality || 'hd');
+      console.log('🎨 STYLE:', options.style || 'natural');
+      console.log('─'.repeat(80));
+      console.log('📝 PROMPT:');
+      console.log('─'.repeat(80));
+      console.log(simplifiedPrompt);
+      console.log('─'.repeat(80));
+      console.log('📏 Original prompt length:', prompt.length, 'characters');
+      console.log('📏 Simplified prompt length:', simplifiedPrompt.length, 'characters');
+      console.log('='.repeat(80) + '\n');
 
       const response = await this.openai.images.generate({
         model: 'dall-e-3',
