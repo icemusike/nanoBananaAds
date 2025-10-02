@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir:*)",
+      "Bash(npm install)",
+      "WebFetch(domain:ai.google.dev)",
+      "Bash(npm install:*)",
+      "Bash(npm run dev:*)",
+      "Bash(npx prisma:*)",
+      "Bash(npm start)",
+      "Bash(taskkill:*)",
+      "Bash(netstat:*)",
+      "Bash(cmd //c:*)",
+      "Bash(npx shadcn@latest init:*)",
+      "WebFetch(domain:tweakcn.com)",
+      "Bash(npx shadcn@latest add https://tweakcn.com/r/themes/clean-slate.json)",
+      "WebSearch",
+      "Bash(git init:*)",
+      "Bash(git remote add:*)",
+      "Bash(git add:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

@@ -1,0 +1,227 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Account details
+  name      String?
+  email     String?  @unique
+  company   String?
+
+  // API Keys (encrypted in production)
+  geminiApiKey String?
+  openaiApiKey String?
+
+  // Image generation preferences
+  preferredImageModel String @default("gemini") // "gemini" or "dalle"
+  imageQuality        String @default("standard") // "standard" or "hd"
+
+  // Ad generation preferences
+  defaultIndustry     String?
+  defaultTone         String @default("professional yet approachable")
+  defaultAspectRatio  String @default("square")
+
+  // Theme preferences
+  theme               String @default("solar-dusk") // Theme name
+  themeMode           String @default("dark") // dark or light
+
+  // Default brand
+  defaultBrandId      String?
+  defaultBrand        Brand?  @relation("DefaultBrand", fields: [defaultBrandId], references: [id], onDelete: SetNull)
+
+  // Usage tracking
+  adsGenerated        Int @default(0)
+  promptsGenerated    Int @default(0)
+  anglesGenerated     Int @default(0)
+
+  // Settings metadata
+  settings            Json? // Additional flexible settings
+
+  // Relationships
+  brands              Brand[] @relation("UserBrands")
+
+  @@index([email])
+  @@index([defaultBrandId])
+}
+
+model Prompt {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // User input
+  idea        String   @db.Text // Simple idea from user
+
+  // Generated content
+  generatedPrompt String   @db.Text // Optimized prompt from OpenAI
+
+  // Categorization
+  industry     String? // Optional industry tag
+  style        String? // UGC, Professional, Product-focused, etc.
+  aspectRatio  String? // Square, Portrait, etc.
+
+  // Metadata
+  metadata     Json?   // Additional info like color palette suggestions, etc.
+
+  // Usage tracking
+  usageCount   Int     @default(0) // How many times used in ads
+
+  // Relationship to Angle (optional)
+  angleId      String? // If generated from an angle
+  angle        Angle?  @relation(fields: [angleId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@index([industry])
+  @@index([style])
+  @@index([angleId])
+}
+
+model Angle {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // User input (what they provided)
+  businessName        String
+  businessDescription String   @db.Text
+  industry            String?
+  targetAudience      String?
+  currentApproach     String?  @db.Text
+
+  // Generated angle data
+  angleName           String   // e.g., "The Problem-Agitator"
+  angleDescription    String   @db.Text // Strategy explanation
+  whyItWorks          String   @db.Text // Psychology behind it
+  targetEmotion       String   // Fear, Desire, Trust, Curiosity, etc.
+  exampleHeadline     String   // Sample headline using this angle
+  visualStyle         String   // Recommended visual approach
+  copyFramework       String?  // AIDA, PAS, BAB, etc.
+
+  // Metadata
+  metadata            Json?    // Additional strategic info
+
+  // Usage tracking
+  usageCount          Int      @default(0) // How many times used
+  promptsGenerated    Int      @default(0) // Prompts created from this angle
+  adsGenerated        Int      @default(0) // Ads created from this angle
+
+  // Performance tracking (optional future enhancement)
+  performanceRating   Float?   // User-assigned rating 1-5
+  performanceNotes    String?  @db.Text
+
+  // Relationships
+  prompts             Prompt[] // Prompts generated from this angle
+  ads                 Ad[]     // Ads generated from this angle
+
+  @@index([createdAt])
+  @@index([industry])
+  @@index([targetEmotion])
+  @@index([usageCount])
+}
+
+model Ad {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Image data
+  imageData     String // Base64 encoded image
+  imageMimeType String // image/png, etc.
+  imageMetadata Json   // Model info, timestamp, etc.
+
+  // Ad copy
+  headline               String
+  description            String
+  primaryText            String   @db.Text
+  callToAction           String
+  alternativeHeadlines   Json?    // Array of strings
+  keyBenefits            Json?    // Array of strings
+  toneAnalysis           String?  @db.Text
+
+  // Form data / metadata
+  productDescription String   @db.Text
+  targetAudience     String
+  industry           String
+  category           String
+  template           String
+  tone               String
+  colorPalette       String?
+  aspectRatio        String
+  valueProposition   String?
+
+  // Relationship to Angle (optional)
+  angleId            String? // If generated from an angle
+  angle              Angle?  @relation(fields: [angleId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@index([industry])
+  @@index([category])
+  @@index([angleId])
+}
+
+model Brand {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Brand Identity
+  name              String   // Brand/Company name
+  description       String   @db.Text // What the brand does
+  tagline           String?  // Brand tagline/slogan
+  logo              String?  @db.Text // Base64 encoded logo image
+  logoMimeType      String?  // image/png, image/svg+xml, etc.
+
+  // Brand Visual Identity
+  primaryColor      String?  // Hex color
+  secondaryColor    String?  // Hex color
+  accentColor       String?  // Hex color
+  colorPalette      String?  // Comma-separated hex colors
+
+  // Brand Voice & Messaging
+  industry          String?  // Industry/vertical
+  targetAudience    String?  @db.Text // Primary target audience
+  brandVoice        String?  @db.Text // How the brand communicates
+  tone              String   @default("professional yet approachable")
+  valueProposition  String?  @db.Text // Core value prop
+  keyMessages       Json?    // Array of key brand messages
+
+  // Additional Brand Assets
+  brandGuidelines   String?  @db.Text // Brand guidelines/notes
+  websiteUrl        String?  // Brand website
+  socialMediaLinks  Json?    // Object with social media links
+
+  // Metadata
+  metadata          Json?    // Additional flexible data
+
+  // Usage tracking
+  usageCount        Int      @default(0) // Times used in generation
+  lastUsed          DateTime?
+
+  // Relationships
+  userId            String   // Owner of this brand
+  user              User     @relation("UserBrands", fields: [userId], references: [id], onDelete: Cascade)
+
+  // Default brand relationships
+  defaultForUsers   User[]   @relation("DefaultBrand")
+
+  @@index([userId])
+  @@index([createdAt])
+  @@index([industry])
+  @@index([name])
+}
