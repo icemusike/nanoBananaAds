@@ -305,6 +305,26 @@ export default function FormSection({ formData, onInputChange, templates }) {
             )}
           </div>
 
+          {/* Custom Template Description */}
+          {formData.template === 'custom' && (
+            <div className="bg-primary-500/5 border border-primary-500/20 rounded-lg p-4">
+              <label className="label">
+                Custom Template Description *
+                <span className="text-primary-400 ml-2 text-xs font-normal">Describe your vision</span>
+              </label>
+              <textarea
+                value={formData.customTemplateDescription || ''}
+                onChange={(e) => onInputChange('customTemplateDescription', e.target.value)}
+                placeholder="Describe exactly what you want to see in the image. Example: A professional woman in her 30s with a warm smile, sitting at a modern desk with a laptop showing a colorful dashboard, in a bright office with plants in the background..."
+                className="input-field h-32 resize-none"
+                required
+              />
+              <p className="text-xs text-gray-400 mt-2">
+                💡 Be specific: Include people (age, appearance, action), setting, mood, lighting, and key visual elements you want.
+              </p>
+            </div>
+          )}
+
           <div>
             <label className="label">Aspect Ratio</label>
             <select

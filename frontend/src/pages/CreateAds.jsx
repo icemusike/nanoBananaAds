@@ -55,6 +55,7 @@ export default function CreateAds() {
     moodKeywords: '',
     visualEmphasis: '',
     avoidInImage: '',
+    customTemplateDescription: '',
   });
 
   // Reference image state

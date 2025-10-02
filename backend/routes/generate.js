@@ -30,6 +30,7 @@ router.post('/generate', async (req, res) => {
       moodKeywords,
       visualEmphasis,
       avoidInImage,
+      customTemplateDescription,
       referenceImage // { data: base64, mimeType: string }
     } = req.body;
 
@@ -119,6 +120,7 @@ router.post('/generate', async (req, res) => {
       colorPalette,
       aspectRatio: finalAspectRatio,
       customDetails,
+      customDescription: customTemplateDescription, // For custom template
       imageDescription,
       moodKeywords,
       visualEmphasis,

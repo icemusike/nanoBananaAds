@@ -271,6 +271,57 @@ A dynamic photo showing automation dashboard with speed metrics, throughput incr
 };
 
 /**
+ * Universal Templates (work for ANY category/industry)
+ */
+export const universalTemplates = {
+  professionalPortrait: (details) => `
+A professional portrait of ${details.age || '35'}-year-old business professional, genuine confident smile, wearing smart casual attire, making eye contact with camera. Set in modern professional environment with soft-focus background showing office or business setting. The scene is illuminated by soft natural window light mixed with professional lighting creating approachable yet authoritative atmosphere. Captured with 85mm portrait lens at f/2.0, sharp focus on face with beautiful background bokeh. The image has ${details.colorPalette || 'professional color palette with warm tones'}. Conveys trust, expertise, approachability. ${details.aspectRatio || ASPECT_RATIOS.SQUARE}.
+`.trim(),
+
+  happyCustomer: (details) => `
+An authentic photo showing satisfied customer, ${details.age || '40'}-year-old ${details.gender || 'person'}, with genuine happy smile and relaxed body language, in their natural environment showing success or satisfaction with your product/service. Real moment of authentic positive emotion. Set in relevant location for their business or life. The scene is illuminated by natural lighting creating warm authentic atmosphere. Captured with 35mm lens at f/2.8, documentary style showing real emotion. The image has warm relatable color palette with ${details.colorPalette || 'natural tones'}. Conveys genuine customer satisfaction and trust. ${details.aspectRatio || ASPECT_RATIOS.PORTRAIT}.
+`.trim(),
+
+  productInAction: (details) => `
+A dynamic photo showing your product or service being actively used in real-world scenario, clear benefits visible, user engaged and satisfied. Product/service clearly identifiable and prominently featured. Set in authentic environment where product would naturally be used. The scene is illuminated by natural lighting showing realistic usage context. Captured from angle that clearly shows product and its use, shot at f/2.8 for slight background blur. The image has vibrant realistic color palette emphasizing ${details.colorPalette || 'product colors'}. Conveys practical value and real-world application. ${details.aspectRatio || ASPECT_RATIOS.SQUARE}.
+`.trim(),
+
+  modernWorkspace: (details) => `
+A clean professional photo of modern workspace showing laptop or device with your product/service interface visible on screen, organized desk setup with professional accessories, clean aesthetic. Person partially visible or hands typing showing active use. Set in contemporary office or home workspace with good lighting. The scene is illuminated by natural window light mixed with warm desk lighting creating productive atmosphere. Captured from 45-degree angle showing both screen and workspace context. The image has clean modern color palette with ${details.colorPalette || 'professional colors'} from screen standing out. Conveys professionalism and modern business tools. ${details.aspectRatio || ASPECT_RATIOS.SQUARE}.
+`.trim(),
+
+  teamSuccess: (details) => `
+A candid photo of diverse team of 2-3 professionals celebrating success, genuine expressions of joy and achievement, high-five or fist bump moment, your product/service subtly visible or referenced. Natural team camaraderie and success. Set in professional environment showing collaborative workspace. The scene is illuminated by bright energetic lighting creating positive successful atmosphere. Captured at eye level showing authentic team moment, shot at f/2.8. The image has energetic positive color palette with ${details.colorPalette || 'vibrant professional tones'}. Conveys team success and positive outcomes. ${details.aspectRatio || ASPECT_RATIOS.SQUARE}.
+`.trim(),
+
+  resultsMetrics: (details) => `
+A compelling product shot showing device screen displaying impressive results, metrics, or outcomes: growth graphs, positive numbers, success indicators, testimonials, or achievement visualization. Professional hands holding device or device on desk. Set against clean background or professional environment. The scene is illuminated by screen glow highlighting impressive metrics mixed with ambient lighting. Captured with focus on screen showing clear results, shot at f/1.8 for background blur. The image has success-oriented color palette - greens for growth, blues for trust, ${details.colorPalette || 'gold for achievement'}. Conveys measurable results and proven success. ${details.aspectRatio || ASPECT_RATIOS.SQUARE}.
+`.trim(),
+
+  beforeAfterTransformation: (details) => `
+A powerful split-screen or side-by-side composition showing clear transformation: left side showing problem state (frustrated, difficult, inefficient), right side showing solution state with your product/service (happy, easy, optimized). Same person or scenario both sides for clear comparison. Set in relevant environment for transformation story. The scene is illuminated by contrasting lighting - problem side dimmer, solution side brighter. Captured showing clear visual difference between states. The image has contrasting emotional color palette transitioning from ${details.colorPalette || 'frustrated tones to success colors'}. Conveys transformation and problem solved. ${details.aspectRatio || ASPECT_RATIOS.SQUARE}.
+`.trim(),
+
+  closeUpDetails: (details) => `
+A detailed close-up photo showing key feature, benefit, or quality of your product/service. If physical product: texture, craftsmanship, materials. If digital: interface detail, key feature in use. Hands interacting with product adding human element. Set with clean background emphasizing subject. The scene is illuminated by soft directional lighting highlighting details and quality. Captured with macro lens or close focus showing fine details sharply, f/2.8-4. The image has rich detailed color palette emphasizing ${details.colorPalette || 'quality and craftsmanship'}. Conveys attention to detail and quality. ${details.aspectRatio || ASPECT_RATIOS.SQUARE}.
+`.trim(),
+
+  lifestyleIntegration: (details) => `
+An aspirational lifestyle photo showing how your product/service integrates seamlessly into ideal daily life. Person using product naturally in beautiful, organized, successful-looking environment. Product visible but not staged. Set in attractive real-world location - modern home, nice office, appealing public space. The scene is illuminated by beautiful natural golden hour light or bright attractive indoor lighting. Captured showing aspirational yet achievable lifestyle, shot at f/2.0 for dreamy aesthetic. The image has warm aspirational color palette with ${details.colorPalette || 'lifestyle tones'}. Conveys desirable lifestyle and seamless integration. ${details.aspectRatio || ASPECT_RATIOS.PORTRAIT}.
+`.trim(),
+
+  trustIndicators: (details) => `
+A professional credibility-building photo showing trust indicators: certifications, awards, professional setting, expert at work, quality assurance visible. Person or product with visible trust signals. Set in professional authoritative environment. The scene is illuminated by professional lighting creating trustworthy atmosphere. Captured from angle showing credibility elements clearly. The image has trustworthy color palette - ${details.colorPalette || 'blues and greens with professional gold accents'}. Conveys credibility, expertise, trustworthiness. ${details.aspectRatio || ASPECT_RATIOS.SQUARE}.
+`.trim(),
+
+  custom: (details) => {
+    // For custom template, use the user's custom description directly with some enhancements
+    const userDescription = details.customDescription || 'A professional business scene showing the product or service in use';
+    return `${userDescription}. The scene is illuminated by professional lighting creating appropriate atmosphere for the subject. Captured with professional photography techniques ensuring high quality. The image has ${details.colorPalette || 'appropriate color palette for the industry'} with vibrant tones optimized for social media. ${details.aspectRatio || ASPECT_RATIOS.SQUARE}. High-quality commercial photography, photorealistic, authentic details.`;
+  }
+};
+
+/**
  * Courses & Education Templates
  */
 export const coursesEducationTemplates = {
@@ -317,37 +368,37 @@ export function generateGeminiPrompt(inputs) {
   // Add user description context if provided
   let prompt = '';
 
-  // Select template
-  if (category === TEMPLATE_CATEGORIES.PHONE_SERVICES) {
-    const templateFunc = phoneServiceTemplates[template];
-    if (templateFunc) prompt = templateFunc(details);
-  } else if (category === TEMPLATE_CATEGORIES.B2B_SOFTWARE || category === TEMPLATE_CATEGORIES.BUSINESS_TOOLS || category === TEMPLATE_CATEGORIES.SERVICE_BUSINESS) {
-    const templateFunc = b2bSoftwareTemplates[template];
-    if (templateFunc) prompt = templateFunc(details);
-  } else if (category === TEMPLATE_CATEGORIES.AI_SOFTWARE) {
-    const templateFunc = aiSoftwareTemplates[template];
-    if (templateFunc) prompt = templateFunc(details);
-  } else if (category === TEMPLATE_CATEGORIES.AUTOMATION_TOOLS) {
-    const templateFunc = automationToolsTemplates[template];
-    if (templateFunc) prompt = templateFunc(details);
-  } else if (category === TEMPLATE_CATEGORIES.CALL_AUTOMATION || category === TEMPLATE_CATEGORIES.COMMUNICATION_PLATFORM) {
-    const templateFunc = callAutomationTemplates[template];
-    if (templateFunc) prompt = templateFunc(details);
-  } else if (category === TEMPLATE_CATEGORIES.ECOMMERCE_PRODUCTS || category === TEMPLATE_CATEGORIES.PHYSICAL_PRODUCTS) {
-    const templateFunc = ecommerceProductTemplates[template];
-    if (templateFunc) prompt = templateFunc(details);
-  } else if (category === TEMPLATE_CATEGORIES.PROFESSIONAL_SERVICES) {
-    const templateFunc = professionalServicesTemplates[template];
-    if (templateFunc) prompt = templateFunc(details);
-  } else if (category === TEMPLATE_CATEGORIES.LOCAL_SERVICES) {
-    const templateFunc = localServicesTemplates[template];
-    if (templateFunc) prompt = templateFunc(details);
-  } else if (category === TEMPLATE_CATEGORIES.DIGITAL_PRODUCTS || category === TEMPLATE_CATEGORIES.LEAD_GENERATION) {
-    const templateFunc = digitalProductTemplates[template];
-    if (templateFunc) prompt = templateFunc(details);
-  } else if (category === TEMPLATE_CATEGORIES.COURSES_EDUCATION || category === TEMPLATE_CATEGORIES.MEMBERSHIP_SUBSCRIPTION) {
-    const templateFunc = coursesEducationTemplates[template];
-    if (templateFunc) prompt = templateFunc(details);
+  // Check if template is from universal templates first
+  let templateFunc = universalTemplates[template];
+
+  if (!templateFunc) {
+    // Select category-specific template
+    if (category === TEMPLATE_CATEGORIES.PHONE_SERVICES) {
+      templateFunc = phoneServiceTemplates[template];
+    } else if (category === TEMPLATE_CATEGORIES.B2B_SOFTWARE || category === TEMPLATE_CATEGORIES.BUSINESS_TOOLS || category === TEMPLATE_CATEGORIES.SERVICE_BUSINESS) {
+      templateFunc = b2bSoftwareTemplates[template];
+    } else if (category === TEMPLATE_CATEGORIES.AI_SOFTWARE) {
+      templateFunc = aiSoftwareTemplates[template];
+    } else if (category === TEMPLATE_CATEGORIES.AUTOMATION_TOOLS) {
+      templateFunc = automationToolsTemplates[template];
+    } else if (category === TEMPLATE_CATEGORIES.CALL_AUTOMATION || category === TEMPLATE_CATEGORIES.COMMUNICATION_PLATFORM) {
+      templateFunc = callAutomationTemplates[template];
+    } else if (category === TEMPLATE_CATEGORIES.ECOMMERCE_PRODUCTS || category === TEMPLATE_CATEGORIES.PHYSICAL_PRODUCTS) {
+      templateFunc = ecommerceProductTemplates[template];
+    } else if (category === TEMPLATE_CATEGORIES.PROFESSIONAL_SERVICES) {
+      templateFunc = professionalServicesTemplates[template];
+    } else if (category === TEMPLATE_CATEGORIES.LOCAL_SERVICES) {
+      templateFunc = localServicesTemplates[template];
+    } else if (category === TEMPLATE_CATEGORIES.DIGITAL_PRODUCTS || category === TEMPLATE_CATEGORIES.LEAD_GENERATION) {
+      templateFunc = digitalProductTemplates[template];
+    } else if (category === TEMPLATE_CATEGORIES.COURSES_EDUCATION || category === TEMPLATE_CATEGORIES.MEMBERSHIP_SUBSCRIPTION) {
+      templateFunc = coursesEducationTemplates[template];
+    }
+  }
+
+  // Execute template function if found
+  if (templateFunc) {
+    prompt = templateFunc(details);
   }
 
   // ENHANCED: Intelligently merge user's image description with template
@@ -504,6 +555,7 @@ function buildEnhancedPrompt(params) {
 
 /**
  * Get available templates for a category
+ * ALWAYS includes universal templates that work for any business
  */
 export function getTemplatesForCategory(category) {
   const templateMap = {
@@ -525,21 +577,29 @@ export function getTemplatesForCategory(category) {
     [TEMPLATE_CATEGORIES.MEMBERSHIP_SUBSCRIPTION]: { templates: coursesEducationTemplates, type: 'courses' },
   };
 
+  let categoryTemplates = [];
+
+  // Get category-specific templates if available
   const config = templateMap[category];
   if (config) {
-    return Object.keys(config.templates).map(key => ({
+    categoryTemplates = Object.keys(config.templates).map(key => ({
       id: key,
       name: formatTemplateName(key),
-      description: getTemplateDescription(key, config.type)
+      description: getTemplateDescription(key, config.type),
+      category: 'category-specific'
     }));
   }
 
-  // Fallback to B2B templates for any unmapped categories
-  return Object.keys(b2bSoftwareTemplates).map(key => ({
+  // ALWAYS add universal templates that work for any business
+  const universalTemplatesList = Object.keys(universalTemplates).map(key => ({
     id: key,
     name: formatTemplateName(key),
-    description: getTemplateDescription(key, 'b2b')
+    description: getTemplateDescription(key, 'universal'),
+    category: 'universal'
   }));
+
+  // Return category-specific templates first, then universal templates
+  return [...categoryTemplates, ...universalTemplatesList];
 }
 
 function formatTemplateName(key) {
@@ -612,6 +672,19 @@ function getTemplateDescription(key, category) {
       learnerSuccess: 'Student having breakthrough moment while learning',
       instructorCredibility: 'Professional educator portrait showing expertise',
       courseContentPreview: 'Flat lay of course materials and learning journey',
+    },
+    universal: {
+      professionalPortrait: 'Professional business portrait with confident smile',
+      happyCustomer: 'Satisfied customer showing genuine positive emotion',
+      productInAction: 'Product or service being used in real-world setting',
+      modernWorkspace: 'Clean workspace with product/service on screen',
+      teamSuccess: 'Team celebrating success and achievement',
+      resultsMetrics: 'Device screen showing impressive results and metrics',
+      beforeAfterTransformation: 'Transformation showing problem → solution',
+      closeUpDetails: 'Detailed close-up showing quality and features',
+      lifestyleIntegration: 'Aspirational lifestyle with product integrated naturally',
+      trustIndicators: 'Professional credibility with trust signals visible',
+      custom: 'Custom template - describe your own visual style',
     },
   };
 
