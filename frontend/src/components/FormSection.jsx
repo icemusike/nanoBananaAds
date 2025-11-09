@@ -89,7 +89,7 @@ const COPYWRITING_STYLES = [
   { value: 'clayton_makepeace', label: 'Clayton Makepeace - Fear & Urgency Master' },
 ];
 
-export default function FormSection({ formData, onInputChange, templates }) {
+export default function FormSection({ formData, onInputChange, templates, availableModels = [] }) {
   const availableTemplates = templates[formData.category] || [];
 
   return (
@@ -185,6 +185,38 @@ export default function FormSection({ formData, onInputChange, templates }) {
             NEW - Enhanced AI
           </span>
         </h2>
+
+        {/* Simple Mode Toggle */}
+        <div className="mb-6 p-4 bg-dark-800 border border-accent-purple/30 rounded-lg">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => onInputChange('simpleMode', !formData.simpleMode)}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                  formData.simpleMode ? 'bg-accent-purple' : 'bg-dark-700'
+                }`}
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                    formData.simpleMode ? 'translate-x-6' : 'translate-x-1'
+                  }`}
+                />
+              </button>
+              <div>
+                <span className="font-semibold text-white">Simple Mode</span>
+                <span className="ml-2 text-xs bg-accent-purple/20 text-accent-purple px-2 py-0.5 rounded-full">
+                  Direct Control
+                </span>
+              </div>
+            </div>
+          </div>
+          <p className="text-xs text-gray-400">
+            {formData.simpleMode
+              ? '✓ Using ONLY your Image Description. Templates and industry styles are bypassed for direct control.'
+              : 'Using Image Description + Visual Style templates for enhanced professional results.'}
+          </p>
+        </div>
 
         <div className="space-y-4">
           <div>
@@ -366,6 +398,37 @@ export default function FormSection({ formData, onInputChange, templates }) {
         </h2>
 
         <div className="space-y-4">
+          <div>
+            <label className="label">
+              AI Model for Copy Generation
+              <span className="text-accent-blue ml-2 text-xs font-normal">🤖 Choose Quality Level</span>
+            </label>
+            <select
+              value={formData.model || 'gpt-4o-2024-08-06'}
+              onChange={(e) => onInputChange('model', e.target.value)}
+              className="select-field"
+            >
+              {availableModels.length > 0 ? (
+                availableModels.map(model => (
+                  <option key={model.id} value={model.id}>
+                    {model.name === 'GPT-5' ? 'Premium' : model.name === 'GPT-4o' ? 'Standard' : model.name === 'GPT-4o Mini' ? 'Fast' : model.name} - {model.description}
+                  </option>
+                ))
+              ) : (
+                <>
+                  <option value="gpt-5-2025-08-07">Premium - Best quality, highest intelligence</option>
+                  <option value="gpt-4o-2024-08-06">Standard - Great balance (Recommended)</option>
+                  <option value="gpt-4o-mini">Fast - Quick and affordable</option>
+                </>
+              )}
+            </select>
+            <p className="text-xs text-gray-500 mt-1">
+              {formData.model === 'gpt-5-2025-08-07' && '🔥 Maximum quality, highest cost'}
+              {formData.model === 'gpt-4o-2024-08-06' && '⚡ Great balance of quality and cost'}
+              {formData.model === 'gpt-4o-mini' && '💰 Most affordable, good for testing'}
+            </p>
+          </div>
+
           <div>
             <label className="label">
               Copywriting Style

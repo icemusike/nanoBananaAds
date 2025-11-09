@@ -1,8 +1,9 @@
-import { X, Download, Trash2, Copy, Check, Calendar, Tag, Zap } from 'lucide-react';
+import { X, Download, Trash2, Copy, Check, Calendar, Tag, Zap, RefreshCw } from 'lucide-react';
 import { useState } from 'react';
 
-export default function AdDetailModal({ ad, onClose, onDelete, onDownload }) {
+export default function AdDetailModal({ ad, onClose, onDelete, onDownload, onRegenerateCopy }) {
   const [copiedField, setCopiedField] = useState(null);
+  const [regenerating, setRegenerating] = useState(false);
 
   const copyToClipboard = (text, field) => {
     navigator.clipboard.writeText(text);
@@ -50,17 +51,6 @@ export default function AdDetailModal({ ad, onClose, onDelete, onDownload }) {
                   alt={ad.adCopy.headline}
                   className="w-full h-full object-cover"
                 />
-
-                {/* Model Badge */}
-                <div className="absolute top-4 right-4">
-                  <div className={`px-3 py-1.5 rounded-lg text-sm font-semibold ${
-                    ad.image.metadata?.model === 'dall-e-3'
-                      ? 'bg-yellow-500 text-yellow-950'
-                      : 'bg-green-500 text-green-950'
-                  }`}>
-                    {ad.image.metadata?.model === 'dall-e-3' ? '⚡ DALL-E 3' : '✓ Gemini'}
-                  </div>
-                </div>
               </div>
 
               {/* Image Actions */}
@@ -111,6 +101,22 @@ export default function AdDetailModal({ ad, onClose, onDelete, onDownload }) {
 
             {/* Right: Ad Copy */}
             <div className="space-y-6">
+              {/* Create Copy Variation Button */}
+              {onRegenerateCopy && (
+                <button
+                  onClick={async () => {
+                    setRegenerating(true);
+                    await onRegenerateCopy(ad);
+                    setRegenerating(false);
+                  }}
+                  disabled={regenerating}
+                  className="w-full btn-primary flex items-center justify-center gap-2"
+                >
+                  <RefreshCw className={`w-5 h-5 ${regenerating ? 'animate-spin' : ''}`} />
+                  {regenerating ? 'Creating Variation...' : 'Create Copy Variation'}
+                </button>
+              )}
+
               {/* Headline */}
               <div className="card bg-dark-800/50">
                 <div className="flex items-center justify-between mb-2">

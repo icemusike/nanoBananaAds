@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Building2, Plus, Edit, Trash2, Check, X, Upload, Star, StarOff, Palette, Loader2 } from 'lucide-react';
 import axios from 'axios';
+import BrainLoader from '../components/BrainLoader';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 export default function BrandsManager() {
   const [brands, setBrands] = useState([]);
@@ -62,12 +63,16 @@ export default function BrandsManager() {
   const loadBrands = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`${API_URL}/brands`);
+      const token = localStorage.getItem('token');
+      const response = await axios.get(`${API_URL}/api/brands`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       if (response.data.success) {
         setBrands(response.data.brands);
       }
     } catch (error) {
       console.error('Error loading brands:', error);
+      alert('Failed to load brands. Please try logging in again.');
     } finally {
       setLoading(false);
     }
@@ -75,7 +80,10 @@ export default function BrandsManager() {
 
   const loadDefaultBrand = async () => {
     try {
-      const response = await axios.get(`${API_URL}/user/settings`);
+      const token = localStorage.getItem('token');
+      const response = await axios.get(`${API_URL}/api/user/settings`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       if (response.data.success && response.data.user) {
         setDefaultBrandId(response.data.user.defaultBrandId);
       }
@@ -107,16 +115,19 @@ export default function BrandsManager() {
     e.preventDefault();
 
     try {
+      const token = localStorage.getItem('token');
+      const headers = { Authorization: `Bearer ${token}` };
+
       if (editingBrand) {
         // Update existing brand
-        const response = await axios.put(`${API_URL}/brands/${editingBrand.id}`, formData);
+        const response = await axios.put(`${API_URL}/api/brands/${editingBrand.id}`, formData, { headers });
         if (response.data.success) {
           await loadBrands();
           resetForm();
         }
       } else {
         // Create new brand
-        const response = await axios.post(`${API_URL}/brands`, formData);
+        const response = await axios.post(`${API_URL}/api/brands`, formData, { headers });
         if (response.data.success) {
           await loadBrands();
           resetForm();
@@ -157,7 +168,10 @@ export default function BrandsManager() {
     if (!confirm('Are you sure you want to delete this brand?')) return;
 
     try {
-      const response = await axios.delete(`${API_URL}/brands/${id}`);
+      const token = localStorage.getItem('token');
+      const response = await axios.delete(`${API_URL}/api/brands/${id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       if (response.data.success) {
         await loadBrands();
         if (defaultBrandId === id) {
@@ -172,7 +186,10 @@ export default function BrandsManager() {
 
   const handleSetDefault = async (id) => {
     try {
-      const response = await axios.put(`${API_URL}/brands/${id}/set-default`);
+      const token = localStorage.getItem('token');
+      const response = await axios.put(`${API_URL}/api/brands/${id}/set-default`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       if (response.data.success) {
         setDefaultBrandId(id);
       }
@@ -210,10 +227,7 @@ export default function BrandsManager() {
   if (loading) {
     return (
       <div className="min-h-screen bg-dark-950 flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="w-16 h-16 text-primary-400 animate-spin mx-auto mb-4" />
-          <p className="text-gray-400">Loading brands...</p>
-        </div>
+        <BrainLoader message="Loading your brands..." />
       </div>
     );
   }

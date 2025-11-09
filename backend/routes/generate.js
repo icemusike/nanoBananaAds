@@ -3,6 +3,7 @@ import geminiService from '../services/gemini.js';
 import openaiService from '../services/openai.js';
 import { generateGeminiPrompt, getTemplatesForCategory, TEMPLATE_CATEGORIES } from '../prompts/templates.js';
 import prisma from '../utils/prisma.js';
+import { calculateOpenAICost, calculateGeminiCost } from '../utils/costCalculator.js';
 
 const router = express.Router();
 
@@ -31,7 +32,11 @@ router.post('/generate', async (req, res) => {
       visualEmphasis,
       avoidInImage,
       customTemplateDescription,
-      referenceImage // { data: base64, mimeType: string }
+      referenceImage, // { data: base64, mimeType: string }
+      model = 'gpt-4o-2024-08-06', // NEW: Allow model selection for ad copy generation
+      simpleMode = false, // NEW: Simple Mode - bypass templates
+      clientAccountId, // Agency feature: associate ad with client
+      projectId // Agency feature: associate ad with project
     } = req.body;
 
     // Extract API keys from headers (sent from frontend localStorage)
@@ -47,8 +52,6 @@ router.post('/generate', async (req, res) => {
       });
       if (user) {
         userSettings = {
-          preferredImageModel: user.preferredImageModel || 'gemini',
-          imageQuality: user.imageQuality || 'standard',
           defaultAspectRatio: user.defaultAspectRatio || 'square',
           defaultTone: user.defaultTone || 'professional yet approachable'
         };
@@ -59,8 +62,6 @@ router.post('/generate', async (req, res) => {
     }
 
     // Use settings with fallbacks
-    const preferredImageModel = userSettings?.preferredImageModel || 'gemini';
-    const imageQuality = userSettings?.imageQuality || 'standard';
     const finalAspectRatio = aspectRatio || userSettings?.defaultAspectRatio || 'square';
     const finalTone = tone || userSettings?.defaultTone || 'professional yet approachable';
 
@@ -79,25 +80,18 @@ router.post('/generate', async (req, res) => {
       });
     }
 
-    // Check if API keys are available based on preferred model
-    if (preferredImageModel === 'gemini' && !geminiApiKey && !process.env.GEMINI_API_KEY) {
+    // Check if API keys are available
+    if (!geminiApiKey && !process.env.GEMINI_API_KEY) {
       return res.status(401).json({
         error: 'Gemini API key not found. Please add it in Settings.',
         details: 'Go to Settings and add your Google Gemini API key'
       });
     }
 
-    if (preferredImageModel === 'dalle' && !openaiApiKey && !process.env.OPENAI_API_KEY) {
-      return res.status(401).json({
-        error: 'OpenAI API key not found. Please add it in Settings.',
-        details: 'Go to Settings and add your OpenAI API key for DALL-E'
-      });
-    }
-
     if (!openaiApiKey && !process.env.OPENAI_API_KEY) {
       return res.status(401).json({
         error: 'OpenAI API key not found. Please add it in Settings.',
-        details: 'Go to Settings and add your OpenAI API key'
+        details: 'Go to Settings and add your OpenAI API key for ad copy generation'
       });
     }
 
@@ -106,8 +100,11 @@ router.post('/generate', async (req, res) => {
     console.log('🎨 Template:', template);
     console.log('👥 Target Audience:', targetAudience);
     console.log('🖼️ Image Description:', imageDescription?.substring(0, 100) + '...');
-    console.log('🎯 Preferred Image Model:', preferredImageModel);
-    console.log('💎 Image Quality:', imageQuality);
+    console.log('🎯 Image Model: Google Gemini (gemini-2.5-flash-image)');
+    console.log('📝 Copy Model:', model);
+    if (simpleMode) {
+      console.log('🎯 SIMPLE MODE ENABLED: Bypassing templates, using ONLY image description');
+    }
 
     // Step 1: Generate Gemini image prompt
     const geminiPrompt = generateGeminiPrompt({
@@ -124,7 +121,8 @@ router.post('/generate', async (req, res) => {
       imageDescription,
       moodKeywords,
       visualEmphasis,
-      avoidInImage
+      avoidInImage,
+      simpleMode // NEW: Pass simpleMode flag
     });
 
     console.log('📝 Generated image prompt');
@@ -133,30 +131,14 @@ router.post('/generate', async (req, res) => {
     const promptValidation = geminiService.validatePrompt(geminiPrompt);
     console.log('✓ Prompt validation score:', (promptValidation.score * 100).toFixed(0) + '%');
 
-    // Step 2: Generate image and copy in parallel, using preferred model
-    console.log(`🔄 Starting parallel generation: ${preferredImageModel.toUpperCase()} (image) + OpenAI (copy)...`);
-
-    // Prepare image generation promise based on user preference
-    let imageGenerationPromise;
-    if (preferredImageModel === 'dalle') {
-      // Use DALL-E as primary choice
-      const imageSize = finalAspectRatio === 'portrait' ? '1024x1792' : '1024x1024';
-      imageGenerationPromise = openaiService.generateImage(geminiPrompt, {
-        size: imageSize,
-        quality: imageQuality, // 'standard' or 'hd'
-        style: 'natural',
-        apiKey: openaiApiKey
-      });
-    } else {
-      // Use Gemini (default)
-      imageGenerationPromise = geminiService.generateImage(geminiPrompt, {
-        apiKey: geminiApiKey,
-        referenceImage: referenceImage // Pass reference image if provided
-      });
-    }
+    // Step 2: Generate image and copy in parallel
+    console.log('🔄 Starting parallel generation: Gemini (image) + OpenAI (copy)...');
 
     const [imageResult, copyResult] = await Promise.allSettled([
-      imageGenerationPromise,
+      geminiService.generateImage(geminiPrompt, {
+        apiKey: geminiApiKey,
+        referenceImage: referenceImage // Pass reference image if provided
+      }),
       openaiService.generateAdCopy({
         description,
         targetAudience,
@@ -167,7 +149,8 @@ router.post('/generate', async (req, res) => {
         copywritingStyle: copywritingStyle || 'default',
         valueProposition,
         callToAction,
-        apiKey: openaiApiKey
+        apiKey: openaiApiKey,
+        model: model // NEW: Pass model selection to OpenAI service
       })
     ]);
 
@@ -180,55 +163,22 @@ router.post('/generate', async (req, res) => {
         validation: promptValidation
       },
       settings: {
-        preferredImageModel,
-        imageQuality,
         aspectRatio: finalAspectRatio,
         tone: finalTone
       }
     };
 
-    // Image result - Try preferred model first, fallback to alternative if needed
+    // Image result
     if (imageResult.status === 'fulfilled' && imageResult.value.success) {
       response.image = imageResult.value;
-      response.image.modelUsed = preferredImageModel;
-      console.log(`✅ ${preferredImageModel.toUpperCase()} image generation successful`);
+      response.image.modelUsed = 'gemini';
+      console.log('✅ Gemini image generation successful');
     } else {
-      // Fallback to alternative model
-      const fallbackModel = preferredImageModel === 'gemini' ? 'dalle' : 'gemini';
-      console.log(`⚠️ ${preferredImageModel.toUpperCase()} image generation failed, falling back to ${fallbackModel.toUpperCase()}...`);
-
-      try {
-        let fallbackResult;
-        if (fallbackModel === 'dalle') {
-          const imageSize = finalAspectRatio === 'portrait' ? '1024x1792' : '1024x1024';
-          fallbackResult = await openaiService.generateImage(geminiPrompt, {
-            size: imageSize,
-            quality: imageQuality,
-            style: 'natural',
-            apiKey: openaiApiKey
-          });
-        } else {
-          fallbackResult = await geminiService.generateImage(geminiPrompt, {
-            apiKey: geminiApiKey,
-            referenceImage: referenceImage
-          });
-        }
-
-        response.image = fallbackResult;
-        response.image.fallbackUsed = true;
-        response.image.modelUsed = fallbackModel;
-        console.log(`✅ ${fallbackModel.toUpperCase()} image generation successful (fallback)`);
-      } catch (fallbackError) {
-        response.image = {
-          success: false,
-          error: imageResult.reason?.message || 'Image generation failed',
-          fallbackError: fallbackError.message,
-          attemptedModels: [preferredImageModel, fallbackModel]
-        };
-        console.log('❌ Both image generation methods failed');
-        console.log(`  ${preferredImageModel.toUpperCase()} error:`, imageResult.reason?.message);
-        console.log(`  ${fallbackModel.toUpperCase()} error:`, fallbackError.message);
-      }
+      response.image = {
+        success: false,
+        error: imageResult.reason?.message || 'Gemini image generation failed'
+      };
+      console.log('❌ Gemini image generation failed:', imageResult.reason?.message);
     }
 
     // Copy result
@@ -247,6 +197,124 @@ router.post('/generate', async (req, res) => {
       console.log('⚠️ Copy generation failed:', copyResult.reason?.message);
     }
 
+    // ============================================
+    // LOG API USAGE FOR COST TRACKING
+    // ============================================
+    console.log('\n💰 Logging API usage for cost analysis...');
+
+    // Log Gemini image generation usage
+    if (imageResult.status === 'fulfilled' && imageResult.value.success) {
+      try {
+        const metadata = imageResult.value.metadata || {};
+        const estimatedCost = calculateGeminiCost(
+          { imageCount: 1 },
+          'gemini-2.5-flash-image',
+          'image'
+        );
+
+        await prisma.apiUsageLog.create({
+          data: {
+            userId: DEFAULT_USER_ID,
+            provider: 'gemini',
+            model: 'gemini-2.5-flash-image',
+            feature: 'image_generation',
+            requestTokens: metadata.promptTokens || null,
+            responseTokens: metadata.candidatesTokens || null,
+            totalTokens: metadata.totalTokens || null,
+            estimatedCost: estimatedCost,
+            success: true,
+            metadata: {
+              hasReferenceImage: metadata.hasReferenceImage,
+              promptLength: geminiPrompt?.length || 0
+            }
+          }
+        });
+        console.log('✅ Logged Gemini image generation usage');
+      } catch (logError) {
+        console.error('⚠️ Failed to log Gemini usage:', logError.message);
+      }
+    } else {
+      // Log failed Gemini call
+      try {
+        await prisma.apiUsageLog.create({
+          data: {
+            userId: DEFAULT_USER_ID,
+            provider: 'gemini',
+            model: 'gemini-2.5-flash-image',
+            feature: 'image_generation',
+            estimatedCost: 0,
+            success: false,
+            metadata: {
+              error: imageResult.reason?.message || 'Unknown error'
+            }
+          }
+        });
+        console.log('⚠️ Logged failed Gemini usage');
+      } catch (logError) {
+        console.error('⚠️ Failed to log Gemini failure:', logError.message);
+      }
+    }
+
+    // Log OpenAI copy generation usage
+    if (copyResult.status === 'fulfilled' && copyResult.value.success) {
+      try {
+        const metadata = copyResult.value.metadata || {};
+        const usage = {
+          prompt_tokens: metadata.promptTokens || 0,
+          completion_tokens: metadata.completionTokens || 0,
+          total_tokens: metadata.totalTokens || 0,
+          completion_tokens_details: metadata.reasoningTokens ? {
+            reasoning_tokens: metadata.reasoningTokens
+          } : undefined
+        };
+        const estimatedCost = calculateOpenAICost(usage, metadata.model || model);
+
+        await prisma.apiUsageLog.create({
+          data: {
+            userId: DEFAULT_USER_ID,
+            provider: 'openai',
+            model: metadata.model || model,
+            feature: 'copy_generation',
+            requestTokens: metadata.promptTokens || null,
+            responseTokens: metadata.completionTokens || null,
+            totalTokens: metadata.totalTokens || null,
+            estimatedCost: estimatedCost,
+            success: true,
+            metadata: {
+              modelName: metadata.modelName,
+              reasoningTokens: metadata.reasoningTokens || null,
+              copywritingStyle: copywritingStyle || 'default'
+            }
+          }
+        });
+        console.log('✅ Logged OpenAI copy generation usage');
+      } catch (logError) {
+        console.error('⚠️ Failed to log OpenAI usage:', logError.message);
+      }
+    } else {
+      // Log failed OpenAI call
+      try {
+        await prisma.apiUsageLog.create({
+          data: {
+            userId: DEFAULT_USER_ID,
+            provider: 'openai',
+            model: model,
+            feature: 'copy_generation',
+            estimatedCost: 0,
+            success: false,
+            metadata: {
+              error: copyResult.reason?.message || 'Unknown error'
+            }
+          }
+        });
+        console.log('⚠️ Logged failed OpenAI usage');
+      } catch (logError) {
+        console.error('⚠️ Failed to log OpenAI failure:', logError.message);
+      }
+    }
+
+    console.log('💰 API usage logging complete\n');
+
     // Save to database if both image and copy generation succeeded
     if (response.image?.success && response.copy?.success) {
       try {
@@ -256,9 +324,7 @@ router.post('/generate', async (req, res) => {
             imageMimeType: response.image.imageData.mimeType,
             imageMetadata: {
               ...response.image.metadata || {},
-              modelUsed: response.image.modelUsed,
-              fallbackUsed: response.image.fallbackUsed || false,
-              imageQuality: imageQuality
+              modelUsed: 'gemini'
             },
             headline: response.copy.adCopy.headline,
             description: response.copy.adCopy.description,
@@ -267,6 +333,7 @@ router.post('/generate', async (req, res) => {
             alternativeHeadlines: response.copy.adCopy.alternativeHeadlines || [],
             keyBenefits: response.copy.adCopy.keyBenefits || [],
             toneAnalysis: response.copy.adCopy.toneAnalysis || null,
+            copyModel: response.copy.metadata?.model || model, // Track which model was used
             productDescription: description,
             targetAudience: targetAudience,
             industry: industry || 'tech_saas',
@@ -276,8 +343,19 @@ router.post('/generate', async (req, res) => {
             colorPalette: colorPalette || null,
             aspectRatio: finalAspectRatio,
             valueProposition: valueProposition || null,
+            // Agency features: associate with client and project if provided
+            ...(clientAccountId && { clientAccountId }),
+            ...(projectId && { projectId }),
           },
         });
+
+        // Log if ad was created for a client
+        if (clientAccountId) {
+          console.log('✅ Ad associated with client:', clientAccountId);
+        }
+        if (projectId) {
+          console.log('✅ Ad associated with project:', projectId);
+        }
 
         response.savedToDatabase = true;
         response.adId = savedAd.id;
@@ -325,12 +403,89 @@ router.post('/generate-image', async (req, res) => {
       return res.status(400).json({ error: 'Prompt is required' });
     }
 
+    const geminiApiKey = req.headers['x-gemini-api-key'];
+    const DEFAULT_USER_ID = 'default-user';
+
     const finalPrompt = customPrompt || prompt;
-    const result = await geminiService.generateImage(finalPrompt);
+    const result = await geminiService.generateImage(finalPrompt, {
+      apiKey: geminiApiKey
+    });
+
+    // Log API usage for cost tracking
+    if (result.success) {
+      try {
+        const metadata = result.metadata || {};
+        const estimatedCost = calculateGeminiCost(
+          { imageCount: 1 },
+          'gemini-2.5-flash-image',
+          'image'
+        );
+
+        await prisma.apiUsageLog.create({
+          data: {
+            userId: DEFAULT_USER_ID,
+            provider: 'gemini',
+            model: 'gemini-2.5-flash-image',
+            feature: 'image_regeneration',
+            requestTokens: metadata.promptTokens || null,
+            responseTokens: metadata.candidatesTokens || null,
+            totalTokens: metadata.totalTokens || null,
+            estimatedCost: estimatedCost,
+            success: true,
+            metadata: {
+              promptLength: finalPrompt?.length || 0
+            }
+          }
+        });
+        console.log('✅ Logged Gemini image regeneration usage');
+      } catch (logError) {
+        console.error('⚠️ Failed to log Gemini usage:', logError.message);
+      }
+    } else {
+      // Log failed call
+      try {
+        await prisma.apiUsageLog.create({
+          data: {
+            userId: DEFAULT_USER_ID,
+            provider: 'gemini',
+            model: 'gemini-2.5-flash-image',
+            feature: 'image_regeneration',
+            estimatedCost: 0,
+            success: false,
+            metadata: {
+              error: 'Image generation failed'
+            }
+          }
+        });
+      } catch (logError) {
+        console.error('⚠️ Failed to log Gemini failure:', logError.message);
+      }
+    }
 
     res.json(result);
   } catch (error) {
     console.error('Image generation error:', error);
+
+    // Log failed API call
+    try {
+      const DEFAULT_USER_ID = 'default-user';
+      await prisma.apiUsageLog.create({
+        data: {
+          userId: DEFAULT_USER_ID,
+          provider: 'gemini',
+          model: 'gemini-2.5-flash-image',
+          feature: 'image_regeneration',
+          estimatedCost: 0,
+          success: false,
+          metadata: {
+            error: error.message
+          }
+        }
+      });
+    } catch (logError) {
+      console.error('⚠️ Failed to log error:', logError.message);
+    }
+
     res.status(500).json({
       error: 'Image generation failed',
       message: error.message
@@ -344,12 +499,119 @@ router.post('/generate-image', async (req, res) => {
  */
 router.post('/generate-copy', async (req, res) => {
   try {
-    const result = await openaiService.generateAdCopy(req.body);
+    // Extract model from request body, default to GPT-4o
+    const params = {
+      ...req.body,
+      model: req.body.model || 'gpt-4o-2024-08-06',
+      apiKey: req.headers['x-openai-api-key']
+    };
+    const result = await openaiService.generateAdCopy(params);
+
+    const DEFAULT_USER_ID = 'default-user';
+    const model = params.model;
+
+    // Log API usage for cost tracking
+    if (result.success) {
+      try {
+        const metadata = result.metadata || {};
+        const usage = {
+          prompt_tokens: metadata.promptTokens || 0,
+          completion_tokens: metadata.completionTokens || 0,
+          total_tokens: metadata.totalTokens || 0,
+          completion_tokens_details: metadata.reasoningTokens ? {
+            reasoning_tokens: metadata.reasoningTokens
+          } : undefined
+        };
+        const estimatedCost = calculateOpenAICost(usage, metadata.model || model);
+
+        await prisma.apiUsageLog.create({
+          data: {
+            userId: DEFAULT_USER_ID,
+            provider: 'openai',
+            model: metadata.model || model,
+            feature: 'copy_generation',
+            requestTokens: metadata.promptTokens || null,
+            responseTokens: metadata.completionTokens || null,
+            totalTokens: metadata.totalTokens || null,
+            estimatedCost: estimatedCost,
+            success: true,
+            metadata: {
+              modelName: metadata.modelName,
+              reasoningTokens: metadata.reasoningTokens || null
+            }
+          }
+        });
+        console.log('✅ Logged OpenAI copy generation usage');
+      } catch (logError) {
+        console.error('⚠️ Failed to log OpenAI usage:', logError.message);
+      }
+    } else {
+      // Log failed call
+      try {
+        await prisma.apiUsageLog.create({
+          data: {
+            userId: DEFAULT_USER_ID,
+            provider: 'openai',
+            model: model,
+            feature: 'copy_generation',
+            estimatedCost: 0,
+            success: false,
+            metadata: {
+              error: 'Copy generation failed'
+            }
+          }
+        });
+      } catch (logError) {
+        console.error('⚠️ Failed to log OpenAI failure:', logError.message);
+      }
+    }
+
     res.json(result);
   } catch (error) {
     console.error('Copy generation error:', error);
+
+    // Log failed API call on exception
+    try {
+      const DEFAULT_USER_ID = 'default-user';
+      const model = req.body.model || 'gpt-4o-2024-08-06';
+      await prisma.apiUsageLog.create({
+        data: {
+          userId: DEFAULT_USER_ID,
+          provider: 'openai',
+          model: model,
+          feature: 'copy_generation',
+          estimatedCost: 0,
+          success: false,
+          metadata: {
+            error: error.message
+          }
+        }
+      });
+    } catch (logError) {
+      console.error('⚠️ Failed to log error:', logError.message);
+    }
+
     res.status(500).json({
       error: 'Copy generation failed',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * GET /api/models
+ * Get available OpenAI models for ad copy generation
+ */
+router.get('/models', (req, res) => {
+  try {
+    const models = openaiService.getAvailableModels();
+    res.json({
+      success: true,
+      models: models
+    });
+  } catch (error) {
+    res.status(500).json({
+      error: 'Failed to fetch models',
       message: error.message
     });
   }
@@ -455,6 +717,197 @@ router.post('/validate-copy', (req, res) => {
     res.status(500).json({
       error: 'Validation failed',
       message: error.message
+    });
+  }
+});
+
+/**
+ * GET /api/test-gemini
+ * Simple test endpoint to verify Gemini image generation works
+ */
+router.get('/test-gemini', async (req, res) => {
+  try {
+    console.log('🧪 Testing Gemini image generation with simple prompt...');
+
+    const geminiApiKey = req.headers['x-gemini-api-key'];
+
+    const simplePrompt = "Create a picture of a banana";
+
+    const result = await geminiService.generateImage(simplePrompt, {
+      apiKey: geminiApiKey
+    });
+
+    res.json({
+      success: true,
+      message: 'Gemini test successful',
+      hasImage: !!result.imageData,
+      imageSize: result.imageData?.data?.length || 0
+    });
+  } catch (error) {
+    console.error('❌ Test failed:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
+ * POST /api/regenerate-copy
+ * Regenerate ONLY the ad copy (keep existing image)
+ */
+router.post('/regenerate-copy', async (req, res) => {
+  try {
+    const {
+      description,
+      targetAudience,
+      industry,
+      imageDescription,
+      tone,
+      copywritingStyle,
+      valueProposition,
+      callToAction,
+      model = 'gpt-4o-2024-08-06'
+    } = req.body;
+
+    // Extract API key from headers
+    const openaiApiKey = req.headers['x-openai-api-key'];
+
+    // Validation
+    if (!description || !targetAudience) {
+      return res.status(400).json({
+        error: 'Missing required fields',
+        required: ['description', 'targetAudience']
+      });
+    }
+
+    if (!openaiApiKey && !process.env.OPENAI_API_KEY) {
+      return res.status(401).json({
+        error: 'OpenAI API key not found. Please add it in Settings.'
+      });
+    }
+
+    console.log('🔄 Regenerating ad copy only...');
+    console.log('📝 Copy Model:', model);
+    console.log('🎨 Copywriting Style:', copywritingStyle || 'default');
+
+    // Generate only ad copy
+    const copyResult = await openaiService.generateAdCopy({
+      description,
+      targetAudience,
+      industry,
+      visualDescription: imageDescription || `A professional image showing ${description}`,
+      imageDescription: imageDescription,
+      tone: tone || 'professional yet approachable',
+      copywritingStyle: copywritingStyle || 'default',
+      valueProposition,
+      callToAction,
+      apiKey: openaiApiKey,
+      model: model
+    });
+
+    const DEFAULT_USER_ID = 'default-user';
+
+    // Log API usage for cost tracking
+    if (copyResult.success) {
+      try {
+        const metadata = copyResult.metadata || {};
+        const usage = {
+          prompt_tokens: metadata.promptTokens || 0,
+          completion_tokens: metadata.completionTokens || 0,
+          total_tokens: metadata.totalTokens || 0,
+          completion_tokens_details: metadata.reasoningTokens ? {
+            reasoning_tokens: metadata.reasoningTokens
+          } : undefined
+        };
+        const estimatedCost = calculateOpenAICost(usage, metadata.model || model);
+
+        await prisma.apiUsageLog.create({
+          data: {
+            userId: DEFAULT_USER_ID,
+            provider: 'openai',
+            model: metadata.model || model,
+            feature: 'copy_regeneration',
+            requestTokens: metadata.promptTokens || null,
+            responseTokens: metadata.completionTokens || null,
+            totalTokens: metadata.totalTokens || null,
+            estimatedCost: estimatedCost,
+            success: true,
+            metadata: {
+              modelName: metadata.modelName,
+              reasoningTokens: metadata.reasoningTokens || null,
+              copywritingStyle: copywritingStyle || 'default'
+            }
+          }
+        });
+        console.log('✅ Logged OpenAI copy regeneration usage');
+      } catch (logError) {
+        console.error('⚠️ Failed to log OpenAI usage:', logError.message);
+      }
+
+      // Validate the generated copy
+      const copyValidation = openaiService.validateAdCopy(copyResult.adCopy);
+
+      return res.json({
+        success: true,
+        copy: {
+          ...copyResult,
+          validation: copyValidation
+        },
+        timestamp: new Date().toISOString()
+      });
+    } else {
+      // Log failed OpenAI call
+      try {
+        await prisma.apiUsageLog.create({
+          data: {
+            userId: DEFAULT_USER_ID,
+            provider: 'openai',
+            model: model,
+            feature: 'copy_regeneration',
+            estimatedCost: 0,
+            success: false,
+            metadata: {
+              error: 'Failed to generate ad copy'
+            }
+          }
+        });
+      } catch (logError) {
+        console.error('⚠️ Failed to log OpenAI failure:', logError.message);
+      }
+
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to generate ad copy'
+      });
+    }
+
+  } catch (error) {
+    console.error('❌ Copy regeneration error:', error);
+
+    // Log failed API call on exception
+    try {
+      const DEFAULT_USER_ID = 'default-user';
+      await prisma.apiUsageLog.create({
+        data: {
+          userId: DEFAULT_USER_ID,
+          provider: 'openai',
+          model: model,
+          feature: 'copy_regeneration',
+          estimatedCost: 0,
+          success: false,
+          metadata: {
+            error: error.message
+          }
+        }
+      });
+    } catch (logError) {
+      console.error('⚠️ Failed to log error:', logError.message);
+    }
+
+    return res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to regenerate ad copy'
     });
   }
 });

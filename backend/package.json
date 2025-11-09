@@ -1,7 +1,7 @@
 {
-  "name": "nano-banana-backend",
+  "name": "adgenius-ai-backend",
   "version": "1.0.0",
-  "description": "Backend API for Nano Banana Ad Creator",
+  "description": "Backend API for AdGenius AI - AI-Powered Ad Creator",
   "main": "server.js",
   "type": "module",
   "scripts": {
@@ -17,14 +17,17 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "@google/generative-ai": "^0.21.0",
+    "@google/genai": "^1.22.0",
     "@prisma/client": "^6.16.3",
     "@prisma/extension-accelerate": "^2.0.2",
     "axios": "^1.7.7",
+    "bcryptjs": "^3.0.2",
     "body-parser": "^1.20.3",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.21.1",
+    "jsonwebtoken": "^9.0.2",
+    "nanoid": "^5.1.6",
     "openai": "^4.73.0",
     "prisma": "^6.16.3"
   },

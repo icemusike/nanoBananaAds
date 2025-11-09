@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react';
 import { Library, Search, Trash2, TrendingUp, Filter, Star, Sparkles, Target, Loader2, AlertCircle } from 'lucide-react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import BrainLoader from '../components/BrainLoader';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 export default function AnglesLibrary() {
   const navigate = useNavigate();
@@ -32,7 +33,7 @@ export default function AnglesLibrary() {
         sortBy
       });
 
-      const response = await axios.get(`${API_URL}/angles?${params}`);
+      const response = await axios.get(`${API_URL}/api/angles?${params}`);
       if (response.data.success) {
         setAngles(response.data.angles);
       }
@@ -45,7 +46,7 @@ export default function AnglesLibrary() {
 
   const fetchStats = async () => {
     try {
-      const response = await axios.get(`${API_URL}/angles/stats/summary`);
+      const response = await axios.get(`${API_URL}/api/angles/stats/summary`);
       if (response.data.success) {
         setStats(response.data.stats);
       }
@@ -58,7 +59,7 @@ export default function AnglesLibrary() {
     if (!confirm('Are you sure you want to delete this angle?')) return;
 
     try {
-      await axios.delete(`${API_URL}/angles/${id}`);
+      await axios.delete(`${API_URL}/api/angles/${id}`);
       setAngles(angles.filter(a => a.id !== id));
       fetchStats(); // Refresh stats
     } catch (error) {
@@ -69,7 +70,7 @@ export default function AnglesLibrary() {
 
   const handleRate = async (angleId) => {
     try {
-      await axios.put(`${API_URL}/angles/${angleId}`, {
+      await axios.put(`${API_URL}/api/angles/${angleId}`, {
         performanceRating: rating
       });
       setRatingAngle(null);
@@ -85,7 +86,7 @@ export default function AnglesLibrary() {
   const handleUseAngle = async (angle, type) => {
     try {
       // Track usage
-      await axios.put(`${API_URL}/angles/${angle.id}/use`, { type });
+      await axios.put(`${API_URL}/api/angles/${angle.id}/use`, { type });
 
       // Navigate with angle data
       if (type === 'prompt') {
@@ -235,9 +236,8 @@ export default function AnglesLibrary() {
 
         {/* Angles Grid */}
         {loading ? (
-          <div className="text-center py-16">
-            <Loader2 className="w-16 h-16 text-primary-400 animate-spin mx-auto mb-4" />
-            <p className="text-gray-400">Loading your angles...</p>
+          <div className="py-8">
+            <BrainLoader message="Loading your angles library..." />
           </div>
         ) : filteredAngles.length === 0 ? (
           <div className="card text-center py-16">

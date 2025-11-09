@@ -9,6 +9,41 @@ class OpenAIService {
   constructor() {
     this.openai = null;
     this.apiKey = null;
+
+    // Available models with configuration
+    this.models = {
+      'gpt-5-2025-08-07': {
+        name: 'GPT-5',
+        temperature: null, // GPT-5 reasoning models don't support custom temperature (uses default 1)
+        maxTokens: 4000, // Increased for GPT-5 reasoning models (includes reasoning tokens + output)
+        useMaxCompletionTokens: true, // GPT-5 uses max_completion_tokens instead of max_tokens
+        reasoningEffort: 'low', // Changed to 'low' for faster, cheaper generation with less reasoning
+        isReasoningModel: true, // Flag to identify reasoning models
+        description: 'Latest GPT-5 model with advanced reasoning and best performance',
+        costMultiplier: 100, // Relative cost indicator
+        capabilities: ['Advanced reasoning', 'Expert-level intelligence', 'Best for complex ad copy']
+      },
+      'gpt-4o-2024-08-06': {
+        name: 'GPT-4o',
+        temperature: 0.75,
+        maxTokens: 1500,
+        useMaxCompletionTokens: false,
+        isReasoningModel: false,
+        description: 'Latest GPT-4o model with superior instruction following',
+        costMultiplier: 33,
+        capabilities: ['Superior reasoning', 'Excellent instruction adherence', 'Cost-effective']
+      },
+      'gpt-4o-mini': {
+        name: 'GPT-4o Mini',
+        temperature: 0.8,
+        maxTokens: 1500,
+        useMaxCompletionTokens: false,
+        isReasoningModel: false,
+        description: 'Fast and cost-effective model for simple ad copy',
+        costMultiplier: 1,
+        capabilities: ['Fast generation', 'Most affordable', 'Good for testing']
+      }
+    };
   }
 
   initialize(apiKeyOverride = null) {
@@ -29,8 +64,33 @@ class OpenAIService {
   }
 
   /**
+   * Get optimal configuration for a specific model
+   * @param {string} model - Model identifier
+   * @returns {object} - Model configuration
+   */
+  getModelConfig(model) {
+    const config = this.models[model];
+    if (!config) {
+      console.warn(`⚠️ Unknown model: ${model}, falling back to GPT-4o defaults`);
+      return this.models['gpt-4o-2024-08-06'];
+    }
+    return config;
+  }
+
+  /**
+   * Get list of available models
+   * @returns {array} - Array of model information
+   */
+  getAvailableModels() {
+    return Object.entries(this.models).map(([id, config]) => ({
+      id,
+      ...config
+    }));
+  }
+
+  /**
    * Generate complete Facebook ad copy
-   * @param {object} params - Parameters for ad copy generation (can include apiKey)
+   * @param {object} params - Parameters for ad copy generation (can include apiKey and model)
    * @returns {Promise<object>} - Generated ad copy
    */
   async generateAdCopy(params) {
@@ -45,45 +105,115 @@ class OpenAIService {
       tone = 'professional yet approachable',
       copywritingStyle = 'default',
       valueProposition,
-      callToAction = 'Learn More'
+      callToAction = 'Learn More',
+      model = 'gpt-4o-2024-08-06' // NEW: Allow model selection, default to GPT-4o
     } = params;
 
     try {
+      // Get model configuration
+      const modelConfig = this.getModelConfig(model);
+
       console.log('✍️ Starting OpenAI ad copy generation...');
+      console.log('🤖 Model:', model, `(${modelConfig.name})`);
+      console.log('🌡️  Temperature:', modelConfig.temperature);
       if (imageDescription) {
         console.log('🎨 Using custom image description for copy context');
       }
 
       const prompt = this.buildAdCopyPrompt(params);
 
-      // System message content
-      const systemMessage = `You are an expert Facebook advertising copywriter specializing in B2B and service-based businesses. You create high-converting ad copy that:
-- Speaks directly to the target audience's pain points
-- Uses proven direct response copywriting techniques
-- Includes strategic use of emojis (increases CTR by 241%)
-- Balances professionalism with approachability
-- Creates urgency and desire
-- Matches the visual tone of the ad image
-- Follows Facebook ad best practices (2024-2025)
+      // ENHANCED System message with strict enforcement and psychological copywriting framework
+      const jsonOutputInstructions = modelConfig.isReasoningModel
+        ? `\n\n🚨 CRITICAL FOR REASONING MODELS: You MUST output ONLY valid JSON. You can include reasoning internally, but your final response MUST be pure JSON with no additional text, explanations, or markdown. Start your response with { and end with }.`
+        : '';
 
-Format your response as valid JSON with these exact keys:
+      const systemMessage = `You are an elite Facebook advertising copywriter with mastery of legendary direct response techniques from Gary Halbert, David Ogilvy, Eugene Schwartz, and Dan Kennedy. You are renowned for creating scroll-stopping, conversion-optimized ad copy.${jsonOutputInstructions}
+
+CORE COMPETENCIES:
+✓ Advanced emotional trigger engineering (fear, desire, curiosity, urgency, belonging, relief)
+✓ Psychological copywriting frameworks (PAS, BAB, AIDA, 4Ps, PASTOR)
+✓ Facebook ad algorithm optimization (2024-2025 best practices)
+✓ Mobile-first copy architecture (73% of users on mobile)
+✓ Strategic emoji deployment (241% CTR increase when used correctly)
+✓ Copy-visual synchronization for seamless storytelling
+
+CRITICAL OUTPUT REQUIREMENTS - NON-NEGOTIABLE:
+
+1. CHARACTER LIMITS (STRICTLY ENFORCED):
+   • headline: MAXIMUM 40 characters (if over 40, CUT IT DOWN)
+   • description: MAXIMUM 30 characters (if over 30, CUT IT DOWN)
+   • primaryText: 125-150 words EXACTLY (count every word)
+
+2. EMOJI RULES (EXACT PLACEMENT):
+   • Headline: 0-1 emoji at the VERY BEGINNING (optional, only if it enhances)
+   • Primary Text: 2-4 emojis ONLY at the start of key benefit bullets/sentences
+   • NEVER use emojis mid-sentence or as random decoration
+   • Example: "✨ Transform your business in 30 days" ✓
+   • Example: "Transform ✨ your business in 30 days" ✗
+
+3. PRIMARY TEXT STRUCTURE (MANDATORY FORMAT):
+   Line 1-2: POWERFUL HOOK - Bold question, shocking stat, or provocative statement that stops the scroll
+   [BLANK LINE]
+   Line 3-6: 3-4 key benefits, each starting with emoji bullet
+   [BLANK LINE]
+   Line 7-8: Social proof or credibility element
+   [BLANK LINE]
+   Line 9-10: Urgency/scarcity statement
+   [BLANK LINE]
+   Line 11: Clear call to action
+
+   CRITICAL: The opening hook must NOT describe the image. Instead it must:
+   - Ask a provocative question targeting their pain
+   - State a shocking statistic or bold claim
+   - Challenge a common belief
+   - Present an urgent problem they're facing NOW
+   Examples: "Losing 30% of your leads to missed calls?", "Most businesses waste $5K/month on..."
+
+4. HEADLINE PSYCHOLOGY:
+   Must trigger ONE of: Curiosity, Fear, Desire, Urgency, Social Proof
+   Use power words: Discover, Proven, Secret, Guaranteed, Limited, Exclusive, Transform, Revolutionary
+   Include numbers when possible: "3 Ways...", "247% More...", "30-Day..."
+   Ask questions that highlight pain: "Tired of...?", "What if you could...?"
+
+5. ALTERNATIVE HEADLINES - CRITICAL:
+   Each alternative MUST use a DIFFERENT psychological trigger than the main headline
+   Main headline = Curiosity → Alt 1 = Social Proof, Alt 2 = Urgency, Alt 3 = Fear
+   Test different frameworks: Question, Bold Claim, Statistic, How-To, Warning
+
+6. MOBILE OPTIMIZATION:
+   First 2 lines of primaryText are critical (visible above fold)
+   Use short sentences (10-15 words max)
+   Use line breaks for scannability (every 2-3 sentences)
+   Make key benefits easily skimmable
+
+OUTPUT FORMAT (STRICT JSON):
 {
-  "headline": "Primary headline (max 40 characters, attention-grabbing)",
-  "description": "Link description (max 30 characters, benefit-focused)",
-  "primaryText": "Main ad copy (125-150 words, detailed with emojis and line breaks)",
-  "callToAction": "CTA button text (clear action)",
-  "alternativeHeadlines": ["2-3 alternative headline options"],
-  "keyBenefits": ["3-5 key benefits highlighted"],
-  "toneAnalysis": "Brief analysis of the tone used and why it works for this audience"
-}`;
+  "headline": "string (≤40 chars)",
+  "description": "string (≤30 chars)",
+  "primaryText": "string (125-150 words, \\n\\n for line breaks)",
+  "callToAction": "string (action verb + benefit)",
+  "alternativeHeadlines": ["string", "string", "string"] (3 headlines, different triggers),
+  "keyBenefits": ["string", "string", "string", "string"] (3-5 specific benefits),
+  "toneAnalysis": "string (2-3 sentences on tone strategy)"
+}
+
+VALIDATION BEFORE OUTPUT:
+- Count headline characters → if >40, make shorter
+- Count description characters → if >30, make shorter
+- Count primaryText words → if not 125-150, adjust
+- Check emojis → only at line/bullet starts
+- Check alternative headlines → each uses different psychological angle
+
+Your output will be rejected if character limits are exceeded. Quality > Quantity. Every word must earn its place.`;
 
       // Log the complete request being sent to OpenAI
       console.log('\n' + '='.repeat(80));
       console.log('📤 OPENAI AD COPY GENERATION REQUEST');
       console.log('='.repeat(80));
-      console.log('🔧 MODEL: gpt-4o-mini');
-      console.log('🌡️  TEMPERATURE: 0.8');
-      console.log('📊 MAX TOKENS: 2000');
+      console.log('🔧 MODEL:', model, `(${modelConfig.name})`);
+      console.log('🌡️  TEMPERATURE:', modelConfig.temperature);
+      console.log('📊 MAX TOKENS:', modelConfig.maxTokens);
+      console.log('💰 COST MULTIPLIER:', `${modelConfig.costMultiplier}x`);
       console.log('─'.repeat(80));
       console.log('💬 SYSTEM MESSAGE:');
       console.log('─'.repeat(80));
@@ -96,8 +226,9 @@ Format your response as valid JSON with these exact keys:
       console.log('📏 Prompt Length:', prompt.length, 'characters');
       console.log('='.repeat(80) + '\n');
 
-      const completion = await this.openai.chat.completions.create({
-        model: 'gpt-4o-mini', // Using gpt-4o-mini for reliability
+      // Build request parameters based on model type
+      const requestParams = {
+        model: model, // Use selected model
         messages: [
           {
             role: 'system',
@@ -107,18 +238,68 @@ Format your response as valid JSON with these exact keys:
             role: 'user',
             content: prompt
           }
-        ],
-        temperature: 0.8,
-        max_tokens: 2000,
-        response_format: { type: 'json_object' }
-      });
+        ]
+      };
+
+      // Handle model-specific parameters
+      if (modelConfig.isReasoningModel) {
+        // GPT-5/o1 reasoning models:
+        // - Don't support custom temperature (uses default 1)
+        // - Use max_completion_tokens instead of max_tokens
+        // - Support reasoning_effort parameter
+        // - DON'T support response_format json_object (will return empty response!)
+        requestParams.max_completion_tokens = modelConfig.maxTokens;
+
+        if (modelConfig.reasoningEffort) {
+          requestParams.reasoning_effort = modelConfig.reasoningEffort;
+        }
+
+        console.log('🧠 Reasoning model detected:');
+        console.log(`   - Using default temperature (1)`);
+        console.log(`   - max_completion_tokens: ${modelConfig.maxTokens}`);
+        console.log(`   - reasoning_effort: ${modelConfig.reasoningEffort || 'not set'}`);
+        console.log(`   - NO response_format (reasoning models don't support it)`);
+      } else {
+        // GPT-4o and older models:
+        // - Support custom temperature
+        // - Use max_tokens parameter
+        // - Support response_format json_object
+        requestParams.temperature = modelConfig.temperature;
+        requestParams.max_tokens = modelConfig.maxTokens;
+        requestParams.response_format = { type: 'json_object' };
+      }
+
+      const completion = await this.openai.chat.completions.create(requestParams);
 
       const responseContent = completion.choices[0].message.content;
       console.log('📝 Raw response length:', responseContent?.length || 0);
 
+      // Check if response is empty
+      if (!responseContent || responseContent.trim() === '') {
+        console.error('❌ OpenAI returned empty response!');
+        console.error('🔍 Model:', model);
+        console.error('🔍 Is reasoning model:', modelConfig.isReasoningModel);
+        throw new Error('OpenAI returned an empty response. Check model compatibility.');
+      }
+
+      // Log first 300 chars for debugging
+      console.log('📄 Response preview:', responseContent.substring(0, 300) + '...');
+
       let result;
       try {
-        result = JSON.parse(responseContent);
+        // For reasoning models, extract JSON from response (may include reasoning text)
+        if (modelConfig.isReasoningModel) {
+          console.log('🧠 Extracting JSON from reasoning model response...');
+          result = this.extractJSONFromText(responseContent);
+        } else {
+          // For non-reasoning models with json_object format, parse directly
+          result = JSON.parse(responseContent);
+        }
+
+        // CRITICAL: Enforce standards before returning
+        console.log('\n🔍 Enforcing ad copy standards...');
+        result = this.enforceAdCopyStandards(result);
+
       } catch (parseError) {
         console.error('❌ JSON Parse Error:', parseError.message);
         console.error('📄 Response content:', responseContent?.substring(0, 500));
@@ -126,15 +307,42 @@ Format your response as valid JSON with these exact keys:
       }
 
       console.log('✅ OpenAI ad copy generation complete');
+      console.log('📊 Quality Metrics:');
+      console.log(`   Headline: ${result.headline?.length || 0}/40 chars`);
+      console.log(`   Description: ${result.description?.length || 0}/30 chars`);
+      console.log(`   Primary Text: ${result.primaryText?.split(/\s+/).length || 0} words`);
+      console.log(`   Alternative Headlines: ${result.alternativeHeadlines?.length || 0}`);
+
+      // Build metadata with complete token usage for cost tracking
+      const metadata = {
+        model: completion.model || model,
+        modelName: modelConfig.name,
+        timestamp: new Date().toISOString(),
+        // Detailed token breakdown for cost calculation
+        promptTokens: completion.usage.prompt_tokens || 0,
+        completionTokens: completion.usage.completion_tokens || 0,
+        totalTokens: completion.usage.total_tokens || 0,
+        // For backwards compatibility
+        tokensUsed: completion.usage.total_tokens,
+        costMultiplier: modelConfig.costMultiplier
+      };
+
+      // Add reasoning tokens for GPT-5/o1 models
+      if (modelConfig.isReasoningModel && completion.usage.completion_tokens_details?.reasoning_tokens) {
+        metadata.reasoningTokens = completion.usage.completion_tokens_details.reasoning_tokens;
+        console.log(`🧠 Reasoning Tokens: ${metadata.reasoningTokens}`);
+      }
+
+      // Log token usage summary
+      console.log(`📊 Token Usage Summary:`);
+      console.log(`   Prompt: ${metadata.promptTokens.toLocaleString()}`);
+      console.log(`   Completion: ${metadata.completionTokens.toLocaleString()}`);
+      console.log(`   Total: ${metadata.totalTokens.toLocaleString()}`);
 
       return {
         success: true,
         adCopy: result,
-        metadata: {
-          model: completion.model || 'gpt-4o-mini',
-          timestamp: new Date().toISOString(),
-          tokensUsed: completion.usage.total_tokens
-        }
+        metadata: metadata
       };
 
     } catch (error) {
@@ -165,37 +373,39 @@ Format your response as valid JSON with these exact keys:
     // ENHANCED: Use imageDescription for better copy-image coherence
     const visualContext = imageDescription || visualDescription || 'a professional business scene';
 
-    let prompt = `Create compelling Facebook ad copy for the following:
+    // Build structured, optimized prompt with clear sections
+    let prompt = `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+BUSINESS CONTEXT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Product/Service: ${description}
+Target Audience: ${targetAudience}
+Industry: ${industry}
+Value Proposition: ${valueProposition || 'Help businesses save time and improve efficiency'}
+Tone Requirement: ${tone}
+CTA Button: ${callToAction}
+${competitorDifferentiators ? `Key Differentiators: ${competitorDifferentiators}` : ''}
+${urgencyFactor ? `Urgency Factor: ${urgencyFactor}` : ''}
 
-**Product/Service**: ${description}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TARGET AUDIENCE PAIN POINTS - Address These
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${this.getAudiencePainPoints(targetAudience, industry)}
 
-**Target Audience**: ${targetAudience}
-
-**Industry**: ${industry}
-
-**Visual Context (CRITICAL - Copy must reference and complement this image)**: ${visualContext}
-
-**Tone**: ${tone}
-
-**Value Proposition**: ${valueProposition || 'Help businesses save time and improve efficiency'}
-
-**Call to Action**: ${callToAction}
-`;
-
-    if (competitorDifferentiators) {
-      prompt += `\n**Key Differentiators**: ${competitorDifferentiators}`;
-    }
-
-    if (urgencyFactor) {
-      prompt += `\n**Urgency Factor**: ${urgencyFactor}`;
-    }
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+INDUSTRY-SPECIFIC COPYWRITING GUIDANCE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${this.getIndustrySpecificCopyGuidance(industry)}`;
 
     // Get copywriting style instructions if not default
-    const styleInstructions = copywritingStyle && copywritingStyle !== 'default'
-      ? `\n\n**🎯 COPYWRITING STYLE TO EMULATE**:\n${this.getCopywritingStyleInstructions(copywritingStyle)}\n\nIMPORTANT: Apply this legendary copywriter's techniques throughout your ad copy. Study their style and replicate their proven patterns.`
-      : '';
+    if (copywritingStyle && copywritingStyle !== 'default') {
+      const styleInstructions = this.getCopywritingStyleInstructions(copywritingStyle);
+      prompt += `\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🎯 COPYWRITING STYLE TO EMULATE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${styleInstructions}
 
-    prompt += styleInstructions;
+⚡ CRITICAL: Apply this legendary copywriter's style throughout ALL copy elements - headline, description, primary text. Don't just reference it, EMBODY it completely.`;
+    }
 
     prompt += `
 
@@ -221,16 +431,21 @@ Format your response as valid JSON with these exact keys:
    - Examples: "No More Missed Calls", "24/7 Availability", "Boost Revenue Now"
    - Make it work WITH the headline (not repeat it)
 
-3. **Image-Copy Coherence (CRITICAL)**:
-   - Reference visual elements from the image description in your copy
-   - If the image shows people, mention the relatable situation they're in
-   - If the image shows a product/dashboard, highlight what's visible
-   - Create a seamless story between what viewers see and what they read
-   - Example: If image shows "team celebrating," copy could start with "Imagine your team celebrating wins like this..."
+3. **Hook-First Approach (CRITICAL)**:
+   - START with a scroll-stopping hook (question, stat, bold claim)
+   - DO NOT start by describing the image or saying "Picture this..."
+   - The hook must target a PAIN POINT or DESIRE of ${targetAudience}
+   - Make it SPECIFIC and RELATABLE to their daily struggle
+   - Examples: "Missing 30% of sales calls?", "$5K/month wasted on [problem]?", "What if you never missed a lead again?"
 
 4. **Primary Text Mastery** (125-150 words):
-   - **Opening Hook**: Reference the visual scene or emotion shown in the image
-   - **Connection**: Bridge from what they see to what they need
+   - **Opening Hook (CRITICAL)**: Start with a POWERFUL attention-grabber:
+     * Provocative question: "Tired of [pain point]?"
+     * Shocking stat: "67% of [audience] are losing [specific loss]"
+     * Bold claim: "What if you could [desired outcome] in [timeframe]?"
+     * Challenge belief: "Everyone thinks [X], but here's why they're wrong..."
+     DO NOT describe the image. DO NOT say "Picture this" or "Imagine seeing..."
+   - **Connection**: Bridge from hook to solution
    - **3-4 Key Benefits**: Specific, measurable, relatable to ${targetAudience}
    - **Social Proof**: Brief credibility element (numbers, testimonials, authority)
    - **Urgency/Scarcity**: Create FOMO or time-sensitive reason to act
@@ -252,7 +467,24 @@ Format your response as valid JSON with these exact keys:
    - Avoid corporate jargon unless industry-appropriate
    - Sound human, not robotic
 
-Generate the copy in valid JSON format. Remember: The copy and image must work together to tell ONE cohesive story that stops the scroll and drives action.`;
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+EXECUTION CHECKLIST - Verify Before Submitting
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Before you finalize your response, double-check:
+☑ Headline is ≤40 characters (count them!)
+☑ Description is ≤30 characters (count them!)
+☑ Primary text is 125-150 words (count them!)
+☑ Emojis only at beginning of lines/bullets (2-4 total in primary text)
+☑ Primary text has 4-5 line breaks (\\n\\n) for mobile scannability
+☑ Alternative headlines use DIFFERENT psychological triggers (not just word swaps)
+☑ PRIMARY TEXT STARTS WITH POWERFUL HOOK (NOT image description!)
+☑ Hook targets pain point or desire of ${targetAudience}
+☑ Power words included (discover, proven, transform, guaranteed, secret, etc.)
+☑ Tone matches: ${tone}
+☑ Industry guidance applied: ${industry}
+☑ Target audience pain points addressed: ${targetAudience}
+
+Generate the JSON output now. Remember: The copy and image must work together to tell ONE cohesive story that stops the scroll and drives action.`;
 
     return prompt;
   }
@@ -281,7 +513,7 @@ Each headline must:
 Return as JSON array: ["headline1", "headline2", ...]`;
 
       const completion = await this.openai.chat.completions.create({
-        model: 'gpt-5-2025-08-07',
+        model: 'gpt-4o-2024-08-06', // FIXED: Was 'gpt-5-2025-08-07' which doesn't exist yet
         messages: [
           { role: 'system', content: 'You are an expert copywriter creating high-converting Facebook ad headlines.' },
           { role: 'user', content: prompt }
@@ -297,111 +529,6 @@ Return as JSON array: ["headline1", "headline2", ...]`;
       console.error('Error generating headline variations:', error);
       throw error;
     }
-  }
-
-  /**
-   * Generate image using DALL-E 3
-   * @param {string} prompt - Image generation prompt
-   * @param {object} options - Generation options (can include apiKey)
-   * @returns {Promise<object>} - Generated image data
-   */
-  async generateImage(prompt, options = {}) {
-    this.initialize(options.apiKey); // Ensure API is initialized with optional key
-
-    try {
-      console.log('🎨 Starting DALL-E 3 image generation...');
-
-      // Simplify prompt for DALL-E (max 4000 chars, but we'll keep it concise)
-      const simplifiedPrompt = prompt.length > 1000
-        ? this.simplifyPromptForDallE(prompt)
-        : prompt;
-
-      console.log('\n' + '='.repeat(80));
-      console.log('📤 DALL-E 3 IMAGE GENERATION REQUEST');
-      console.log('='.repeat(80));
-      console.log('🔧 MODEL: dall-e-3');
-      console.log('📐 SIZE:', options.size || '1024x1024');
-      console.log('💎 QUALITY:', options.quality || 'hd');
-      console.log('🎨 STYLE:', options.style || 'natural');
-      console.log('─'.repeat(80));
-      console.log('📝 PROMPT:');
-      console.log('─'.repeat(80));
-      console.log(simplifiedPrompt);
-      console.log('─'.repeat(80));
-      console.log('📏 Original prompt length:', prompt.length, 'characters');
-      console.log('📏 Simplified prompt length:', simplifiedPrompt.length, 'characters');
-      console.log('='.repeat(80) + '\n');
-
-      const response = await this.openai.images.generate({
-        model: 'dall-e-3',
-        prompt: simplifiedPrompt,
-        n: 1,
-        size: options.size || '1024x1024', // square format for Facebook
-        quality: 'hd',
-        style: options.style || 'natural', // 'natural' or 'vivid'
-      });
-
-      console.log('✅ DALL-E 3 image generation complete');
-
-      const imageUrl = response.data[0].url;
-      const revisedPrompt = response.data[0].revised_prompt;
-
-      // Download the image and convert to base64
-      const axios = (await import('axios')).default;
-      const imageResponse = await axios.get(imageUrl, { responseType: 'arraybuffer' });
-      const base64Image = Buffer.from(imageResponse.data, 'binary').toString('base64');
-
-      return {
-        success: true,
-        imageData: {
-          mimeType: 'image/png',
-          data: base64Image,
-        },
-        url: imageUrl,
-        revisedPrompt: revisedPrompt,
-        metadata: {
-          model: 'dall-e-3',
-          timestamp: new Date().toISOString(),
-          originalPromptLength: prompt.length,
-          simplifiedPromptLength: simplifiedPrompt.length,
-        }
-      };
-
-    } catch (error) {
-      console.error('❌ DALL-E 3 API Error:', error);
-      throw new Error(`DALL-E 3 image generation failed: ${error.message}`);
-    }
-  }
-
-  /**
-   * Simplify a detailed prompt for DALL-E 3
-   * @private
-   */
-  simplifyPromptForDallE(detailedPrompt) {
-    // Extract key elements from the detailed prompt
-    const lines = detailedPrompt.split('\n').filter(line => line.trim());
-
-    // Take the first few sentences which usually contain the main description
-    const mainDescription = lines.slice(0, 3).join(' ');
-
-    // Look for key descriptors
-    const hasPhotorealistic = detailedPrompt.includes('photorealistic') || detailedPrompt.includes('realistic');
-    const hasProfessional = detailedPrompt.includes('professional');
-    const hasModern = detailedPrompt.includes('modern');
-
-    let simplified = mainDescription;
-
-    if (hasPhotorealistic) simplified = 'Photorealistic ' + simplified;
-    if (hasProfessional) simplified += ', professional quality';
-    if (hasModern) simplified += ', modern aesthetic';
-
-    // Ensure it ends properly
-    if (!simplified.endsWith('.')) simplified += '.';
-
-    // Add quality markers
-    simplified += ' High-quality professional photography, detailed, sharp focus.';
-
-    return simplified.substring(0, 1000); // DALL-E has a 4000 char limit, but shorter is often better
   }
 
   /**
@@ -477,7 +604,7 @@ Generate a detailed, narrative prompt following these requirements:
 Write the prompt as a flowing narrative paragraph, NOT as bullet points. Make it 200-400 words of descriptive storytelling that Gemini can visualize perfectly.`;
 
       const completion = await this.openai.chat.completions.create({
-        model: 'gpt-4o-mini',
+        model: 'gpt-4o-2024-08-06',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
@@ -505,7 +632,7 @@ Write the prompt as a flowing narrative paragraph, NOT as bullet points. Make it
         success: true,
         prompt: result,
         metadata: {
-          model: completion.model || 'gpt-4o-mini',
+          model: completion.model || 'gpt-4o-2024-08-06',
           timestamp: new Date().toISOString(),
           tokensUsed: completion.usage.total_tokens,
           originalIdea: idea
@@ -636,7 +763,7 @@ ${this.getIndustrySpecificGuidance(industry)}
 Generate angles that are insightful, creative, and grounded in proven direct response principles. Make each angle feel like a strategic breakthrough, not generic marketing advice.`;
 
       const completion = await this.openai.chat.completions.create({
-        model: 'gpt-4o-mini',
+        model: 'gpt-4o-2024-08-06',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
@@ -669,7 +796,7 @@ Generate angles that are insightful, creative, and grounded in proven direct res
           competitiveGaps: result.competitiveGaps
         },
         metadata: {
-          model: completion.model || 'gpt-4o-mini',
+          model: completion.model || 'gpt-4o-2024-08-06',
           timestamp: new Date().toISOString(),
           tokensUsed: completion.usage.total_tokens,
           businessName,
@@ -833,6 +960,224 @@ Generate angles that are insightful, creative, and grounded in proven direct res
     };
 
     return styleGuides[style] || '';
+  }
+
+  /**
+   * Enforce character limits and formatting standards on generated copy
+   * CRITICAL: This ensures 100% compliance with Facebook ad requirements
+   * @private
+   * @param {object} adCopy - Generated ad copy object
+   * @returns {object} - Enforced ad copy with corrections applied
+   */
+  enforceAdCopyStandards(adCopy) {
+    const enforced = { ...adCopy };
+
+    // HEADLINE: Hard limit at 40 characters
+    if (enforced.headline && enforced.headline.length > 40) {
+      console.warn(`⚠️ Headline exceeded 40 chars (${enforced.headline.length}), truncating...`);
+      console.warn(`   Original: "${enforced.headline}"`);
+      enforced.headline = enforced.headline.substring(0, 37) + '...';
+      console.warn(`   Truncated: "${enforced.headline}"`);
+    }
+
+    // DESCRIPTION: Hard limit at 30 characters
+    if (enforced.description && enforced.description.length > 30) {
+      console.warn(`⚠️ Description exceeded 30 chars (${enforced.description.length}), truncating...`);
+      console.warn(`   Original: "${enforced.description}"`);
+      enforced.description = enforced.description.substring(0, 27) + '...';
+      console.warn(`   Truncated: "${enforced.description}"`);
+    }
+
+    // PRIMARY TEXT: Ensure line breaks exist for readability
+    if (enforced.primaryText && !enforced.primaryText.includes('\n')) {
+      console.warn('⚠️ Primary text missing line breaks, adding structure...');
+      // Add line breaks after sentences (simple heuristic)
+      enforced.primaryText = enforced.primaryText
+        .replace(/\. ([A-Z])/g, '.\n\n$1')
+        .replace(/\? ([A-Z])/g, '?\n\n$1')
+        .replace(/! ([A-Z])/g, '!\n\n$1');
+    }
+
+    // EMOJI VALIDATION: Count emojis and warn if excessive
+    const emojiRegex = /[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu;
+    const headlineEmojis = (enforced.headline?.match(emojiRegex) || []).length;
+    const primaryTextEmojis = (enforced.primaryText?.match(emojiRegex) || []).length;
+
+    if (headlineEmojis > 1) {
+      console.warn(`⚠️ Headline has ${headlineEmojis} emojis, optimal is 0-1`);
+    }
+    if (primaryTextEmojis > 5) {
+      console.warn(`⚠️ Too many emojis in primary text (${primaryTextEmojis}), optimal is 2-4`);
+    }
+
+    // ALTERNATIVE HEADLINES: Ensure they're different and within limits
+    if (enforced.alternativeHeadlines && Array.isArray(enforced.alternativeHeadlines)) {
+      enforced.alternativeHeadlines = enforced.alternativeHeadlines
+        .filter(h => h !== enforced.headline) // Remove duplicates of main headline
+        .slice(0, 3) // Max 3 alternatives
+        .map(h => {
+          if (h.length > 40) {
+            console.warn(`⚠️ Alternative headline exceeded 40 chars: "${h.substring(0, 50)}..."`);
+            return h.substring(0, 37) + '...';
+          }
+          return h;
+        });
+    }
+
+    // WORD COUNT VALIDATION: Check primary text word count
+    const wordCount = enforced.primaryText?.split(/\s+/).length || 0;
+    if (wordCount < 125 || wordCount > 150) {
+      console.warn(`⚠️ Primary text word count (${wordCount}) outside optimal range (125-150 words)`);
+    }
+
+    return enforced;
+  }
+
+  /**
+   * Get industry-specific copy guidance for better targeting
+   * @private
+   * @param {string} industry - Target industry
+   * @returns {string} - Industry-specific copywriting guidance
+   */
+  getIndustrySpecificCopyGuidance(industry) {
+    const guidance = {
+      'Phone Services': `• Emphasize 24/7 reliability and "never miss a call" fear
+• Use urgency: "Every missed call = lost revenue"
+• Highlight ROI: "247% increase in captured leads"
+• Professional image positioning: "Sound like a Fortune 500 company"`,
+
+      'Answering Services': `• Pain point: Missed opportunities while busy
+• Benefit language: "Professional first impression, every time"
+• Cost comparison: "Fraction of hiring a receptionist"
+• Scalability focus: "Grows with your business"`,
+
+      'B2B Software/SaaS': `• Lead with efficiency gains and time savings
+• Use specifics: "Save 15 hours/week" not "save time"
+• Integration emphasis: "Works with your existing tools"
+• ROI focus: "Pay for itself in 30 days"
+• Trust signals: "Used by 10,000+ businesses"`,
+
+      'Healthcare': `• Trust and compliance are critical (HIPAA, privacy)
+• Patient outcomes over features
+• Staff burnout reduction angle
+• Quality of care improvement
+• Use compassionate, professional tone`,
+
+      'Legal': `• Authority positioning required
+• Case outcomes and success rates
+• Risk mitigation language
+• Peace of mind emotional trigger
+• Avoid over-promising (ethical constraints)`,
+
+      'Finance': `• Security and trust are paramount
+• Wealth growth/protection dual focus
+• Regulatory compliance mentions
+• Expert positioning essential
+• Use conservative, professional tone`,
+
+      'E-commerce': `• Social proof critical (reviews, testimonials)
+• Urgency and scarcity work well
+• Product-specific benefits (not generic)
+• Guarantee and risk-reversal
+• Fast shipping/convenience angles`
+    };
+
+    return guidance[industry] || `Focus on specific, measurable benefits for ${industry}. Use industry-appropriate language and avoid jargon that confuses your audience.`;
+  }
+
+  /**
+   * Get audience pain points based on target audience and industry
+   * @private
+   * @param {string} audience - Target audience description
+   * @param {string} industry - Industry context
+   * @returns {string} - Audience-specific pain points
+   */
+  getAudiencePainPoints(audience, industry) {
+    const audienceLower = audience.toLowerCase();
+
+    if (audienceLower.includes('small business') || audienceLower.includes('entrepreneur')) {
+      return `• Limited time and resources
+• Wearing too many hats
+• Competing with larger competitors
+• Need to maximize ROI on every dollar
+• Fear of making wrong investment decisions`;
+    }
+
+    if (audienceLower.includes('enterprise') || audienceLower.includes('corporate')) {
+      return `• Scalability and reliability concerns
+• Integration with existing systems
+• Security and compliance requirements
+• Need measurable ROI and reporting
+• Change management challenges`;
+    }
+
+    if (audienceLower.includes('marketing') || audienceLower.includes('marketer')) {
+      return `• Pressure to show ROI and metrics
+• Limited budget, high expectations
+• Need to prove campaign effectiveness
+• Staying current with platform changes
+• Attribution and tracking challenges`;
+    }
+
+    // Default pain points
+    return `• Wasting time on inefficient processes
+• Missing opportunities due to gaps in coverage
+• Struggling to scale without proportional cost increases
+• Difficulty measuring ROI on current solutions
+• Frustration with complex or unreliable tools`;
+  }
+
+  /**
+   * Extract JSON from text that may contain reasoning or markdown
+   * Used for reasoning models (GPT-5, o1, etc.) that don't support response_format
+   * @private
+   * @param {string} text - Response text that may contain JSON
+   * @returns {object} - Parsed JSON object
+   */
+  extractJSONFromText(text) {
+    // Try direct parse first
+    try {
+      return JSON.parse(text);
+    } catch (e) {
+      // If direct parse fails, try to extract JSON from markdown code blocks
+      console.log('🔍 Direct JSON parse failed, extracting from markdown...');
+    }
+
+    // Try to extract JSON from markdown code blocks (```json ... ```)
+    const jsonBlockMatch = text.match(/```json\s*([\s\S]*?)\s*```/);
+    if (jsonBlockMatch) {
+      try {
+        console.log('✓ Found JSON in markdown code block');
+        return JSON.parse(jsonBlockMatch[1]);
+      } catch (e) {
+        console.error('❌ Failed to parse JSON from code block:', e.message);
+      }
+    }
+
+    // Try to extract JSON from generic code blocks (``` ... ```)
+    const codeBlockMatch = text.match(/```\s*([\s\S]*?)\s*```/);
+    if (codeBlockMatch) {
+      try {
+        console.log('✓ Found JSON in code block');
+        return JSON.parse(codeBlockMatch[1]);
+      } catch (e) {
+        console.error('❌ Failed to parse JSON from code block:', e.message);
+      }
+    }
+
+    // Try to find JSON object by looking for { ... }
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      try {
+        console.log('✓ Found JSON object in text');
+        return JSON.parse(jsonMatch[0]);
+      } catch (e) {
+        console.error('❌ Failed to parse extracted JSON:', e.message);
+      }
+    }
+
+    // If all else fails, throw error
+    throw new Error('Could not extract valid JSON from response. Response may not contain JSON.');
   }
 
   /**

@@ -1,13 +1,14 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenAI, Modality } from '@google/genai';
 
 /**
  * Gemini Service for Image Generation
- * Uses Gemini 2.5 Flash (gemini-2.5-flash-image-preview)
+ * Uses Gemini 2.5 Flash Image (gemini-2.5-flash-image)
+ * Updated to use @google/genai SDK (v1.22.0+)
  */
 
 class GeminiService {
   constructor() {
-    this.genAI = null;
+    this.client = null;
     this.apiKey = null;
   }
 
@@ -20,14 +21,15 @@ class GeminiService {
     }
 
     // Only reinitialize if API key changed
-    if (!this.genAI || this.apiKey !== apiKey) {
+    if (!this.client || this.apiKey !== apiKey) {
       this.apiKey = apiKey;
-      this.genAI = new GoogleGenerativeAI(apiKey);
+      this.client = new GoogleGenAI({ apiKey });
+      console.log('✅ Gemini client initialized with new SDK');
     }
   }
 
   /**
-   * Generate an image using Gemini 2.5 Flash
+   * Generate an image using Gemini 2.5 Flash Image
    * @param {string} prompt - The detailed prompt for image generation
    * @param {object} options - Additional options (can include apiKey, referenceImage)
    * @returns {Promise<object>} - Generated image data
@@ -39,13 +41,11 @@ class GeminiService {
       console.log('🎨 Starting Gemini image generation...');
       console.log('📝 Prompt length:', prompt.length, 'characters');
 
-      // Use gemini-2.5-flash-image-preview model which supports image generation
-      const model = this.genAI.getGenerativeModel({
-        model: 'gemini-2.5-flash-image-preview',
-      });
+      // Model name for image generation
+      const modelName = 'gemini-2.5-flash-image';
 
-      // Prepare content parts according to Google Gemini documentation
-      let contentParts;
+      // Prepare content based on whether we have a reference image
+      let contents;
 
       if (options.referenceImage && options.referenceImage.data) {
         console.log('🖼️ Including reference image for style guidance');
@@ -53,27 +53,27 @@ class GeminiService {
         console.log('📏 Reference image data length:', options.referenceImage.data.length, 'characters');
 
         // Verify base64 data doesn't contain data URI prefix
-        if (options.referenceImage.data.startsWith('data:')) {
-          console.error('❌ ERROR: Base64 data contains data URI prefix! This will fail.');
-          throw new Error('Invalid image data format: base64 string should not include data URI prefix');
+        let imageData = options.referenceImage.data;
+        if (imageData.startsWith('data:')) {
+          console.log('⚠️ Removing data URI prefix from reference image');
+          imageData = imageData.split(',')[1];
         }
 
-        // Format according to @google/generative-ai documentation:
-        // Text prompt first, then inline image data with mimeType and base64 data
-        contentParts = [
-          {
-            text: `Using the visual style, composition, and aesthetic from the reference image, create a new image with this description: ${prompt}`
-          },
+        // With reference image: send image first, then prompt
+        contents = [
           {
             inlineData: {
               mimeType: options.referenceImage.mimeType,
-              data: options.referenceImage.data  // Pure base64 string, no prefix
+              data: imageData  // Pure base64 string
             }
+          },
+          {
+            text: `Using the visual style, composition, and aesthetic from the reference image, create a new image with this description: ${prompt}`
           }
         ];
       } else {
-        // No reference image, just send the prompt as text
-        contentParts = prompt;
+        // No reference image, just send the text prompt
+        contents = prompt;
       }
 
       console.log('🎯 Requesting image generation from Gemini...');
@@ -87,70 +87,131 @@ class GeminiService {
         console.log('   📏 Image Size:', Math.round(options.referenceImage.data.length / 1024), 'KB');
         console.log('\n📝 TEXT PROMPT:');
         console.log('─'.repeat(80));
-        console.log(contentParts[0].text);
+        console.log(contents[1].text);
       } else {
         console.log('📝 TEXT PROMPT (No Reference Image):');
         console.log('─'.repeat(80));
-        console.log(prompt);
+        console.log(typeof contents === 'string' ? contents : JSON.stringify(contents));
       }
 
       console.log('─'.repeat(80));
-      console.log('🔧 MODEL:', 'gemini-2.5-flash-image-preview');
+      console.log('🔧 MODEL:', modelName);
       console.log('='.repeat(80) + '\n');
 
-      // Generate content - Gemini 2.5 Flash can generate images
-      const result = await model.generateContent(contentParts);
+      // Generate content using the new SDK with explicit image generation config
+      // gemini-2.5-flash-image requires responseModalities to specify image output
+      const response = await this.client.models.generateContent({
+        model: modelName,
+        contents: contents,
+        config: {
+          responseModalities: [Modality.IMAGE] // Explicitly request image output
+        }
+      });
 
-      const response = result.response;
       console.log('✅ Gemini generation complete');
+
+      // Log the raw HTTP response if available
+      if (response.sdkHttpResponse) {
+        console.log('\n📡 HTTP Response Status:', response.sdkHttpResponse.statusCode);
+        console.log('📡 HTTP Response Headers:', JSON.stringify(response.sdkHttpResponse.headers, null, 2));
+      }
+
+      // DETAILED DEBUG: Log full response structure
+      console.log('\n🔍 DETAILED RESPONSE DEBUG:');
+      console.log('─'.repeat(80));
+      console.log('📝 Response object keys:', Object.keys(response));
       console.log('📦 Response candidates:', response.candidates?.length || 0);
 
-      // Debug: Log response structure
       if (response.candidates && response.candidates[0]) {
+        console.log('📦 Candidate[0] keys:', Object.keys(response.candidates[0]));
+        console.log('📄 Content keys:', Object.keys(response.candidates[0].content || {}));
+
         const parts = response.candidates[0].content?.parts || [];
         console.log('📋 Response parts:', parts.length);
+
+        if (parts.length === 0) {
+          console.log('❌ WARNING: Response has 0 parts!');
+          console.log('🔍 Full candidate structure:', JSON.stringify(response.candidates[0], null, 2));
+          console.log('🔍 FULL RESPONSE (for debugging):', JSON.stringify(response, null, 2));
+        }
+
         parts.forEach((part, idx) => {
-          console.log(`  Part ${idx}:`, Object.keys(part));
+          console.log(`  Part ${idx} keys:`, Object.keys(part));
+          if (part.text) {
+            console.log(`    → Text content (${part.text.length} chars):`, part.text.substring(0, 100));
+          }
+          if (part.inlineData) {
+            console.log(`    → InlineData found:`, Object.keys(part.inlineData));
+            console.log(`    → MIME type:`, part.inlineData.mimeType);
+            console.log(`    → Data length:`, (part.inlineData.data || '').length, 'bytes');
+          }
         });
+      } else {
+        console.log('❌ No candidates or first candidate is missing');
+        console.log('🔍 Full response:', JSON.stringify(response, null, 2).substring(0, 500));
       }
+      console.log('─'.repeat(80));
 
       // Extract image data from response
       const imageData = this.extractImageFromResponse(response);
 
       if (!imageData) {
         // If no image in response, return the text response for debugging
-        let text = '';
+        let textResponse = '';
         try {
-          text = response.text();
+          if (response.candidates?.[0]?.content?.parts?.[0]?.text) {
+            textResponse = response.candidates[0].content.parts[0].text;
+          }
         } catch (e) {
-          text = 'Unable to extract text response';
+          textResponse = 'Unable to extract text response';
         }
 
         console.log('⚠️ No image found in response');
-        console.log('📝 Text response preview:', text.substring(0, 200));
+        console.log('📝 Text response preview:', textResponse.substring(0, 200));
+        console.log('💡 This may indicate the model returned text instead of an image');
 
-        return {
-          success: false,
-          message: 'Gemini did not return an image. The model may be text-only or image generation is not yet available.',
-          textResponse: text,
-          prompt: prompt,
-          hint: 'Image generation with Gemini is experimental. Consider using DALL-E or Stable Diffusion as alternative.'
-        };
+        throw new Error('Gemini did not return an image. The response contained only text.');
       }
+
+      console.log('✅ Successfully extracted image from Gemini response');
+      console.log('📊 Image MIME type:', imageData.mimeType);
+      console.log('📏 Image data size:', Math.round(imageData.data.length / 1024), 'KB');
+
+      // Extract usage metadata if available
+      const usageMetadata = response.usageMetadata || {};
+      const promptTokens = usageMetadata.promptTokenCount || 0;
+      const candidatesTokens = usageMetadata.candidatesTokenCount || 0;
+      const totalTokens = usageMetadata.totalTokenCount || 0;
+
+      console.log('📊 Token Usage:');
+      console.log(`   Prompt tokens: ${promptTokens}`);
+      console.log(`   Candidates tokens: ${candidatesTokens}`);
+      console.log(`   Total tokens: ${totalTokens}`);
 
       return {
         success: true,
         imageData: imageData,
         prompt: prompt,
         metadata: {
-          model: 'gemini-2.5-flash-image-preview',
+          model: modelName,
           timestamp: new Date().toISOString(),
+          hasReferenceImage: !!options.referenceImage,
+          // Token usage for cost tracking
+          promptTokens: promptTokens,
+          candidatesTokens: candidatesTokens,
+          totalTokens: totalTokens
         }
       };
 
     } catch (error) {
-      console.error('❌ Gemini API Error:', error);
-      console.error('Error details:', error.response?.data || error.message);
+      console.error('❌ Gemini API Error:', error.message);
+      console.error('Error stack:', error.stack);
+
+      // Log more details about the error
+      if (error.response) {
+        console.error('API Response Error:', error.response.data || error.response);
+      }
+
       throw new Error(`Gemini image generation failed: ${error.message}`);
     }
   }
@@ -161,7 +222,7 @@ class GeminiService {
    */
   extractImageFromResponse(response) {
     try {
-      // Check if response has image parts
+      // Check if response has candidates
       const candidates = response.candidates;
       if (!candidates || candidates.length === 0) {
         console.log('❌ No candidates in response');
@@ -177,24 +238,12 @@ class GeminiService {
       console.log(`🔍 Searching for image in ${content.parts.length} parts...`);
 
       // Look for image parts in the response
-      // According to Google docs, images are in inline_data with mime_type and data
+      // According to @google/genai SDK, images are in inlineData with mimeType and data
       for (let i = 0; i < content.parts.length; i++) {
         const part = content.parts[i];
         console.log(`  Checking part ${i}:`, Object.keys(part));
 
-        // Try inline_data (snake_case from API)
-        if (part.inline_data) {
-          console.log(`    Found inline_data:`, Object.keys(part.inline_data));
-          if (part.inline_data.mime_type && part.inline_data.mime_type.startsWith('image/')) {
-            console.log(`    ✓ Found image! MIME type: ${part.inline_data.mime_type}`);
-            return {
-              mimeType: part.inline_data.mime_type,
-              data: part.inline_data.data, // Base64 encoded image
-            };
-          }
-        }
-
-        // Also try inlineData (camelCase from SDK)
+        // Check for inlineData (the format used by @google/genai)
         if (part.inlineData) {
           console.log(`    Found inlineData:`, Object.keys(part.inlineData));
           if (part.inlineData.mimeType && part.inlineData.mimeType.startsWith('image/')) {
@@ -208,7 +257,7 @@ class GeminiService {
 
         // Check for text (means no image was generated)
         if (part.text) {
-          console.log(`    ℹ️ Part ${i} contains text (no image)`);
+          console.log(`    ℹ️ Part ${i} contains text (no image):`, part.text.substring(0, 100));
         }
       }
 

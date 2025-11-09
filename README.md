@@ -1,4 +1,4 @@
-# 🍌 Nano Banana Ad Creator
+# 🧠 AdGenius AI
 
 > AI-powered Facebook Ad Creative Generator using Google Gemini 2.5 Flash and OpenAI GPT-4
 

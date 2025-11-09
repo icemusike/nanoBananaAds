@@ -1,10 +1,11 @@
 import express from 'express';
 import prisma from '../utils/prisma.js';
+import { authenticateUser } from '../middleware/auth.js';
 
 const router = express.Router();
 
-// For demo purposes, we'll use a single user ID
-const DEFAULT_USER_ID = 'default-user';
+// Apply authentication to all routes
+router.use(authenticateUser);
 
 /**
  * POST /api/brands
@@ -12,6 +13,7 @@ const DEFAULT_USER_ID = 'default-user';
  */
 router.post('/', async (req, res) => {
   try {
+    const userId = req.user.id; // Get from authenticated user
     const {
       name,
       description,
@@ -41,9 +43,11 @@ router.post('/', async (req, res) => {
       });
     }
 
+    console.log('🔵 Creating brand for user:', userId);
+
     const brand = await prisma.brand.create({
       data: {
-        userId: DEFAULT_USER_ID,
+        userId: userId,
         name,
         description,
         tagline,
@@ -87,10 +91,13 @@ router.post('/', async (req, res) => {
  */
 router.get('/', async (req, res) => {
   try {
+    const userId = req.user.id; // Get from authenticated user
     const { search, industry } = req.query;
 
+    console.log('🔵 Fetching brands for user:', userId);
+
     const where = {
-      userId: DEFAULT_USER_ID
+      userId: userId
     };
 
     if (search) {
@@ -200,13 +207,13 @@ router.delete('/:id', async (req, res) => {
 
     // Check if this is the default brand
     const user = await prisma.user.findUnique({
-      where: { id: DEFAULT_USER_ID }
+      where: { id: req.user.id }
     });
 
     if (user?.defaultBrandId === id) {
       // Unset as default first
       await prisma.user.update({
-        where: { id: DEFAULT_USER_ID },
+        where: { id: req.user.id },
         data: { defaultBrandId: null }
       });
     }
@@ -252,7 +259,7 @@ router.put('/:id/set-default', async (req, res) => {
 
     // Update user's default brand
     const user = await prisma.user.update({
-      where: { id: DEFAULT_USER_ID },
+      where: { id: req.user.id },
       data: { defaultBrandId: id }
     });
 
@@ -308,11 +315,11 @@ router.put('/:id/use', async (req, res) => {
 router.get('/stats/summary', async (req, res) => {
   try {
     const totalBrands = await prisma.brand.count({
-      where: { userId: DEFAULT_USER_ID }
+      where: { userId: req.user.id }
     });
 
     const mostUsed = await prisma.brand.findMany({
-      where: { userId: DEFAULT_USER_ID },
+      where: { userId: req.user.id },
       orderBy: { usageCount: 'desc' },
       take: 5,
       select: {
@@ -326,7 +333,7 @@ router.get('/stats/summary', async (req, res) => {
 
     const industries = await prisma.brand.findMany({
       where: {
-        userId: DEFAULT_USER_ID,
+        userId: req.user.id,
         industry: { not: null }
       },
       select: { industry: true },

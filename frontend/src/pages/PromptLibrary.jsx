@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Search, BookOpen, Trash2, Copy, Check, Eye, Loader2, TrendingUp, Filter } from 'lucide-react';
 import axios from 'axios';
+import BrainLoader from '../components/BrainLoader';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 export default function PromptLibrary() {
   const [prompts, setPrompts] = useState([]);
@@ -27,7 +28,7 @@ export default function PromptLibrary() {
       if (filterIndustry !== 'all') params.append('industry', filterIndustry);
       if (filterStyle !== 'all') params.append('style', filterStyle);
 
-      const response = await axios.get(`${API_URL}/prompts?${params.toString()}`);
+      const response = await axios.get(`${API_URL}/api/prompts?${params.toString()}`);
       if (response.data.success) {
         setPrompts(response.data.prompts);
       }
@@ -40,7 +41,7 @@ export default function PromptLibrary() {
 
   const loadStats = async () => {
     try {
-      const response = await axios.get(`${API_URL}/prompts/stats/summary`);
+      const response = await axios.get(`${API_URL}/api/prompts/stats/summary`);
       if (response.data.success) {
         setStats(response.data.stats);
       }
@@ -51,7 +52,7 @@ export default function PromptLibrary() {
 
   const deletePrompt = async (id) => {
     try {
-      await axios.delete(`${API_URL}/prompts/${id}`);
+      await axios.delete(`${API_URL}/api/prompts/${id}`);
       loadPrompts();
       loadStats();
     } catch (error) {
@@ -166,9 +167,8 @@ export default function PromptLibrary() {
 
         {/* Loading State */}
         {loading ? (
-          <div className="card text-center py-16">
-            <Loader2 className="w-16 h-16 text-primary-400 animate-spin mx-auto mb-4" />
-            <p className="text-gray-400">Loading prompts...</p>
+          <div className="card py-8">
+            <BrainLoader message="Loading prompts library..." />
           </div>
         ) : prompts.length === 0 ? (
           <div className="card text-center py-16">

@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react';
 import { Wand2, Sparkles, Copy, Check, Loader2, BookOpen, Building2 } from 'lucide-react';
 import axios from 'axios';
 import { useNavigate, useLocation } from 'react-router-dom';
+import BrainLoader from '../components/BrainLoader';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 export default function CreativePrompts() {
   const navigate = useNavigate();
@@ -56,8 +57,8 @@ export default function CreativePrompts() {
   const loadBrands = async () => {
     try {
       const [brandsRes, settingsRes] = await Promise.all([
-        axios.get(`${API_URL}/brands`),
-        axios.get(`${API_URL}/user/settings`)
+        axios.get(`${API_URL}/api/brands`),
+        axios.get(`${API_URL}/api/user/settings`)
       ]);
 
       if (brandsRes.data.success) {
@@ -96,7 +97,7 @@ export default function CreativePrompts() {
 
     // Increment brand usage count
     try {
-      await axios.put(`${API_URL}/brands/${brand.id}/use`);
+      await axios.put(`${API_URL}/api/brands/${brand.id}/use`);
     } catch (err) {
       console.error('Failed to update brand usage:', err);
     }
@@ -149,7 +150,7 @@ export default function CreativePrompts() {
 
     try {
       setLoading(true);
-      const response = await axios.post(`${API_URL}/prompts/generate`, {
+      const response = await axios.post(`${API_URL}/api/prompts/generate`, {
         idea,
         industry,
         style,
@@ -375,11 +376,8 @@ export default function CreativePrompts() {
             )}
 
             {loading && (
-              <div className="text-center py-16">
-                <Loader2 className="w-16 h-16 text-primary-400 animate-spin mx-auto mb-4" />
-                <p className="text-gray-400">
-                  Creating your optimized prompt...
-                </p>
+              <div className="py-8">
+                <BrainLoader message="Creating your optimized prompt..." />
               </div>
             )}
 

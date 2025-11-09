@@ -249,25 +249,54 @@ A compelling product shot showing call analytics dashboard with impressive insig
  * Automation Tools Templates
  */
 export const automationToolsTemplates = {
-  workflowAutomation: (details) => `
-A visual representation of automated workflow showing connected nodes, data flowing automatically between applications, tasks completing themselves - all displayed on modern interface. Professional ${details.age || '34'}-year-old with amazed expression watching automation work. Set in clean modern workspace. The scene is illuminated by vibrant screen showing automation in action. Captured showing complete workflow visualization. The image has technical flow palette with ${details.colorPalette || 'blues for data, purples for automation, greens for completion'}. Conveys powerful automation. ${details.aspectRatio || ASPECT_RATIOS.SQUARE}.
-`.trim(),
+  workflowAutomation: (details) => {
+    // Check if the description includes people/human elements
+    const description = details.imageDescription || details.description || '';
+    const includesPeople = /\b(person|people|human|team|user|professional|individual|man|woman|worker|customer|client)\b/i.test(description);
 
-  timeReclaimed: (details) => `
-A lifestyle photo showing relaxed professional leaning back confidently with automation tools running in background on laptop screen - tasks completing automatically, notifications of finished work appearing. Clock or time visual element emphasizing hours saved. Set in comfortable modern office. The scene is illuminated by warm satisfying lighting showing work-life balance achieved. Captured showing freedom and relief. The image has liberating palette mixing ${details.colorPalette || 'warm human satisfaction with cool automated efficiency blues'}. Conveys time freedom. ${details.aspectRatio || ASPECT_RATIOS.PORTRAIT}.
-`.trim(),
+    if (includesPeople) {
+      return `A visual representation of automated workflow showing connected nodes, data flowing automatically between applications, tasks completing themselves - all displayed on modern interface. Professional ${details.age || '34'}-year-old with amazed expression watching automation work. Set in clean modern workspace. The scene is illuminated by vibrant screen showing automation in action. Captured showing complete workflow visualization. The image has technical flow palette with ${details.colorPalette || 'blues for data, purples for automation, greens for completion'}. Conveys powerful automation. ${details.aspectRatio || ASPECT_RATIOS.SQUARE}.`;
+    } else {
+      return `A clean visual representation of automated workflow showing connected nodes, data flowing automatically between applications, tasks completing themselves - all displayed on modern interface or diagram. Connected system nodes, flowing data streams, automated task sequences clearly visualized. Set against professional gradient or clean tech background. The scene is illuminated by vibrant glowing connections and data flows creating dynamic tech aesthetic. Captured showing complete workflow visualization from isometric or diagram view. The image has technical flow palette with ${details.colorPalette || 'blues for data, purples for automation, greens for completion'}. Conveys powerful systematic automation. ${details.aspectRatio || ASPECT_RATIOS.SQUARE}.`;
+    }
+  },
+
+  timeReclaimed: (details) => {
+    const description = details.imageDescription || details.description || '';
+    const includesPeople = /\b(person|people|human|team|user|professional|individual|man|woman|worker|customer|client)\b/i.test(description);
+
+    if (includesPeople) {
+      return `A lifestyle photo showing relaxed professional leaning back confidently with automation tools running in background on laptop screen - tasks completing automatically, notifications of finished work appearing. Clock or time visual element emphasizing hours saved. Set in comfortable modern office. The scene is illuminated by warm satisfying lighting showing work-life balance achieved. Captured showing freedom and relief. The image has liberating palette mixing ${details.colorPalette || 'warm human satisfaction with cool automated efficiency blues'}. Conveys time freedom. ${details.aspectRatio || ASPECT_RATIOS.PORTRAIT}.`;
+    } else {
+      return `A clean interface shot showing automation dashboard with tasks completing automatically, notifications of finished work appearing, time saved metrics clearly displayed. Clock or time visual element emphasizing efficiency gains. Set against modern interface design. The scene is illuminated by bright satisfying screen glow showing accomplished automation. Captured showing time efficiency metrics. The image has efficiency palette mixing ${details.colorPalette || 'success greens with automated efficiency blues'}. Conveys time reclaimed through automation. ${details.aspectRatio || ASPECT_RATIOS.PORTRAIT}.`;
+    }
+  },
 
   zapierStyle: (details) => `
 A clean flat-lay or interface shot showing multiple app logos connected by flowing animated lines representing automated data transfer - emails, spreadsheets, CRMs, calendars all syncing automatically. Central automation hub glowing. Set against modern gradient or clean background. The scene is illuminated by even professional lighting emphasizing connection clarity. Captured from overhead showing complete automation ecosystem. The image has connected tech palette with ${details.colorPalette || 'multiple brand colors unified by automation purple/blue'}. Conveys integration power. ${details.aspectRatio || ASPECT_RATIOS.SQUARE}.
 `.trim(),
 
-  eliminateRepetitive: (details) => `
-A before/after split showing same person: left side manually doing repetitive task looking exhausted with piles of work, right side same person with automation running showing completed work and relaxed satisfied expression. Automation interface visible on right. Set in office environment. The scene is illuminated by contrasting energy - tired dim left, energized bright right. Captured showing transformation story. The image has contrasting emotional palette from ${details.colorPalette || 'exhausted grays to energized vibrant colors'}. Conveys automation as solution. ${details.aspectRatio || ASPECT_RATIOS.SQUARE}.
-`.trim(),
+  eliminateRepetitive: (details) => {
+    const description = details.imageDescription || details.description || '';
+    const includesPeople = /\b(person|people|human|team|user|professional|individual|man|woman|worker|customer|client)\b/i.test(description);
 
-  businessAccelerator: (details) => `
-A dynamic photo showing automation dashboard with speed metrics, throughput increases, efficiency gains all trending dramatically upward. Professional viewing impressive growth numbers with excited expression. Rocket or speed visual metaphors subtly integrated. Set in modern tech workspace. The scene is illuminated by exciting screen glow with success metrics. Captured emphasizing upward momentum. The image has acceleration palette - ${details.colorPalette || 'vibrant oranges for speed, blues for growth, greens for success'}. Conveys business growth through automation. ${details.aspectRatio || ASPECT_RATIOS.SQUARE}.
-`.trim(),
+    if (includesPeople) {
+      return `A before/after split showing same person: left side manually doing repetitive task looking exhausted with piles of work, right side same person with automation running showing completed work and relaxed satisfied expression. Automation interface visible on right. Set in office environment. The scene is illuminated by contrasting energy - tired dim left, energized bright right. Captured showing transformation story. The image has contrasting emotional palette from ${details.colorPalette || 'exhausted grays to energized vibrant colors'}. Conveys automation as solution. ${details.aspectRatio || ASPECT_RATIOS.SQUARE}.`;
+    } else {
+      return `A before/after split comparison: left side showing manual process with cluttered interface, many steps, complexity; right side showing automated process with streamlined clean interface, single action, simplicity. Automation system clearly visible on right. Set against clean comparison layout. The scene is illuminated by contrasting energy - dim complex left, bright simple right. Captured showing transformation through automation. The image has contrasting palette from ${details.colorPalette || 'complex grays to streamlined vibrant colors'}. Conveys automation simplifying complexity. ${details.aspectRatio || ASPECT_RATIOS.SQUARE}.`;
+    }
+  },
+
+  businessAccelerator: (details) => {
+    const description = details.imageDescription || details.description || '';
+    const includesPeople = /\b(person|people|human|team|user|professional|individual|man|woman|worker|customer|client)\b/i.test(description);
+
+    if (includesPeople) {
+      return `A dynamic photo showing automation dashboard with speed metrics, throughput increases, efficiency gains all trending dramatically upward. Professional viewing impressive growth numbers with excited expression. Rocket or speed visual metaphors subtly integrated. Set in modern tech workspace. The scene is illuminated by exciting screen glow with success metrics. Captured emphasizing upward momentum. The image has acceleration palette - ${details.colorPalette || 'vibrant oranges for speed, blues for growth, greens for success'}. Conveys business growth through automation. ${details.aspectRatio || ASPECT_RATIOS.SQUARE}.`;
+    } else {
+      return `A dynamic visualization showing automation dashboard with speed metrics, throughput increases, efficiency gains all trending dramatically upward on graphs and charts. Rocket or speed visual metaphors subtly integrated with data flows. Set in modern tech interface design. The scene is illuminated by exciting data glow with success metrics highlighted. Captured emphasizing upward trend momentum. The image has acceleration palette - ${details.colorPalette || 'vibrant oranges for speed, blues for growth, greens for success'}. Conveys business acceleration through automation. ${details.aspectRatio || ASPECT_RATIOS.SQUARE}.`;
+    }
+  },
 };
 
 /**
@@ -314,6 +343,18 @@ An aspirational lifestyle photo showing how your product/service integrates seam
 A professional credibility-building photo showing trust indicators: certifications, awards, professional setting, expert at work, quality assurance visible. Person or product with visible trust signals. Set in professional authoritative environment. The scene is illuminated by professional lighting creating trustworthy atmosphere. Captured from angle showing credibility elements clearly. The image has trustworthy color palette - ${details.colorPalette || 'blues and greens with professional gold accents'}. Conveys credibility, expertise, trustworthiness. ${details.aspectRatio || ASPECT_RATIOS.SQUARE}.
 `.trim(),
 
+  flowchartDiagram: (details) => `
+A clean, professional flowchart diagram showing a logical process flow with interconnected nodes, decision points, and pathways. The diagram features geometric shapes: rounded rectangles for process steps, diamond shapes for decision points, circular nodes for start/end, connected by flowing arrows and pathways showing sequence and logic flow. Modern minimalist design with clean lines, organized step-by-step progression, and clear visual hierarchy. Set against a dark professional gradient background or clean white canvas with subtle grid pattern. The scene is illuminated by soft even lighting with glowing effects on key nodes, neon-style connectors with subtle glow, creating a futuristic tech aesthetic. Visual style: 3D isometric view showing depth and dimension, or flat 2D clean schematic with vibrant colors. The image has ${details.colorPalette || 'electric blues, neon purples, cyan accents with white/light gray text'} creating high-tech professional feel. Elements include: systematic flow arrows, labeled process boxes, branching decision pathways, clear progression from input to output. Conveys logic, structure, systematic thinking, organized workflow, decision-making process. ${details.aspectRatio || ASPECT_RATIOS.SQUARE}. Modern data visualization aesthetic, corporate professional, clean and engaging.
+`.trim(),
+
+  funnelProcess: (details) => `
+A dynamic 3D visualization of a conversion funnel showing the filtering and refinement process. The funnel is a sleek transparent glass or translucent material cone shape with wide top narrowing to focused bottom, showing multiple distinct layers or stages cascading downward. Visual elements flowing through: abstract customer icons, glowing particles, or data streams entering the wide top as chaotic scattered elements, being filtered and refined through each stage, emerging as a concentrated streamlined flow at the bottom. Each funnel layer/stage is clearly delineated with labels or visual markers. Set against a modern gradient background or floating in virtual space with subtle reflections and lighting effects. The scene is illuminated by dramatic lighting showing the transformation - diffused light at top becoming focused laser beam at bottom, internal glow within funnel layers showing active filtering process. Captured from a slight angle showing both depth and full funnel structure, 3D perspective with realistic materials and lighting. The image has ${details.colorPalette || 'vibrant gradient colors transitioning from chaotic multi-color at top to unified brand color at bottom, with glowing accents and metallic touches'}. Elements include: clear funnel stages, visual flow of elements being refined, bottleneck emphasis, conversion indicators, progression arrows. Conveys filtering, optimization, conversion process, lead refinement, customer journey, transforming chaos into focus. ${details.aspectRatio || ASPECT_RATIOS.SQUARE}. Futuristic, sleek, modern data visualization, professional yet dynamic.
+`.trim(),
+
+  automationProcess: (details) => `
+An intricate high-tech visualization of an automation system showing interconnected mechanisms working in seamless harmony. The scene features a sophisticated network of: glowing gears and cogs with metallic surfaces, circuit board traces with pulsing energy flows, robotic mechanical arms in precise motion, conveyor belts or data streams flowing smoothly, interconnected nodes forming a systematic network. Everything precisely orchestrated showing trigger-action sequences, domino effect progressions, or chain reactions of automated events. The composition shows clear input (trigger) on one side flowing through the automation system to clear output (result) on the other side. Set in a futuristic tech environment or floating in abstract digital space with holographic elements and glowing connections. The scene is illuminated by dramatic lighting emphasizing technology: neon glows on circuit traces, spotlights on key mechanisms, energy pulses flowing through the system, creating a sense of power and efficiency. Visual style: high-tech sci-fi aesthetic with intricate mechanical details, or clean minimalist automation with elegant simplicity, or Rube Goldberg complexity showing sophisticated orchestration. The image has ${details.colorPalette || 'electric blues, bright cyans, neon purple accents, metallic silver/gold, with glowing energy effects in warm orange or cool blue'} creating futuristic technical atmosphere. Elements include: connected gears suggesting seamless integration, flowing data packets, synchronized mechanical motion, clear cause-effect visualization, efficiency indicators. Conveys automation, efficiency, seamless integration, workflow optimization, systematic process, effortless operation, technological sophistication. ${details.aspectRatio || ASPECT_RATIOS.SQUARE}. Futuristic blueprint aesthetic, technical illustration, polished and professional with dynamic energy.
+`.trim(),
+
   custom: (details) => {
     // For custom template, use the user's custom description directly with some enhancements
     const userDescription = details.customDescription || 'A professional business scene showing the product or service in use';
@@ -355,9 +396,34 @@ export function generateGeminiPrompt(inputs) {
     imageDescription,
     moodKeywords,
     visualEmphasis,
-    avoidInImage
+    avoidInImage,
+    simpleMode = false // NEW: Simple Mode - bypass templates
   } = inputs;
 
+  // SIMPLE MODE: Use only image description, bypass all templates
+  if (simpleMode) {
+    console.log('🎯 SIMPLE MODE: Using ONLY image description, bypassing templates');
+    let simplePrompt = imageDescription || 'A professional Facebook ad image';
+
+    // Add optional enhancements if provided
+    if (moodKeywords && moodKeywords.trim()) {
+      simplePrompt += `\n\nMood: ${moodKeywords}`;
+    }
+    if (visualEmphasis && visualEmphasis.trim()) {
+      simplePrompt += `\n\nEmphasis: ${visualEmphasis}`;
+    }
+    if (avoidInImage && avoidInImage.trim()) {
+      simplePrompt += `\n\nAvoid: ${avoidInImage}`;
+    }
+
+    // Add aspect ratio format
+    const finalAspectRatio = aspectRatio || ASPECT_RATIOS.SQUARE;
+    simplePrompt += `\n\nFormat: ${finalAspectRatio} optimized for Facebook ads. Professional, high-quality, photorealistic image.`;
+
+    return simplePrompt;
+  }
+
+  // STANDARD MODE: Use templates and enhancements
   // Build details object
   const details = {
     colorPalette: colorPalette || COLOR_PALETTES[industry] || 'vibrant professional colors',
@@ -508,6 +574,11 @@ function buildEnhancedPrompt(params) {
     enhancedPrompt += `VISUAL EMPHASIS: ${visualEmphasis}. `;
   }
 
+  // Detect if image includes people
+  const includesPeople = /\b(person|people|human|team|user|professional|individual|man|woman|male|female|worker|owner|manager|customer|client)\b/i.test(userVision) ||
+                         /\b(person|people|human|team|user|professional|face|portrait)\b/i.test(templateTechnical.lighting || '') ||
+                         /\b(person|people|human|team|user|professional|face|portrait)\b/i.test(templateTechnical.camera || '');
+
   // Add technical quality enhancements from template
   enhancedPrompt += `\n\nTECHNICAL SPECIFICATIONS for professional ad quality:\n`;
 
@@ -525,8 +596,12 @@ function buildEnhancedPrompt(params) {
     enhancedPrompt += `- Camera: Professional photography with 50mm lens at f/2.8, shallow depth of field, sharp focus on main subject.\n`;
   }
 
-  // Quality
-  enhancedPrompt += `- Quality: Photorealistic, high-resolution, professional commercial photography quality. ${templateTechnical.quality}Natural authentic details with realistic textures, genuine expressions, and real-world imperfections that add authenticity.\n`;
+  // Quality - conditional based on whether people are in the image
+  if (includesPeople) {
+    enhancedPrompt += `- Quality: Photorealistic, high-resolution, professional commercial photography quality. ${templateTechnical.quality}Natural authentic details with realistic textures, genuine expressions, and real-world imperfections that add authenticity.\n`;
+  } else {
+    enhancedPrompt += `- Quality: Photorealistic, high-resolution, professional commercial photography quality. ${templateTechnical.quality}Clean, sharp, professional rendering with realistic textures and authentic details.\n`;
+  }
 
   // Colors
   enhancedPrompt += `- Color Palette: ${colorPalette} with vibrant saturated tones optimized for social media visibility.\n`;
@@ -534,9 +609,13 @@ function buildEnhancedPrompt(params) {
   // Aspect ratio
   enhancedPrompt += `- Format: ${aspectRatio} optimized for Facebook ads.\n`;
 
-  // Style
+  // Style - conditional based on whether people are in the image
   if (templateTechnical.style) {
-    enhancedPrompt += `- Overall Style: ${templateTechnical.style}, balancing professionalism with authentic human connection.\n`;
+    if (includesPeople) {
+      enhancedPrompt += `- Overall Style: ${templateTechnical.style}, balancing professionalism with authentic human connection.\n`;
+    } else {
+      enhancedPrompt += `- Overall Style: ${templateTechnical.style}, balancing professionalism with visual clarity.\n`;
+    }
   }
 
   // Add what to avoid (negative prompting)
@@ -544,11 +623,19 @@ function buildEnhancedPrompt(params) {
     enhancedPrompt += `\nNEGATIVE PROMPT (avoid these elements): ${avoidInImage}\n`;
   }
 
-  // Always avoid these for Facebook ads
-  enhancedPrompt += `\nAlways avoid: overly staged stock photo feel, artificial or plastic appearance, cluttered busy backgrounds that distract, poor lighting, blurry or low-resolution elements, text that's unreadable, faces that look AI-generated or uncanny.\n`;
+  // Always avoid these for Facebook ads - conditional based on whether people are in the image
+  if (includesPeople) {
+    enhancedPrompt += `\nAlways avoid: overly staged stock photo feel, artificial or plastic appearance, cluttered busy backgrounds that distract, poor lighting, blurry or low-resolution elements, text that's unreadable, faces that look AI-generated or uncanny.\n`;
+  } else {
+    enhancedPrompt += `\nAlways avoid: overly staged stock photo feel, artificial or plastic appearance, cluttered busy backgrounds that distract, poor lighting, blurry or low-resolution elements, text that's unreadable.\n`;
+  }
 
-  // Final quality note
-  enhancedPrompt += `\nFINAL OUTPUT: Create an authentic, scroll-stopping Facebook ad image that immediately captures attention, builds trust through genuine human elements, and clearly communicates the value proposition visually. The image must look professional yet relatable, polished yet authentic.`;
+  // Final quality note - conditional based on whether people are in the image
+  if (includesPeople) {
+    enhancedPrompt += `\nFINAL OUTPUT: Create an authentic, scroll-stopping Facebook ad image that immediately captures attention, builds trust through genuine human elements, and clearly communicates the value proposition visually. The image must look professional yet relatable, polished yet authentic.`;
+  } else {
+    enhancedPrompt += `\nFINAL OUTPUT: Create a professional, scroll-stopping Facebook ad image that immediately captures attention and clearly communicates the value proposition visually. The image must look polished, clean, and authentic.`;
+  }
 
   return enhancedPrompt;
 }

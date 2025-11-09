@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { Download, Copy, Check, AlertCircle, Eye, FileText } from 'lucide-react';
+import { Download, Copy, Check, AlertCircle, Eye, FileText, RefreshCw } from 'lucide-react';
 import { toPng } from 'html-to-image';
 
-export default function ResultsSection({ results, formData }) {
+export default function ResultsSection({ results, formData, onRegenerateCopy }) {
   const [copiedField, setCopiedField] = useState(null);
   const [activeTab, setActiveTab] = useState('preview');
+  const [regeneratingCopy, setRegeneratingCopy] = useState(false);
 
   const copyToClipboard = (text, field) => {
     navigator.clipboard.writeText(text);
@@ -17,7 +18,7 @@ export default function ResultsSection({ results, formData }) {
       // Create a link and download base64 image
       const link = document.createElement('a');
       link.href = `data:${results.image.imageData.mimeType};base64,${results.image.imageData.data}`;
-      link.download = `nano-banana-ad-${Date.now()}.png`;
+      link.download = `adgenius-ai-ad-${Date.now()}.png`;
       link.click();
     }
   };
@@ -42,7 +43,7 @@ CALL TO ACTION:
 ${copy.callToAction}
 
 ---
-Generated with Nano Banana Ad Creator 🍌
+Generated with AdGenius AI 🧠
 `;
 
     const blob = new Blob([text], { type: 'text/plain' });
@@ -132,20 +133,6 @@ Generated with Nano Banana Ad Creator 🍌
                   alt="Generated ad"
                   className="w-full h-auto"
                 />
-                {/* Show which model was used */}
-                <div className="absolute top-2 right-2 px-3 py-1 bg-dark-900/90 backdrop-blur-sm rounded-full text-xs font-medium flex items-center gap-1">
-                  {results.image.fallbackUsed ? (
-                    <>
-                      <span className="text-yellow-400">⚡</span>
-                      <span className="text-yellow-300">DALL-E 3</span>
-                    </>
-                  ) : (
-                    <>
-                      <span className="text-green-400">✓</span>
-                      <span className="text-green-300">{results.image.metadata?.model || 'Gemini'}</span>
-                    </>
-                  )}
-                </div>
               </div>
             ) : (
               <div className="bg-dark-800 rounded-lg p-8 text-center border-2 border-dashed border-dark-600">
@@ -171,7 +158,23 @@ Generated with Nano Banana Ad Creator 🍌
           {/* Ad Copy */}
           {copySuccess && adCopy && (
             <div className="space-y-4">
-              <h3 className="font-semibold text-lg">Ad Copy</h3>
+              <div className="flex items-center justify-between">
+                <h3 className="font-semibold text-lg">Ad Copy</h3>
+                {onRegenerateCopy && (
+                  <button
+                    onClick={async () => {
+                      setRegeneratingCopy(true);
+                      await onRegenerateCopy();
+                      setRegeneratingCopy(false);
+                    }}
+                    disabled={regeneratingCopy}
+                    className="btn-secondary text-sm flex items-center gap-2"
+                  >
+                    <RefreshCw className={`w-4 h-4 ${regeneratingCopy ? 'animate-spin' : ''}`} />
+                    {regeneratingCopy ? 'Regenerating...' : 'Regenerate Copy'}
+                  </button>
+                )}
+              </div>
 
               {/* Headline */}
               <div className="bg-dark-800 rounded-lg p-4">
@@ -364,56 +367,6 @@ Generated with Nano Banana Ad Creator 🍌
             </div>
           )}
 
-          {/* Metadata */}
-          <div>
-            <h3 className="font-semibold mb-3">Generation Details</h3>
-            <div className="bg-dark-800 rounded p-4 text-sm space-y-2 text-gray-400">
-              <div className="flex justify-between">
-                <span>Generated:</span>
-                <span>{new Date(results.timestamp).toLocaleString()}</span>
-              </div>
-              {results.image?.metadata?.model && (
-                <div className="flex justify-between">
-                  <span>Image Model:</span>
-                  <span className="flex items-center gap-2">
-                    {results.image.metadata.model}
-                    {results.image.fallbackUsed && (
-                      <span className="text-xs bg-yellow-500/20 text-yellow-400 px-2 py-0.5 rounded">
-                        Fallback
-                      </span>
-                    )}
-                  </span>
-                </div>
-              )}
-              {results.copy?.metadata?.model && (
-                <div className="flex justify-between">
-                  <span>Copy Model:</span>
-                  <span>{results.copy.metadata.model}</span>
-                </div>
-              )}
-              {results.image?.revisedPrompt && (
-                <div className="mt-3 pt-3 border-t border-dark-700">
-                  <span className="block mb-2">DALL-E Revised Prompt:</span>
-                  <span className="text-xs text-gray-500">{results.image.revisedPrompt}</span>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* AI Model Info */}
-          {results.image?.fallbackUsed && (
-            <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4">
-              <div className="flex gap-3">
-                <div className="text-yellow-400 text-xl">⚡</div>
-                <div className="text-sm">
-                  <p className="text-yellow-300 font-medium mb-1">DALL-E 3 Fallback Used</p>
-                  <p className="text-gray-400">
-                    Gemini image generation is experimental. DALL-E 3 was used as fallback to ensure you get a high-quality image.
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
       )}
     </div>

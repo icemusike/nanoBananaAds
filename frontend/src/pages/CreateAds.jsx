@@ -13,16 +13,23 @@ import {
   CheckCircle,
   X,
   BookOpen,
-  Building2
+  Building2,
+  Users
 } from 'lucide-react';
 import FormSection from '../components/FormSection';
 import ResultsSection from '../components/ResultsSection';
-import BananaLoader from '../components/BananaLoader';
+import BrainLoader from '../components/BrainLoader';
+import ClientProjectSelector from '../components/agency/ClientProjectSelector';
+import { useAgency } from '../context/AgencyContext';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 export default function CreateAds() {
   const location = useLocation();
+
+  // Get agency context (always available since AgencyProvider wraps the app)
+  const { hasAgencyLicense } = useAgency();
+
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState(null);
   const [error, setError] = useState(null);
@@ -36,6 +43,11 @@ export default function CreateAds() {
   const [loadingLibrary, setLoadingLibrary] = useState(false);
   const [brands, setBrands] = useState([]);
   const [selectedBrand, setSelectedBrand] = useState(null);
+  const [availableModels, setAvailableModels] = useState([]);
+
+  // Agency features - client/project selection
+  const [selectedClientId, setSelectedClientId] = useState('');
+  const [selectedProjectId, setSelectedProjectId] = useState('');
 
   // Form state
   const [formData, setFormData] = useState({
@@ -56,6 +68,8 @@ export default function CreateAds() {
     visualEmphasis: '',
     avoidInImage: '',
     customTemplateDescription: '',
+    model: 'gpt-4o-2024-08-06', // NEW: Model selection for ad copy generation
+    simpleMode: false, // NEW: Simple Mode - use only image description, bypass templates
   });
 
   // Reference image state
@@ -65,11 +79,12 @@ export default function CreateAds() {
     preview: null
   });
 
-  // Load templates, brands, and saved prompts on mount
+  // Load templates, brands, saved prompts, and models on mount
   useEffect(() => {
     loadTemplates();
     loadSavedPrompts();
     loadBrands();
+    loadModels();
 
     // Check if navigated from angle
     if (location.state?.fromAngle && location.state?.angleData) {
@@ -77,11 +92,60 @@ export default function CreateAds() {
     }
   }, []);
 
+  // Reload brands when client selection changes
+  useEffect(() => {
+    if (selectedClientId) {
+      loadClientBrands(selectedClientId);
+    } else {
+      loadBrands();
+    }
+  }, [selectedClientId]);
+
+  const loadModels = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get(`${API_URL}/api/models`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (response.data.success) {
+        setAvailableModels(response.data.models);
+      }
+    } catch (err) {
+      console.error('Failed to load models:', err);
+      // Set default models if fetch fails
+      setAvailableModels([
+        {
+          id: 'gpt-5-2025-08-07',
+          name: 'GPT-5',
+          description: 'Latest GPT-5 model with advanced reasoning',
+          capabilities: ['Advanced reasoning', 'Expert-level intelligence']
+        },
+        {
+          id: 'gpt-4o-2024-08-06',
+          name: 'GPT-4o',
+          description: 'Latest GPT-4o model with superior instruction following',
+          capabilities: ['Superior reasoning', 'Excellent instruction adherence']
+        },
+        {
+          id: 'gpt-4o-mini',
+          name: 'GPT-4o Mini',
+          description: 'Fast and cost-effective model',
+          capabilities: ['Fast generation', 'Most affordable']
+        }
+      ]);
+    }
+  };
+
   const loadBrands = async () => {
     try {
+      const token = localStorage.getItem('token');
       const [brandsRes, settingsRes] = await Promise.all([
-        axios.get(`${API_URL}/brands`),
-        axios.get(`${API_URL}/user/settings`)
+        axios.get(`${API_URL}/api/brands`, {
+          headers: { Authorization: `Bearer ${token}` }
+        }),
+        axios.get(`${API_URL}/api/user/settings`, {
+          headers: { Authorization: `Bearer ${token}` }
+        })
       ]);
 
       if (brandsRes.data.success) {
@@ -100,6 +164,32 @@ export default function CreateAds() {
       }
     } catch (err) {
       console.error('Failed to load brands:', err);
+    }
+  };
+
+  const loadClientBrands = async (clientId) => {
+    try {
+      const token = localStorage.getItem('token');
+      console.log('🔵 CreateAds: Loading brands for client:', clientId);
+
+      const response = await axios.get(
+        `${API_URL}/api/agency/clients/${clientId}/brands`,
+        {
+          headers: { Authorization: `Bearer ${token}` }
+        }
+      );
+
+      console.log('🔵 CreateAds: Client brands response:', response.data);
+
+      if (response.data.success) {
+        setBrands(response.data.brands || []);
+        setSelectedBrand(null); // Clear selected brand when switching clients
+        console.log(`🔵 CreateAds: Loaded ${response.data.brands?.length || 0} brands for client`);
+      }
+    } catch (err) {
+      console.error('❌ CreateAds: Failed to load client brands:', err);
+      console.error('❌ Error details:', err.response?.data || err.message);
+      setBrands([]);
     }
   };
 
@@ -150,7 +240,10 @@ export default function CreateAds() {
 
     // Increment brand usage count
     try {
-      await axios.put(`${API_URL}/brands/${brand.id}/use`);
+      const token = localStorage.getItem('token');
+      await axios.put(`${API_URL}/api/brands/${brand.id}/use`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
     } catch (err) {
       console.error('Failed to update brand usage:', err);
     }
@@ -198,7 +291,10 @@ export default function CreateAds() {
   const loadPromptLibrary = async () => {
     try {
       setLoadingLibrary(true);
-      const response = await axios.get(`${API_URL}/prompts?limit=20`);
+      const token = localStorage.getItem('token');
+      const response = await axios.get(`${API_URL}/api/prompts?limit=20`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       if (response.data.success) {
         setLibraryPrompts(response.data.prompts);
       }
@@ -219,7 +315,10 @@ export default function CreateAds() {
 
     // Increment usage count
     try {
-      await axios.put(`${API_URL}/prompts/${prompt.id}/use`);
+      const token = localStorage.getItem('token');
+      await axios.put(`${API_URL}/api/prompts/${prompt.id}/use`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
     } catch (err) {
       console.error('Failed to update prompt usage:', err);
     }
@@ -229,12 +328,64 @@ export default function CreateAds() {
 
   const loadTemplates = async () => {
     try {
-      const response = await axios.get(`${API_URL}/templates`);
+      const token = localStorage.getItem('token');
+      const response = await axios.get(`${API_URL}/api/templates`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       if (response.data.success) {
         setTemplates(response.data.templates);
       }
     } catch (err) {
       console.error('Failed to load templates:', err);
+    }
+  };
+
+  const handleRegenerateCopy = async () => {
+    // Get API keys from localStorage
+    const savedApiKeys = localStorage.getItem('apiKeys');
+    let apiKeys = { gemini: '', openai: '' };
+
+    if (savedApiKeys) {
+      apiKeys = JSON.parse(savedApiKeys);
+    }
+
+    if (!apiKeys.openai) {
+      setError('OpenAI API key not found. Please add it in Settings.');
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.post(`${API_URL}/api/regenerate-copy`, {
+        description: formData.description,
+        targetAudience: formData.targetAudience,
+        industry: formData.industry,
+        imageDescription: formData.imageDescription,
+        tone: formData.tone,
+        copywritingStyle: formData.copywritingStyle,
+        valueProposition: formData.valueProposition,
+        callToAction: formData.callToAction,
+        model: formData.model
+      }, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'x-openai-api-key': apiKeys.openai
+        }
+      });
+
+      if (response.data.success) {
+        // Update only the copy in results, keep the image
+        setResults(prev => ({
+          ...prev,
+          copy: response.data.copy,
+          timestamp: response.data.timestamp
+        }));
+      } else {
+        setError('Failed to regenerate ad copy');
+      }
+    } catch (err) {
+      console.error('Copy regeneration error:', err);
+      setError(err.response?.data?.error || 'Failed to regenerate ad copy');
     }
   };
 
@@ -278,7 +429,7 @@ export default function CreateAds() {
     setResults(null);
 
     try {
-      // Prepare request data with optional reference image
+      // Prepare request data with optional reference image and client/project association
       const requestData = {
         ...formData,
         ...(referenceImage.data && {
@@ -286,11 +437,16 @@ export default function CreateAds() {
             data: referenceImage.data,
             mimeType: referenceImage.mimeType
           }
-        })
+        }),
+        // Include client and project if selected (agency feature)
+        ...(selectedClientId && { clientAccountId: selectedClientId }),
+        ...(selectedProjectId && { projectId: selectedProjectId })
       };
 
-      const response = await axios.post(`${API_URL}/generate`, requestData, {
+      const token = localStorage.getItem('token');
+      const response = await axios.post(`${API_URL}/api/generate`, requestData, {
         headers: {
+          'Authorization': `Bearer ${token}`,
           'x-gemini-api-key': apiKeys.gemini,
           'x-openai-api-key': apiKeys.openai
         }
@@ -366,12 +522,6 @@ export default function CreateAds() {
       <main className="container mx-auto px-4 py-8 max-w-7xl">
         {/* Hero Section */}
         <div className="text-center mb-12">
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary-500/10 border border-primary-500/20 rounded-full mb-4">
-            <Zap className="w-4 h-4 text-primary-400" />
-            <span className="text-sm text-primary-300 font-medium">
-              Powered by Gemini / DALL-E 3 & GPT-5
-            </span>
-          </div>
           <h1 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-primary-400 via-accent-purple to-accent-teal bg-clip-text text-transparent">
             Create High-Converting Facebook Ads
           </h1>
@@ -404,6 +554,22 @@ export default function CreateAds() {
         <div className="grid lg:grid-cols-2 gap-8">
           {/* Left: Form */}
           <div className="space-y-6">
+            {/* Agency Client/Project Selector */}
+            {hasAgencyLicense && (
+              <div className="card">
+                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                  <Users className="w-5 h-5 text-primary-400" />
+                  Create for Client
+                </h3>
+                <ClientProjectSelector
+                  selectedClientId={selectedClientId}
+                  selectedProjectId={selectedProjectId}
+                  onClientChange={setSelectedClientId}
+                  onProjectChange={setSelectedProjectId}
+                />
+              </div>
+            )}
+
             {/* Brand Selector */}
             {brands.length > 0 && !location.state?.fromAngle && (
               <div className="card">
@@ -443,6 +609,7 @@ export default function CreateAds() {
               formData={formData}
               onInputChange={handleInputChange}
               templates={templates}
+              availableModels={availableModels}
             />
 
             {/* Reference Image Upload */}
@@ -596,10 +763,14 @@ export default function CreateAds() {
           <div className="lg:sticky lg:top-8 h-fit">
             {loading ? (
               <div className="card">
-                <BananaLoader message="Creating your amazing ad..." />
+                <BrainLoader message="Creating your amazing ad..." />
               </div>
             ) : results ? (
-              <ResultsSection results={results} formData={formData} />
+              <ResultsSection
+                results={results}
+                formData={formData}
+                onRegenerateCopy={handleRegenerateCopy}
+              />
             ) : (
               <div className="card h-full flex flex-col items-center justify-center text-center py-16">
                 <div className="w-20 h-20 bg-dark-800 rounded-full flex items-center justify-center mb-4">
@@ -624,7 +795,7 @@ export default function CreateAds() {
             </div>
             <h3 className="text-lg font-semibold mb-2">AI-Generated Images</h3>
             <p className="text-gray-400 text-sm">
-              Dual-model system: Gemini 2.5 Flash with DALL-E 3 fallback ensures you always get stunning images
+              Advanced AI-powered image generation ensures you always get stunning, professional visuals
             </p>
           </div>
 
@@ -634,7 +805,7 @@ export default function CreateAds() {
             </div>
             <h3 className="text-lg font-semibold mb-2">Compelling Copy</h3>
             <p className="text-gray-400 text-sm">
-              GPT-5 crafts high-converting headlines, descriptions, and primary text that drives results
+              Premium AI crafts high-converting headlines, descriptions, and primary text that drives results
             </p>
           </div>
 
@@ -724,9 +895,8 @@ export default function CreateAds() {
 
               <div className="flex-1 overflow-y-auto p-6">
                 {loadingLibrary ? (
-                  <div className="text-center py-16">
-                    <Loader2 className="w-16 h-16 text-primary-400 animate-spin mx-auto mb-4" />
-                    <p className="text-gray-400">Loading prompts...</p>
+                  <div className="py-8">
+                    <BrainLoader message="Loading prompts..." />
                   </div>
                 ) : libraryPrompts.length === 0 ? (
                   <div className="text-center py-16">

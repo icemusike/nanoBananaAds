@@ -20,9 +20,16 @@ model User {
   updatedAt DateTime @updatedAt
 
   // Account details
-  name      String?
-  email     String?  @unique
+  name      String
+  email     String   @unique
+  password  String?  // Hashed password (nullable for migration)
   company   String?
+
+  // Email verification
+  emailVerified Boolean @default(false)
+  verificationToken String?
+  resetPasswordToken String?
+  resetPasswordExpires DateTime?
 
   // API Keys (encrypted in production)
   geminiApiKey String?
@@ -36,6 +43,7 @@ model User {
   defaultIndustry     String?
   defaultTone         String @default("professional yet approachable")
   defaultAspectRatio  String @default("square")
+  defaultModel        String @default("gpt-4o-2024-08-06") // Default OpenAI model for copy generation
 
   // Theme preferences
   theme               String @default("solar-dusk") // Theme name
@@ -53,11 +61,23 @@ model User {
   // Settings metadata
   settings            Json? // Additional flexible settings
 
+  // JVZoo integration fields
+  createdVia          String?  @default("signup") // "signup", "jvzoo", "manual"
+  jvzooCustomerId     String?  // JVZoo customer ID for tracking
+  jvzooTransactionId  String?  // First JVZoo transaction ID
+
   // Relationships
   brands              Brand[] @relation("UserBrands")
+  licenses            License[]
+  jvzooTransactions   JVZooTransaction[]
+  apiUsageLogs        ApiUsageLog[]
+  clientAccounts      ClientAccount[] @relation("AgencyClients") // Agency feature - client accounts
+  usageLogs           UsageLog[] @relation("UserUsage") // Usage tracking
+  agencySettings      AgencySettings? // Agency License - white-label branding
 
   @@index([email])
   @@index([defaultBrandId])
+  @@index([jvzooCustomerId])
 }
 
 model Prompt {
@@ -154,6 +174,9 @@ model Ad {
   keyBenefits            Json?    // Array of strings
   toneAnalysis           String?  @db.Text
 
+  // AI Model used
+  copyModel              String   @default("gpt-4o-2024-08-06") // OpenAI model used for copy generation
+
   // Form data / metadata
   productDescription String   @db.Text
   targetAudience     String
@@ -169,10 +192,21 @@ model Ad {
   angleId            String? // If generated from an angle
   angle              Angle?  @relation(fields: [angleId], references: [id], onDelete: SetNull)
 
+  // Agency License: Client and Project relationships
+  clientAccountId    String?
+  clientAccount      ClientAccount? @relation(fields: [clientAccountId], references: [id], onDelete: SetNull)
+  projectId          String?
+  project            ClientProject? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+
+  // Approval workflow
+  approvals          ClientAdApproval[]
+
   @@index([createdAt])
   @@index([industry])
   @@index([category])
   @@index([angleId])
+  @@index([clientAccountId])
+  @@index([projectId])
 }
 
 model Brand {
@@ -220,8 +254,541 @@ model Brand {
   // Default brand relationships
   defaultForUsers   User[]   @relation("DefaultBrand")
 
+  // Agency License: Client association
+  clientAccountId   String?
+  clientAccount     ClientAccount? @relation(fields: [clientAccountId], references: [id], onDelete: SetNull)
+
   @@index([userId])
   @@index([createdAt])
   @@index([industry])
   @@index([name])
+  @@index([clientAccountId])
+}
+
+// JVZoo License Management
+model License {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // License tier (NEW - Core licensing system)
+  licenseTier         String   // "starter", "pro_unlimited", "elite_bundle"
+
+  // Credits system (NEW)
+  creditsTotal        Int?     // NULL = unlimited credits
+  creditsUsed         Int      @default(0)
+  creditsResetDate    DateTime? // When monthly credits reset
+
+  // License details
+  licenseKey          String   @unique // Generated license key (e.g., XXXX-XXXX-XXXX-XXXX)
+  productId           String   // Internal product identifier
+  status              String   @default("active") // active, refunded, chargeback, cancelled, expired
+
+  // JVZoo transaction info
+  jvzooTransactionId  String   @unique // JVZoo ctransaction
+  jvzooReceiptId      String?  // JVZoo receipt number
+  jvzooProductId      String   // JVZoo cproditem
+  transactionType     String   // SALE, RFND, CGBK, INSTAL, CANCEL-REBILL
+
+  // Purchase info
+  purchaseDate        DateTime @default(now())
+  purchaseAmount      Float?   // Sale amount
+  expiryDate          DateTime? // For time-limited licenses
+
+  // Subscription tracking (for recurring products)
+  isRecurring         Boolean  @default(false)
+  lastPaymentDate     DateTime?
+  paymentCount        Int      @default(1)
+  nextBillingDate     DateTime?
+
+  // Status changes
+  refundedAt          DateTime?
+  chargebackAt        DateTime?
+  cancelledAt         DateTime?
+
+  // Usage tracking
+  lastValidated       DateTime?
+  activations         Int      @default(0)
+  maxActivations      Int      @default(1)
+
+  // Metadata
+  metadata            Json?    // Additional flexible data
+
+  // Relationships
+  userId              String
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  addons              LicenseAddon[] // License addons (templates, agency, reseller)
+  usageLogs           UsageLog[] // Usage tracking
+
+  @@index([userId])
+  @@index([licenseKey])
+  @@index([jvzooTransactionId])
+  @@index([status])
+  @@index([productId])
+  @@index([licenseTier])
+  @@index([createdAt])
+}
+
+// JVZoo Transaction Audit Log
+model JVZooTransaction {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  // Transaction identification
+  jvzooTransactionId  String   @unique // JVZoo ctransaction (idempotency key)
+  jvzooReceiptId      String?  // JVZoo receipt number
+  transactionType     String   // SALE, RFND, CGBK, INSTAL, CANCEL-REBILL
+
+  // Product info
+  jvzooProductId      String   // JVZoo cproditem
+  productType         String?  // STANDARD, RECURRING, etc.
+
+  // Customer info
+  customerEmail       String
+  customerName        String?
+  customerCountry     String?
+  customerState       String?
+
+  // Financial info
+  amount              Float?   // Sale amount
+  affiliateCommission Float?   // Commission paid to affiliate
+  vendorEarnings      Float?   // Your earnings
+
+  // Verification
+  verificationHash    String   // JVZoo cverify hash
+  verified            Boolean  @default(false)
+
+  // Processing status
+  processed           Boolean  @default(false)
+  processedAt         DateTime?
+  processingError     String?  @db.Text
+
+  // Raw IPN data
+  rawIpnData          Json     // Complete IPN payload for debugging
+
+  // Relationships
+  userId              String?  // Linked user (if processed successfully)
+  user                User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([jvzooTransactionId])
+  @@index([customerEmail])
+  @@index([userId])
+  @@index([processed])
+  @@index([createdAt])
+  @@index([jvzooProductId])
+}
+
+// Admin Panel Models
+
+// Admin users with separate authentication
+model AdminUser {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Account details
+  email     String   @unique
+  password  String   // Hashed password
+  name      String
+
+  // Role and permissions
+  role      String   @default("admin") // admin, super_admin
+
+  // Session tracking
+  lastLogin DateTime?
+  isActive  Boolean  @default(true)
+
+  // Relationships
+  activityLogs AdminActivityLog[]
+
+  @@index([email])
+  @@index([isActive])
+}
+
+// Platform settings - centralized configuration
+model PlatformSettings {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Setting details
+  key       String   @unique // Unique key for the setting
+  value     Json     // Setting value (can be any JSON structure)
+  category  String   // ai_models, api_keys, general, email, security
+  encrypted Boolean  @default(false) // Whether the value is encrypted
+
+  // Metadata
+  description String? @db.Text // Human-readable description
+  lastModifiedBy String? // Admin user who last modified
+
+  @@index([category])
+  @@index([key])
+}
+
+// API usage tracking for cost analysis
+model ApiUsageLog {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  // User association (optional - some calls might be system-level)
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  // API details
+  provider  String   // gemini, openai
+  model     String   // gpt-4o, gpt-4o-mini, gemini-2.5-flash, dall-e-3
+  feature   String   // ad_generation, prompt_generation, angle_generation, image_generation, copy_generation
+
+  // Token/usage tracking
+  requestTokens  Int?  // Input tokens
+  responseTokens Int?  // Output tokens
+  totalTokens    Int?  // Total tokens
+
+  // Cost tracking
+  estimatedCost Float? // Estimated cost in USD
+
+  // Request identification
+  requestId  String?  // Unique request ID for deduplication
+  endpoint   String?  // API endpoint called
+
+  // Metadata
+  metadata   Json?    // Additional request-specific data
+  duration   Int?     // Request duration in milliseconds
+  success    Boolean  @default(true) // Whether the request succeeded
+
+  @@index([createdAt])
+  @@index([userId])
+  @@index([provider])
+  @@index([model])
+  @@index([feature])
+  @@index([success])
+}
+
+// Admin activity audit log
+model AdminActivityLog {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  // Admin user who performed the action
+  adminUserId String
+  adminUser   AdminUser @relation(fields: [adminUserId], references: [id], onDelete: Cascade)
+
+  // Action details
+  action     String   // user_updated, license_granted, settings_changed, user_deleted, etc.
+  targetType String?  // User, License, Settings, etc.
+  targetId   String?  // ID of the affected resource
+
+  // Additional context
+  details    Json?    // Action-specific details
+  ipAddress  String?  // IP address of the admin
+  userAgent  String?  // Browser/client info
+
+  @@index([adminUserId])
+  @@index([createdAt])
+  @@index([action])
+  @@index([targetType])
+}
+
+// ============================================
+// LICENSE ADDON SYSTEM
+// ============================================
+
+// License addons (Template Library, Agency, Reseller)
+model LicenseAddon {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Addon details
+  addonType           String   // "template_library", "agency_license", "reseller_rights"
+  status              String   @default("active") // active, refunded
+
+  // JVZoo transaction info
+  jvzooProductId      String
+  jvzooTransactionId  String   @unique
+  jvzooReceiptId      String?
+
+  // Purchase info
+  purchaseDate        DateTime @default(now())
+  purchaseAmount      Float?
+
+  // Status changes
+  refundedAt          DateTime?
+
+  // Relationships
+  licenseId           String
+  license             License  @relation(fields: [licenseId], references: [id], onDelete: Cascade)
+
+  // Prevent duplicate addons per license
+  @@unique([licenseId, addonType])
+  @@index([licenseId])
+  @@index([addonType])
+  @@index([status])
+  @@index([jvzooTransactionId])
+}
+
+// ============================================
+// AGENCY FEATURES
+// ============================================
+
+// Client accounts managed by agency users
+model ClientAccount {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Client info
+  clientEmail       String
+  clientName        String?
+  clientCompany     String?
+
+  // Access control
+  accessToken       String   @unique // Unique token for client access
+  status            String   @default("active") // active, suspended
+
+  // Credits allocation (optional - agency can allocate credits)
+  creditsAllocated  Int?
+  creditsUsed       Int      @default(0)
+
+  // Activity tracking
+  lastAccess        DateTime?
+
+  // Relationships
+  agencyUserId      String
+  agencyUser        User     @relation("AgencyClients", fields: [agencyUserId], references: [id], onDelete: Cascade)
+  usageLogs         UsageLog[]
+
+  // Agency License relationships
+  projects          ClientProject[]
+  ads               Ad[]
+  brands            Brand[]
+  approvals         ClientAdApproval[]
+  messages          ClientMessage[]
+  files             ClientFile[]
+
+  // Prevent duplicate clients per agency
+  @@unique([agencyUserId, clientEmail])
+  @@index([agencyUserId])
+  @@index([clientEmail])
+  @@index([accessToken])
+  @@index([status])
+}
+
+// ============================================
+// USAGE TRACKING
+// ============================================
+
+// Detailed usage logs for analytics and billing
+model UsageLog {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  // User/License/Client tracking
+  userId            String?
+  user              User?    @relation("UserUsage", fields: [userId], references: [id], onDelete: SetNull)
+
+  licenseId         String?
+  license           License? @relation(fields: [licenseId], references: [id], onDelete: SetNull)
+
+  clientAccountId   String?
+  clientAccount     ClientAccount? @relation(fields: [clientAccountId], references: [id], onDelete: SetNull)
+
+  // Action details
+  actionType        String   // "generate_ad", "export_ad", "bulk_generate", "prompt_generation", "angle_generation"
+  creditsConsumed   Int      @default(1)
+
+  // Context
+  aiModel           String?  // "gemini-2.5", "gpt-4", "dalle-3", etc.
+  templateId        String?  // Template used
+  exportFormat      String?  // "jpg", "png", "svg", "pdf"
+
+  // Request metadata
+  ipAddress         String?
+  userAgent         String?
+  metadata          Json?    // Additional flexible data
+
+  @@index([userId])
+  @@index([licenseId])
+  @@index([clientAccountId])
+  @@index([createdAt])
+  @@index([actionType])
+  @@index([aiModel])
+}
+
+// ============================================
+// AGENCY LICENSE FEATURES
+// ============================================
+
+// Projects/campaigns managed by agency for clients
+model ClientProject {
+  id              String   @id @default(cuid())
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Project details
+  name            String
+  description     String?  @db.Text
+  status          String   @default("active") // active, paused, completed
+  budget          Float?   // Optional project budget
+  currency        String   @default("USD")
+
+  // Timeline
+  startDate       DateTime?
+  endDate         DateTime?
+  deadline        DateTime?
+
+  // Relationships
+  clientAccountId String
+  clientAccount   ClientAccount @relation(fields: [clientAccountId], references: [id], onDelete: Cascade)
+  ads             Ad[]          // Ads created for this project
+
+  // Metadata
+  metadata        Json?    // Additional flexible data (goals, notes, etc.)
+
+  @@index([clientAccountId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+// Ad approval workflow for client review
+model ClientAdApproval {
+  id              String   @id @default(cuid())
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Ad being approved
+  adId            String
+  ad              Ad       @relation(fields: [adId], references: [id], onDelete: Cascade)
+
+  // Client who needs to approve
+  clientAccountId String
+  clientAccount   ClientAccount @relation(fields: [clientAccountId], references: [id], onDelete: Cascade)
+
+  // Approval status
+  status          String   @default("pending") // pending, approved, changes_requested, rejected, cancelled
+  feedback        String?  @db.Text
+  requestedChanges Json?   // Structured change requests
+
+  // Submission tracking
+  submittedAt     DateTime @default(now())
+  submittedBy     String?  // Agency user ID who submitted
+  submitterMessage String? @db.Text // Optional message from agency to client
+
+  // Approval tracking
+  approvedAt      DateTime?
+  approvedBy      String?  // Client name/email who approved
+
+  // Revision tracking
+  revisionNumber  Int      @default(1)
+  previousApprovalId String? // Link to previous revision
+
+  @@index([adId])
+  @@index([clientAccountId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+// Message center for agency-client communication
+model ClientMessage {
+  id              String   @id @default(cuid())
+  createdAt       DateTime @default(now())
+
+  // Client conversation
+  clientAccountId String
+  clientAccount   ClientAccount @relation(fields: [clientAccountId], references: [id], onDelete: Cascade)
+
+  // Message sender
+  senderId        String   // User ID (agency) or client access token
+  senderType      String   // "agency" or "client"
+  senderName      String   // Display name
+
+  // Message content
+  subject         String?  // Optional subject line
+  message         String   @db.Text
+  attachments     Json?    // Array of file URLs/references
+
+  // Message status
+  isRead          Boolean  @default(false)
+  readAt          DateTime?
+
+  // Thread support (optional)
+  replyToId       String?  // Reply to another message
+
+  @@index([clientAccountId])
+  @@index([createdAt])
+  @@index([senderId])
+  @@index([isRead])
+}
+
+// File sharing between agency and clients
+model ClientFile {
+  id              String   @id @default(cuid())
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Client association
+  clientAccountId String
+  clientAccount   ClientAccount @relation(fields: [clientAccountId], references: [id], onDelete: Cascade)
+
+  // File details
+  fileName        String
+  fileType        String   // logo, brand_asset, reference_image, document, other
+  mimeType        String
+  fileUrl         String   @db.Text
+  fileSize        Int      // in bytes
+  thumbnailUrl    String?  @db.Text // For images
+
+  // Upload tracking
+  uploadedBy      String   // User ID or client token
+  uploaderType    String   // "agency" or "client"
+  uploaderName    String?  // Display name
+
+  // Description and tags
+  description     String?  @db.Text
+  tags            Json?    // Array of tags for organization
+
+  @@index([clientAccountId])
+  @@index([fileType])
+  @@index([createdAt])
+}
+
+// Agency white-label branding settings
+model AgencySettings {
+  id              String   @id @default(cuid())
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // User association (one per agency user)
+  userId          String   @unique
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Branding
+  agencyName      String?
+  agencyLogo      String?  @db.Text // Base64 or URL
+  logoUrl         String?  // Alternative logo storage
+  primaryColor    String   @default("#3B82F6") // Hex color
+  secondaryColor  String   @default("#1E40AF") // Hex color
+  accentColor     String?  // Optional accent color
+
+  // Custom domain
+  customDomain    String?  // e.g., clients.youragency.com
+  domainVerified  Boolean  @default(false)
+
+  // Contact information
+  agencyEmail     String?
+  agencyPhone     String?
+  agencyWebsite   String?
+  agencyAddress   String?  @db.Text
+
+  // Client portal customization
+  portalWelcomeMessage String? @db.Text
+  portalFooterText     String?
+  showPoweredBy        Boolean @default(true) // Show "Powered by AdGenius AI"
+
+  // Email branding
+  emailFromName   String?  // Custom "from" name in emails
+  emailFromEmail  String?  // Custom "from" email
+  emailLogoUrl    String?  @db.Text
+
+  @@index([userId])
 }

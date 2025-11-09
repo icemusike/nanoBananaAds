@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react';
 import { Lightbulb, Sparkles, TrendingUp, BookmarkPlus, Loader2, Target, Zap, Save, Library, Building2 } from 'lucide-react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import BrainLoader from '../components/BrainLoader';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 export default function AnglesGenerator() {
   const navigate = useNavigate();
@@ -27,8 +28,8 @@ export default function AnglesGenerator() {
   const loadBrands = async () => {
     try {
       const [brandsRes, settingsRes] = await Promise.all([
-        axios.get(`${API_URL}/brands`),
-        axios.get(`${API_URL}/user/settings`)
+        axios.get(`${API_URL}/api/brands`),
+        axios.get(`${API_URL}/api/user/settings`)
       ]);
 
       if (brandsRes.data.success) {
@@ -67,7 +68,7 @@ export default function AnglesGenerator() {
 
     // Increment brand usage count
     try {
-      await axios.put(`${API_URL}/brands/${brand.id}/use`);
+      await axios.put(`${API_URL}/api/brands/${brand.id}/use`);
     } catch (err) {
       console.error('Failed to update brand usage:', err);
     }
@@ -98,7 +99,7 @@ export default function AnglesGenerator() {
 
     try {
       setLoading(true);
-      const response = await axios.post(`${API_URL}/angles/generate`, {
+      const response = await axios.post(`${API_URL}/api/angles/generate`, {
         ...formData,
         saveToLibrary: true // Auto-save all angles to library
       });
@@ -327,11 +328,8 @@ export default function AnglesGenerator() {
             )}
 
             {loading && (
-              <div className="card text-center py-16">
-                <Loader2 className="w-16 h-16 text-primary-400 animate-spin mx-auto mb-4" />
-                <p className="text-gray-400">
-                  Analyzing your business and discovering creative angles...
-                </p>
+              <div className="card py-8">
+                <BrainLoader message="Analyzing your business and discovering creative angles..." />
               </div>
             )}
 

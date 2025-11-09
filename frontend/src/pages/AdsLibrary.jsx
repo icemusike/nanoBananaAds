@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react';
 import { Search, Calendar, Tag, Trash2, Eye, Download, Loader2 } from 'lucide-react';
 import axios from 'axios';
 import AdDetailModal from '../components/AdDetailModal';
+import BrainLoader from '../components/BrainLoader';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 // Lazy loading image component
 function LazyAdImage({ ad, imageDataCache, onLoadImage }) {
@@ -64,7 +65,7 @@ export default function AdsLibrary() {
       if (searchQuery) params.append('search', searchQuery);
       if (filterIndustry !== 'all') params.append('industry', filterIndustry);
 
-      const response = await axios.get(`${API_URL}/ads?${params.toString()}`);
+      const response = await axios.get(`${API_URL}/api/ads?${params.toString()}`);
 
       if (response.data.success) {
         // Transform API data to match expected format
@@ -117,7 +118,7 @@ export default function AdsLibrary() {
     }
 
     try {
-      const response = await axios.get(`${API_URL}/ads/${adId}`);
+      const response = await axios.get(`${API_URL}/api/ads/${adId}`);
       if (response.data.success) {
         const imageData = response.data.ad.imageData;
         // Cache the image data
@@ -132,7 +133,7 @@ export default function AdsLibrary() {
 
   const deleteAd = async (adId) => {
     try {
-      await axios.delete(`${API_URL}/ads/${adId}`);
+      await axios.delete(`${API_URL}/api/ads/${adId}`);
       // Reload ads after deletion
       loadSavedAds();
     } catch (err) {
@@ -141,12 +142,76 @@ export default function AdsLibrary() {
     }
   };
 
+  const handleRegenerateCopy = async (ad) => {
+    // Get API keys from localStorage
+    const savedApiKeys = localStorage.getItem('apiKeys');
+    let apiKeys = { gemini: '', openai: '' };
+
+    if (savedApiKeys) {
+      apiKeys = JSON.parse(savedApiKeys);
+    }
+
+    if (!apiKeys.openai) {
+      alert('OpenAI API key not found. Please add it in Settings.');
+      return;
+    }
+
+    try {
+      const response = await axios.post(`${API_URL}/api/regenerate-copy`, {
+        description: ad.formData.description,
+        targetAudience: ad.formData.targetAudience,
+        industry: ad.formData.industry,
+        imageDescription: ad.formData.description, // Use description as image context
+        tone: ad.formData.tone,
+        copywritingStyle: 'default',
+        valueProposition: ad.formData.valueProposition,
+        callToAction: ad.adCopy.callToAction,
+        model: 'gpt-4o-2024-08-06'
+      }, {
+        headers: {
+          'x-openai-api-key': apiKeys.openai
+        }
+      });
+
+      if (response.data.success) {
+        // Create a new ad with the same image but new copy
+        const newAd = {
+          ...ad,
+          id: `${ad.id}-variation-${Date.now()}`, // Create a unique ID
+          adCopy: response.data.copy.adCopy,
+          createdAt: new Date().toISOString()
+        };
+
+        // Close modal and reload to show the new variation
+        setSelectedAd(null);
+        alert('Copy variation created successfully! Creating new ad in library...');
+
+        // Save the new variation to database
+        await axios.post(`${API_URL}/api/ads`, {
+          imageData: ad.image.imageData.data,
+          imageMimeType: ad.image.imageData.mimeType,
+          imageMetadata: ad.image.metadata,
+          adCopy: newAd.adCopy,
+          formData: ad.formData
+        });
+
+        // Reload ads
+        loadSavedAds();
+      } else {
+        alert('Failed to generate copy variation');
+      }
+    } catch (err) {
+      console.error('Copy regeneration error:', err);
+      alert(err.response?.data?.error || 'Failed to generate copy variation');
+    }
+  };
+
   const downloadImage = async (ad) => {
     const imageData = await loadImageData(ad.id);
     if (imageData) {
       const link = document.createElement('a');
       link.href = `data:${ad.image.imageData.mimeType};base64,${imageData}`;
-      link.download = `nano-banana-ad-${ad.id}.png`;
+      link.download = `adgenius-ai-ad-${ad.id}.png`;
       link.click();
     }
   };
@@ -258,12 +323,8 @@ export default function AdsLibrary() {
 
         {/* Loading State */}
         {loading ? (
-          <div className="card text-center py-16">
-            <Loader2 className="w-16 h-16 text-primary-400 animate-spin mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-gray-400 mb-2">
-              Loading your ads...
-            </h3>
-            <p className="text-gray-500">Please wait while we fetch your ad library</p>
+          <div className="card py-8">
+            <BrainLoader message="Loading your ads library..." />
           </div>
         ) : filteredAds.length === 0 ? (
           <div className="card text-center py-16">
@@ -293,17 +354,6 @@ export default function AdsLibrary() {
                     imageDataCache={imageDataCache}
                     onLoadImage={loadImageData}
                   />
-
-                  {/* Model Badge */}
-                  <div className="absolute top-2 right-2">
-                    <div className={`px-2 py-1 rounded text-xs font-semibold ${
-                      ad.image.metadata?.model === 'dall-e-3'
-                        ? 'bg-yellow-500/90 text-yellow-950'
-                        : 'bg-green-500/90 text-green-950'
-                    }`}>
-                      {ad.image.metadata?.model === 'dall-e-3' ? '⚡ DALL-E 3' : '✓ Gemini'}
-                    </div>
-                  </div>
 
                   {/* Overlay Actions */}
                   <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
@@ -373,6 +423,7 @@ export default function AdsLibrary() {
             setSelectedAd(null);
           }}
           onDownload={downloadImage}
+          onRegenerateCopy={handleRegenerateCopy}
         />
       )}
     </div>
