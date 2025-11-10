@@ -1,9 +1,10 @@
 import axios from 'axios';
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+
 // Create axios instance with default config
-// Use relative URL - Vite proxy will handle forwarding to backend
 const adminApi = axios.create({
-  baseURL: '/api/admin',
+  baseURL: `${API_URL}/api/admin`,
   headers: {
     'Content-Type': 'application/json'
   }

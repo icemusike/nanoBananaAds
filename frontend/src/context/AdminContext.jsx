@@ -16,7 +16,7 @@ export const AdminProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [token, setToken] = useState(localStorage.getItem('adminToken'));
 
-  const API_URL = ''; // Use relative URL - Vite proxy will handle it
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
   useEffect(() => {
     if (token) {
