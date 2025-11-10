@@ -72,7 +72,7 @@ export default function Settings() {
 
   const loadSettings = async () => {
     try {
-      // Load API keys from localStorage
+      // Load API keys from localStorage first (fallback)
       const savedApiKeys = localStorage.getItem('apiKeys');
       if (savedApiKeys) {
         setApiKeys(JSON.parse(savedApiKeys));
@@ -99,6 +99,19 @@ export default function Settings() {
           theme: user.theme || 'solar-dusk',
           themeMode: user.themeMode || 'dark'
         });
+
+        // Load API keys from database (overwrites localStorage if present)
+        if (user.geminiApiKey || user.openaiApiKey) {
+          setApiKeys({
+            gemini: user.geminiApiKey || '',
+            openai: user.openaiApiKey || ''
+          });
+          // Also update localStorage to stay in sync
+          localStorage.setItem('apiKeys', JSON.stringify({
+            gemini: user.geminiApiKey || '',
+            openai: user.openaiApiKey || ''
+          }));
+        }
 
         // Apply theme from database if different
         if (user.theme && user.theme !== themeName) {
@@ -234,10 +247,13 @@ export default function Settings() {
       // Save API keys to localStorage
       localStorage.setItem('apiKeys', JSON.stringify(apiKeys));
 
-      // Save user info and preferences to database
+      // Save user info, preferences, AND API keys to database
       const response = await axios.put(`${API_URL}/api/user/settings`, {
         ...userInfo,
-        ...preferences
+        ...preferences,
+        // Map API keys to backend field names
+        geminiApiKey: apiKeys.gemini,
+        openaiApiKey: apiKeys.openai
       });
 
       if (response.data.success) {
