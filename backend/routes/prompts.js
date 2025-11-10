@@ -1,8 +1,12 @@
 import express from 'express';
 import prisma from '../utils/prisma.js';
 import openaiService from '../services/openai.js';
+import { authenticateUser } from '../middleware/auth.js';
 
 const router = express.Router();
+
+// Apply authentication to all routes
+router.use(authenticateUser);
 
 /**
  * POST /api/prompts/generate
@@ -42,6 +46,7 @@ router.post('/generate', async (req, res) => {
     if (saveToLibrary && result.success) {
       savedPrompt = await prisma.prompt.create({
         data: {
+          userId: req.userId,
           idea,
           generatedPrompt: result.prompt.generatedPrompt,
           industry: industry || null,
@@ -56,10 +61,9 @@ router.post('/generate', async (req, res) => {
       });
 
       // Increment user usage counter
-      const DEFAULT_USER_ID = 'default-user';
       try {
         await prisma.user.update({
-          where: { id: DEFAULT_USER_ID },
+          where: { id: req.userId },
           data: { promptsGenerated: { increment: 1 } }
         });
         console.log('✅ User prompts counter incremented');
@@ -92,7 +96,9 @@ router.get('/', async (req, res) => {
   try {
     const { industry, style, search, limit = 50 } = req.query;
 
-    const where = {};
+    const where = {
+      userId: req.userId
+    };
 
     if (search) {
       where.OR = [
@@ -138,8 +144,11 @@ router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params;
 
-    const prompt = await prisma.prompt.findUnique({
-      where: { id }
+    const prompt = await prisma.prompt.findFirst({
+      where: {
+        id,
+        userId: req.userId
+      }
     });
 
     if (!prompt) {
@@ -171,6 +180,18 @@ router.put('/:id/use', async (req, res) => {
   try {
     const { id } = req.params;
 
+    // Verify prompt belongs to user
+    const existingPrompt = await prisma.prompt.findFirst({
+      where: { id, userId: req.userId }
+    });
+
+    if (!existingPrompt) {
+      return res.status(404).json({
+        success: false,
+        message: 'Prompt not found or access denied'
+      });
+    }
+
     const prompt = await prisma.prompt.update({
       where: { id },
       data: {
@@ -201,6 +222,18 @@ router.put('/:id/use', async (req, res) => {
 router.delete('/:id', async (req, res) => {
   try {
     const { id } = req.params;
+
+    // Verify prompt belongs to user
+    const existingPrompt = await prisma.prompt.findFirst({
+      where: { id, userId: req.userId }
+    });
+
+    if (!existingPrompt) {
+      return res.status(404).json({
+        success: false,
+        message: 'Prompt not found or access denied'
+      });
+    }
 
     const prompt = await prisma.prompt.delete({
       where: { id }

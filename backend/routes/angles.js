@@ -1,8 +1,12 @@
 import express from 'express';
 import prisma from '../utils/prisma.js';
 import openaiService from '../services/openai.js';
+import { authenticateUser } from '../middleware/auth.js';
 
 const router = express.Router();
+
+// Apply authentication to all routes
+router.use(authenticateUser);
 
 /**
  * POST /api/angles/generate
@@ -44,6 +48,7 @@ router.post('/generate', async (req, res) => {
         result.angles.map(angle =>
           prisma.angle.create({
             data: {
+              userId: req.userId,
               businessName,
               businessDescription,
               industry: industry || null,
@@ -66,10 +71,9 @@ router.post('/generate', async (req, res) => {
       );
 
       // Increment user usage counter by the number of angles saved
-      const DEFAULT_USER_ID = 'default-user';
       try {
         await prisma.user.update({
-          where: { id: DEFAULT_USER_ID },
+          where: { id: req.userId },
           data: { anglesGenerated: { increment: savedAngles.length } }
         });
         console.log(`✅ User angles counter incremented by ${savedAngles.length}`);
@@ -126,6 +130,7 @@ router.post('/save', async (req, res) => {
 
     const angle = await prisma.angle.create({
       data: {
+        userId: req.userId,
         businessName,
         businessDescription,
         industry: industry || null,
@@ -143,10 +148,9 @@ router.post('/save', async (req, res) => {
     });
 
     // Increment user usage counter
-    const DEFAULT_USER_ID = 'default-user';
     try {
       await prisma.user.update({
-        where: { id: DEFAULT_USER_ID },
+        where: { id: req.userId },
         data: { anglesGenerated: { increment: 1 } }
       });
       console.log('✅ User angles counter incremented');
@@ -176,7 +180,9 @@ router.get('/', async (req, res) => {
   try {
     const { industry, targetEmotion, search, sortBy = 'createdAt', limit = 50 } = req.query;
 
-    const where = {};
+    const where = {
+      userId: req.userId
+    };
 
     if (search) {
       where.OR = [
@@ -241,8 +247,11 @@ router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params;
 
-    const angle = await prisma.angle.findUnique({
-      where: { id },
+    const angle = await prisma.angle.findFirst({
+      where: {
+        id,
+        userId: req.userId
+      },
       include: {
         prompts: {
           orderBy: { createdAt: 'desc' },
@@ -285,6 +294,18 @@ router.put('/:id/use', async (req, res) => {
     const { id } = req.params;
     const { type } = req.body; // 'prompt' or 'ad'
 
+    // Verify angle belongs to user
+    const existingAngle = await prisma.angle.findFirst({
+      where: { id, userId: req.userId }
+    });
+
+    if (!existingAngle) {
+      return res.status(404).json({
+        success: false,
+        message: 'Angle not found or access denied'
+      });
+    }
+
     const updateData = {
       usageCount: { increment: 1 }
     };
@@ -323,6 +344,18 @@ router.put('/:id', async (req, res) => {
     const { id } = req.params;
     const { performanceRating, performanceNotes } = req.body;
 
+    // Verify angle belongs to user
+    const existingAngle = await prisma.angle.findFirst({
+      where: { id, userId: req.userId }
+    });
+
+    if (!existingAngle) {
+      return res.status(404).json({
+        success: false,
+        message: 'Angle not found or access denied'
+      });
+    }
+
     const updateData = {};
     if (performanceRating !== undefined) {
       updateData.performanceRating = performanceRating;
@@ -357,6 +390,18 @@ router.put('/:id', async (req, res) => {
 router.delete('/:id', async (req, res) => {
   try {
     const { id } = req.params;
+
+    // Verify angle belongs to user
+    const existingAngle = await prisma.angle.findFirst({
+      where: { id, userId: req.userId }
+    });
+
+    if (!existingAngle) {
+      return res.status(404).json({
+        success: false,
+        message: 'Angle not found or access denied'
+      });
+    }
 
     const angle = await prisma.angle.delete({
       where: { id }
