@@ -1,9 +1,10 @@
 import express from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import prisma from '../utils/prisma.js';
+import { PrismaClient } from '../generated/prisma/index.js';
 
 const router = express.Router();
+const prisma = new PrismaClient();
 
 // JWT Secret - In production, use environment variable
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';

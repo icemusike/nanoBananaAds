@@ -177,17 +177,6 @@ class GeminiService {
       console.log('📊 Image MIME type:', imageData.mimeType);
       console.log('📏 Image data size:', Math.round(imageData.data.length / 1024), 'KB');
 
-      // Extract usage metadata if available
-      const usageMetadata = response.usageMetadata || {};
-      const promptTokens = usageMetadata.promptTokenCount || 0;
-      const candidatesTokens = usageMetadata.candidatesTokenCount || 0;
-      const totalTokens = usageMetadata.totalTokenCount || 0;
-
-      console.log('📊 Token Usage:');
-      console.log(`   Prompt tokens: ${promptTokens}`);
-      console.log(`   Candidates tokens: ${candidatesTokens}`);
-      console.log(`   Total tokens: ${totalTokens}`);
-
       return {
         success: true,
         imageData: imageData,
@@ -195,11 +184,7 @@ class GeminiService {
         metadata: {
           model: modelName,
           timestamp: new Date().toISOString(),
-          hasReferenceImage: !!options.referenceImage,
-          // Token usage for cost tracking
-          promptTokens: promptTokens,
-          candidatesTokens: candidatesTokens,
-          totalTokens: totalTokens
+          hasReferenceImage: !!options.referenceImage
         }
       };
 

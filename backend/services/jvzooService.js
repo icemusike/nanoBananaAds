@@ -1,31 +1,8 @@
-/**
- * AdGenius AI - JVZoo Integration Service
- *
- * Handles JVZoo IPN (Instant Payment Notifications) for license management
- */
-
 import crypto from 'crypto';
-import prisma from '../utils/prisma.js';
-import {
-  createLicense,
-  upgradeLicense,
-  addLicenseAddon,
-  handleRefund,
-  handleChargeback,
-  handleRecurringPayment,
-  handleCancellation
-} from './licenseService.js';
-import {
-  getProductConfig,
-  isLicenseProduct,
-  isAddonProduct,
-  isEliteBundle
-} from '../config/productMapping.js';
-import { LICENSE_TIERS } from '../config/licenseConfig.js';
+import { PrismaClient } from '../generated/prisma/index.js';
+import { createLicense, handleRefund, handleChargeback, handleRecurringPayment, handleCancellation } from './licenseService.js';
 
-// ============================================
-// IPN VERIFICATION
-// ============================================
+const prisma = new PrismaClient();
 
 /**
  * Verify JVZoo IPN authenticity using SHA-1 hash
@@ -69,9 +46,23 @@ export function verifyJVZooIPN(ipnData, secretKey) {
   return isValid;
 }
 
-// ============================================
-// USER MANAGEMENT
-// ============================================
+/**
+ * Map JVZoo product ID to internal product identifier
+ */
+export function mapProductId(jvzooProductId) {
+  // TODO: Update these mappings with your actual JVZoo product IDs
+  const productMapping = {
+    // Example mappings - replace with your actual JVZoo product IDs
+    '123456': 'adgenius-frontend',      // Front-end offer
+    '123457': 'adgenius-pro',           // OTO 1: Pro Unlimited
+    '123458': 'adgenius-pro-lite',      // OTO 1 Downsell: Pro Lite
+    '123459': 'adgenius-templates',     // OTO 2: Template Library
+    '123460': 'adgenius-elite',         // OTO 3: Elite Bundle
+    '123461': 'adgenius-agency',        // OTO 4: Agency License
+  };
+
+  return productMapping[jvzooProductId] || 'adgenius-default';
+}
 
 /**
  * Create or find user from JVZoo purchase
@@ -109,6 +100,8 @@ export async function createOrFindUser(ipnData) {
     }
 
     // Create new user
+    const nameParts = (ccustname || 'Customer').split(' ');
+    const firstName = nameParts[0] || 'Customer';
     const fullName = ccustname || 'JVZoo Customer';
 
     user = await prisma.user.create({
@@ -139,200 +132,8 @@ export async function createOrFindUser(ipnData) {
   }
 }
 
-// ============================================
-// TRANSACTION PROCESSING
-// ============================================
-
 /**
- * Process SALE transaction
- */
-async function processSale(ipnData) {
-  const {
-    ctransaction,
-    ctransreceipt,
-    cproditem,
-    ccustemail,
-    ctransamount
-  } = ipnData;
-
-  // Get product configuration
-  const productConfig = getProductConfig(cproditem);
-
-  if (!productConfig) {
-    throw new Error(`Unknown JVZoo product ID: ${cproditem}`);
-  }
-
-  console.log(`Processing SALE for product: ${productConfig.name}`);
-
-  // Create or find user
-  const user = await createOrFindUser(ipnData);
-
-  let license = null;
-  let addon = null;
-
-  // Handle different product types
-  if (productConfig.type === 'license') {
-    // New license (Starter or Elite Bundle)
-    license = await createLicense({
-      userId: user.id,
-      licenseTier: productConfig.tier,
-      jvzooTransactionId: ctransaction,
-      jvzooReceiptId: ctransreceipt,
-      jvzooProductId: cproditem,
-      transactionType: 'SALE',
-      purchaseAmount: parseFloat(ctransamount),
-      productId: cproditem,
-      isRecurring: false
-    });
-
-    // If Elite Bundle, also add all addons
-    if (isEliteBundle(cproditem) && productConfig.includes_addons) {
-      for (const addonType of productConfig.includes_addons) {
-        await addLicenseAddon({
-          licenseId: license.id,
-          addonType,
-          jvzooProductId: cproditem,
-          jvzooTransactionId: `${ctransaction}-${addonType}`,
-          jvzooReceiptId: ctransreceipt,
-          purchaseAmount: 0 // Included in bundle
-        });
-      }
-      console.log(`Elite Bundle: Added all addons to license ${license.id}`);
-    }
-
-  } else if (productConfig.type === 'upgrade') {
-    // Upgrade existing license (Starter -> Pro Unlimited)
-    license = await upgradeLicense(user.id, productConfig.tier, ctransaction);
-
-  } else if (productConfig.type === 'addon') {
-    // Add addon to existing license
-    const userLicense = await prisma.license.findFirst({
-      where: {
-        userId: user.id,
-        status: 'active'
-      }
-    });
-
-    if (!userLicense) {
-      throw new Error('No active license found for addon purchase');
-    }
-
-    // Check addon requirements
-    if (productConfig.requires) {
-      // If requires specific tier
-      if (Object.values(LICENSE_TIERS).includes(productConfig.requires)) {
-        if (userLicense.licenseTier !== productConfig.requires) {
-          throw new Error(
-            `Addon ${productConfig.addon_type} requires ${productConfig.requires} license`
-          );
-        }
-      }
-
-      // If requires another addon
-      const existingAddons = await prisma.licenseAddon.findMany({
-        where: {
-          licenseId: userLicense.id,
-          status: 'active'
-        }
-      });
-
-      const hasRequiredAddon = existingAddons.some(
-        a => a.addonType === productConfig.requires
-      );
-
-      if (!hasRequiredAddon) {
-        throw new Error(
-          `Addon ${productConfig.addon_type} requires ${productConfig.requires} addon first`
-        );
-      }
-    }
-
-    addon = await addLicenseAddon({
-      licenseId: userLicense.id,
-      addonType: productConfig.addon_type,
-      jvzooProductId: cproditem,
-      jvzooTransactionId: ctransaction,
-      jvzooReceiptId: ctransreceipt,
-      purchaseAmount: parseFloat(ctransamount)
-    });
-
-    license = userLicense;
-  }
-
-  return { user, license, addon };
-}
-
-/**
- * Process RFND (refund) transaction
- */
-async function processRefund(ipnData) {
-  const { ctransaction } = ipnData;
-
-  console.log(`Processing REFUND for transaction: ${ctransaction}`);
-
-  // Find the original transaction
-  const originalTransaction = await prisma.jVZooTransaction.findFirst({
-    where: {
-      jvzooTransactionId: ctransaction,
-      transactionType: 'SALE'
-    }
-  });
-
-  if (!originalTransaction) {
-    console.warn('Original transaction not found for refund');
-    return null;
-  }
-
-  // Handle refund
-  await handleRefund(ctransaction);
-
-  return { refunded: true };
-}
-
-/**
- * Process CGBK (chargeback) transaction
- */
-async function processChargeback(ipnData) {
-  const { ctransaction } = ipnData;
-
-  console.log(`Processing CHARGEBACK for transaction: ${ctransaction}`);
-
-  await handleChargeback(ctransaction);
-
-  return { chargeback: true };
-}
-
-/**
- * Process INSTAL (recurring payment) transaction
- */
-async function processRecurringPayment(ipnData) {
-  const { ctransaction } = ipnData;
-
-  console.log(`Processing RECURRING PAYMENT for transaction: ${ctransaction}`);
-
-  const nextBillingDate = new Date();
-  nextBillingDate.setMonth(nextBillingDate.getMonth() + 1);
-
-  await handleRecurringPayment(ctransaction, nextBillingDate);
-
-  return { recurring: true };
-}
-
-/**
- * Process CANCEL-REBILL (subscription cancellation) transaction
- */
-async function processCancellation(ipnData) {
-  const { ctransaction } = ipnData;
-
-  console.log(`Processing CANCELLATION for transaction: ${ctransaction}`);
-
-  await handleCancellation(ctransaction);
-
-  return { cancelled: true };
-}
-
-/**
- * Main transaction processor
+ * Process JVZoo IPN transaction
  */
 export async function processTransaction(ipnData) {
   const {
@@ -356,33 +157,66 @@ export async function processTransaction(ipnData) {
       where: { jvzooTransactionId: ctransaction }
     });
 
-    if (existingTransaction && existingTransaction.processed) {
+    if (existingTransaction) {
       console.log('Transaction already processed:', ctransaction);
       return { alreadyProcessed: true, transaction: existingTransaction };
     }
 
-    let result = {};
+    // Map product ID
+    const productId = mapProductId(cproditem);
 
-    // Route to appropriate handler based on transaction type
+    // Determine if recurring
+    const isRecurring = ctransaction_type === 'SALE' && productId.includes('recurring');
+
+    let user;
+    let license;
+
+    // Handle different transaction types
     switch (ctransaction_type) {
       case 'SALE':
-        result = await processSale(ipnData);
+        // Create/find user
+        user = await createOrFindUser(ipnData);
+
+        // Create license
+        license = await createLicense({
+          userId: user.id,
+          jvzooTransactionId: ctransaction,
+          jvzooReceiptId: ctransreceipt,
+          jvzooProductId: cproditem,
+          transactionType: ctransaction_type,
+          customerEmail: ccustemail,
+          purchaseAmount: parseFloat(ctransamount),
+          productId,
+          isRecurring
+        });
+
+        console.log('License created:', license.licenseKey);
         break;
 
       case 'RFND':
-        result = await processRefund(ipnData);
+        // Handle refund
+        license = await handleRefund(ctransaction);
+        console.log('Refund processed for transaction:', ctransaction);
         break;
 
       case 'CGBK':
-        result = await processChargeback(ipnData);
+        // Handle chargeback
+        license = await handleChargeback(ctransaction);
+        console.log('Chargeback processed for transaction:', ctransaction);
         break;
 
       case 'INSTAL':
-        result = await processRecurringPayment(ipnData);
+        // Handle recurring payment
+        const nextBillingDate = new Date();
+        nextBillingDate.setMonth(nextBillingDate.getMonth() + 1);
+        license = await handleRecurringPayment(ctransaction, nextBillingDate);
+        console.log('Recurring payment processed for transaction:', ctransaction);
         break;
 
       case 'CANCEL-REBILL':
-        result = await processCancellation(ipnData);
+        // Handle subscription cancellation
+        license = await handleCancellation(ctransaction);
+        console.log('Subscription cancelled for transaction:', ctransaction);
         break;
 
       default:
@@ -408,16 +242,15 @@ export async function processTransaction(ipnData) {
         processed: true,
         processedAt: new Date(),
         rawIpnData: ipnData,
-        userId: result.user?.id || null
+        userId: user?.id || null
       }
     });
-
-    console.log('Transaction saved to audit log:', transaction.id);
 
     return {
       success: true,
       transaction,
-      ...result
+      user,
+      license
     };
   } catch (error) {
     console.error('Error processing transaction:', error);
@@ -450,63 +283,17 @@ export async function processTransaction(ipnData) {
   }
 }
 
-// ============================================
-// EMAIL NOTIFICATIONS
-// ============================================
-
 /**
  * Send welcome email to new JVZoo customer
  */
 export async function sendWelcomeEmail(user, license) {
-  // TODO: Implement email sending with your email service
-  console.log('=== WELCOME EMAIL ===');
-  console.log('To:', user.email);
-  console.log('Name:', user.name);
-  console.log('License Key:', license.licenseKey);
-  console.log('License Tier:', license.licenseTier);
-  console.log('===================');
+  // TODO: Implement email sending
+  console.log('Welcome email would be sent to:', user.email);
+  console.log('License key:', license.licenseKey);
 
   // Integration points:
-  // - SendGrid, AWS SES, Mailgun, or your email service
+  // - SendGrid, AWS SES, or your email service
   // - Include license key
   // - Include login link
   // - Include getting started guide
-  // - Include support contact info
-
-  // Example template:
-  /*
-  Subject: Welcome to AdGenius AI - Your License Key Inside
-
-  Hi ${user.name},
-
-  Welcome to AdGenius AI! Your purchase has been confirmed.
-
-  License Details:
-  - License Key: ${license.licenseKey}
-  - Plan: ${license.licenseTier}
-  - Purchase Date: ${license.purchaseDate}
-
-  Get Started:
-  1. Go to https://adgeniusai.com/login
-  2. Sign in with: ${user.email}
-  3. Set your password
-  4. Start creating amazing ads!
-
-  Need Help?
-  Visit our support center: https://adgeniusai.com/support
-
-  Best regards,
-  The AdGenius AI Team
-  */
 }
-
-// ============================================
-// EXPORTS
-// ============================================
-
-export default {
-  verifyJVZooIPN,
-  createOrFindUser,
-  processTransaction,
-  sendWelcomeEmail
-};

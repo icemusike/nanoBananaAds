@@ -3,7 +3,6 @@ import geminiService from '../services/gemini.js';
 import openaiService from '../services/openai.js';
 import { generateGeminiPrompt, getTemplatesForCategory, TEMPLATE_CATEGORIES } from '../prompts/templates.js';
 import prisma from '../utils/prisma.js';
-import { calculateOpenAICost, calculateGeminiCost } from '../utils/costCalculator.js';
 
 const router = express.Router();
 
@@ -34,9 +33,7 @@ router.post('/generate', async (req, res) => {
       customTemplateDescription,
       referenceImage, // { data: base64, mimeType: string }
       model = 'gpt-4o-2024-08-06', // NEW: Allow model selection for ad copy generation
-      simpleMode = false, // NEW: Simple Mode - bypass templates
-      clientAccountId, // Agency feature: associate ad with client
-      projectId // Agency feature: associate ad with project
+      simpleMode = false // NEW: Simple Mode - bypass templates
     } = req.body;
 
     // Extract API keys from headers (sent from frontend localStorage)
@@ -197,124 +194,6 @@ router.post('/generate', async (req, res) => {
       console.log('⚠️ Copy generation failed:', copyResult.reason?.message);
     }
 
-    // ============================================
-    // LOG API USAGE FOR COST TRACKING
-    // ============================================
-    console.log('\n💰 Logging API usage for cost analysis...');
-
-    // Log Gemini image generation usage
-    if (imageResult.status === 'fulfilled' && imageResult.value.success) {
-      try {
-        const metadata = imageResult.value.metadata || {};
-        const estimatedCost = calculateGeminiCost(
-          { imageCount: 1 },
-          'gemini-2.5-flash-image',
-          'image'
-        );
-
-        await prisma.apiUsageLog.create({
-          data: {
-            userId: DEFAULT_USER_ID,
-            provider: 'gemini',
-            model: 'gemini-2.5-flash-image',
-            feature: 'image_generation',
-            requestTokens: metadata.promptTokens || null,
-            responseTokens: metadata.candidatesTokens || null,
-            totalTokens: metadata.totalTokens || null,
-            estimatedCost: estimatedCost,
-            success: true,
-            metadata: {
-              hasReferenceImage: metadata.hasReferenceImage,
-              promptLength: geminiPrompt?.length || 0
-            }
-          }
-        });
-        console.log('✅ Logged Gemini image generation usage');
-      } catch (logError) {
-        console.error('⚠️ Failed to log Gemini usage:', logError.message);
-      }
-    } else {
-      // Log failed Gemini call
-      try {
-        await prisma.apiUsageLog.create({
-          data: {
-            userId: DEFAULT_USER_ID,
-            provider: 'gemini',
-            model: 'gemini-2.5-flash-image',
-            feature: 'image_generation',
-            estimatedCost: 0,
-            success: false,
-            metadata: {
-              error: imageResult.reason?.message || 'Unknown error'
-            }
-          }
-        });
-        console.log('⚠️ Logged failed Gemini usage');
-      } catch (logError) {
-        console.error('⚠️ Failed to log Gemini failure:', logError.message);
-      }
-    }
-
-    // Log OpenAI copy generation usage
-    if (copyResult.status === 'fulfilled' && copyResult.value.success) {
-      try {
-        const metadata = copyResult.value.metadata || {};
-        const usage = {
-          prompt_tokens: metadata.promptTokens || 0,
-          completion_tokens: metadata.completionTokens || 0,
-          total_tokens: metadata.totalTokens || 0,
-          completion_tokens_details: metadata.reasoningTokens ? {
-            reasoning_tokens: metadata.reasoningTokens
-          } : undefined
-        };
-        const estimatedCost = calculateOpenAICost(usage, metadata.model || model);
-
-        await prisma.apiUsageLog.create({
-          data: {
-            userId: DEFAULT_USER_ID,
-            provider: 'openai',
-            model: metadata.model || model,
-            feature: 'copy_generation',
-            requestTokens: metadata.promptTokens || null,
-            responseTokens: metadata.completionTokens || null,
-            totalTokens: metadata.totalTokens || null,
-            estimatedCost: estimatedCost,
-            success: true,
-            metadata: {
-              modelName: metadata.modelName,
-              reasoningTokens: metadata.reasoningTokens || null,
-              copywritingStyle: copywritingStyle || 'default'
-            }
-          }
-        });
-        console.log('✅ Logged OpenAI copy generation usage');
-      } catch (logError) {
-        console.error('⚠️ Failed to log OpenAI usage:', logError.message);
-      }
-    } else {
-      // Log failed OpenAI call
-      try {
-        await prisma.apiUsageLog.create({
-          data: {
-            userId: DEFAULT_USER_ID,
-            provider: 'openai',
-            model: model,
-            feature: 'copy_generation',
-            estimatedCost: 0,
-            success: false,
-            metadata: {
-              error: copyResult.reason?.message || 'Unknown error'
-            }
-          }
-        });
-        console.log('⚠️ Logged failed OpenAI usage');
-      } catch (logError) {
-        console.error('⚠️ Failed to log OpenAI failure:', logError.message);
-      }
-    }
-
-    console.log('💰 API usage logging complete\n');
-
     // Save to database if both image and copy generation succeeded
     if (response.image?.success && response.copy?.success) {
       try {
@@ -343,19 +222,8 @@ router.post('/generate', async (req, res) => {
             colorPalette: colorPalette || null,
             aspectRatio: finalAspectRatio,
             valueProposition: valueProposition || null,
-            // Agency features: associate with client and project if provided
-            ...(clientAccountId && { clientAccountId }),
-            ...(projectId && { projectId }),
           },
         });
-
-        // Log if ad was created for a client
-        if (clientAccountId) {
-          console.log('✅ Ad associated with client:', clientAccountId);
-        }
-        if (projectId) {
-          console.log('✅ Ad associated with project:', projectId);
-        }
 
         response.savedToDatabase = true;
         response.adId = savedAd.id;
@@ -403,89 +271,12 @@ router.post('/generate-image', async (req, res) => {
       return res.status(400).json({ error: 'Prompt is required' });
     }
 
-    const geminiApiKey = req.headers['x-gemini-api-key'];
-    const DEFAULT_USER_ID = 'default-user';
-
     const finalPrompt = customPrompt || prompt;
-    const result = await geminiService.generateImage(finalPrompt, {
-      apiKey: geminiApiKey
-    });
-
-    // Log API usage for cost tracking
-    if (result.success) {
-      try {
-        const metadata = result.metadata || {};
-        const estimatedCost = calculateGeminiCost(
-          { imageCount: 1 },
-          'gemini-2.5-flash-image',
-          'image'
-        );
-
-        await prisma.apiUsageLog.create({
-          data: {
-            userId: DEFAULT_USER_ID,
-            provider: 'gemini',
-            model: 'gemini-2.5-flash-image',
-            feature: 'image_regeneration',
-            requestTokens: metadata.promptTokens || null,
-            responseTokens: metadata.candidatesTokens || null,
-            totalTokens: metadata.totalTokens || null,
-            estimatedCost: estimatedCost,
-            success: true,
-            metadata: {
-              promptLength: finalPrompt?.length || 0
-            }
-          }
-        });
-        console.log('✅ Logged Gemini image regeneration usage');
-      } catch (logError) {
-        console.error('⚠️ Failed to log Gemini usage:', logError.message);
-      }
-    } else {
-      // Log failed call
-      try {
-        await prisma.apiUsageLog.create({
-          data: {
-            userId: DEFAULT_USER_ID,
-            provider: 'gemini',
-            model: 'gemini-2.5-flash-image',
-            feature: 'image_regeneration',
-            estimatedCost: 0,
-            success: false,
-            metadata: {
-              error: 'Image generation failed'
-            }
-          }
-        });
-      } catch (logError) {
-        console.error('⚠️ Failed to log Gemini failure:', logError.message);
-      }
-    }
+    const result = await geminiService.generateImage(finalPrompt);
 
     res.json(result);
   } catch (error) {
     console.error('Image generation error:', error);
-
-    // Log failed API call
-    try {
-      const DEFAULT_USER_ID = 'default-user';
-      await prisma.apiUsageLog.create({
-        data: {
-          userId: DEFAULT_USER_ID,
-          provider: 'gemini',
-          model: 'gemini-2.5-flash-image',
-          feature: 'image_regeneration',
-          estimatedCost: 0,
-          success: false,
-          metadata: {
-            error: error.message
-          }
-        }
-      });
-    } catch (logError) {
-      console.error('⚠️ Failed to log error:', logError.message);
-    }
-
     res.status(500).json({
       error: 'Image generation failed',
       message: error.message
@@ -502,95 +293,12 @@ router.post('/generate-copy', async (req, res) => {
     // Extract model from request body, default to GPT-4o
     const params = {
       ...req.body,
-      model: req.body.model || 'gpt-4o-2024-08-06',
-      apiKey: req.headers['x-openai-api-key']
+      model: req.body.model || 'gpt-4o-2024-08-06'
     };
     const result = await openaiService.generateAdCopy(params);
-
-    const DEFAULT_USER_ID = 'default-user';
-    const model = params.model;
-
-    // Log API usage for cost tracking
-    if (result.success) {
-      try {
-        const metadata = result.metadata || {};
-        const usage = {
-          prompt_tokens: metadata.promptTokens || 0,
-          completion_tokens: metadata.completionTokens || 0,
-          total_tokens: metadata.totalTokens || 0,
-          completion_tokens_details: metadata.reasoningTokens ? {
-            reasoning_tokens: metadata.reasoningTokens
-          } : undefined
-        };
-        const estimatedCost = calculateOpenAICost(usage, metadata.model || model);
-
-        await prisma.apiUsageLog.create({
-          data: {
-            userId: DEFAULT_USER_ID,
-            provider: 'openai',
-            model: metadata.model || model,
-            feature: 'copy_generation',
-            requestTokens: metadata.promptTokens || null,
-            responseTokens: metadata.completionTokens || null,
-            totalTokens: metadata.totalTokens || null,
-            estimatedCost: estimatedCost,
-            success: true,
-            metadata: {
-              modelName: metadata.modelName,
-              reasoningTokens: metadata.reasoningTokens || null
-            }
-          }
-        });
-        console.log('✅ Logged OpenAI copy generation usage');
-      } catch (logError) {
-        console.error('⚠️ Failed to log OpenAI usage:', logError.message);
-      }
-    } else {
-      // Log failed call
-      try {
-        await prisma.apiUsageLog.create({
-          data: {
-            userId: DEFAULT_USER_ID,
-            provider: 'openai',
-            model: model,
-            feature: 'copy_generation',
-            estimatedCost: 0,
-            success: false,
-            metadata: {
-              error: 'Copy generation failed'
-            }
-          }
-        });
-      } catch (logError) {
-        console.error('⚠️ Failed to log OpenAI failure:', logError.message);
-      }
-    }
-
     res.json(result);
   } catch (error) {
     console.error('Copy generation error:', error);
-
-    // Log failed API call on exception
-    try {
-      const DEFAULT_USER_ID = 'default-user';
-      const model = req.body.model || 'gpt-4o-2024-08-06';
-      await prisma.apiUsageLog.create({
-        data: {
-          userId: DEFAULT_USER_ID,
-          provider: 'openai',
-          model: model,
-          feature: 'copy_generation',
-          estimatedCost: 0,
-          success: false,
-          metadata: {
-            error: error.message
-          }
-        }
-      });
-    } catch (logError) {
-      console.error('⚠️ Failed to log error:', logError.message);
-    }
-
     res.status(500).json({
       error: 'Copy generation failed',
       message: error.message
@@ -806,45 +514,7 @@ router.post('/regenerate-copy', async (req, res) => {
       model: model
     });
 
-    const DEFAULT_USER_ID = 'default-user';
-
-    // Log API usage for cost tracking
     if (copyResult.success) {
-      try {
-        const metadata = copyResult.metadata || {};
-        const usage = {
-          prompt_tokens: metadata.promptTokens || 0,
-          completion_tokens: metadata.completionTokens || 0,
-          total_tokens: metadata.totalTokens || 0,
-          completion_tokens_details: metadata.reasoningTokens ? {
-            reasoning_tokens: metadata.reasoningTokens
-          } : undefined
-        };
-        const estimatedCost = calculateOpenAICost(usage, metadata.model || model);
-
-        await prisma.apiUsageLog.create({
-          data: {
-            userId: DEFAULT_USER_ID,
-            provider: 'openai',
-            model: metadata.model || model,
-            feature: 'copy_regeneration',
-            requestTokens: metadata.promptTokens || null,
-            responseTokens: metadata.completionTokens || null,
-            totalTokens: metadata.totalTokens || null,
-            estimatedCost: estimatedCost,
-            success: true,
-            metadata: {
-              modelName: metadata.modelName,
-              reasoningTokens: metadata.reasoningTokens || null,
-              copywritingStyle: copywritingStyle || 'default'
-            }
-          }
-        });
-        console.log('✅ Logged OpenAI copy regeneration usage');
-      } catch (logError) {
-        console.error('⚠️ Failed to log OpenAI usage:', logError.message);
-      }
-
       // Validate the generated copy
       const copyValidation = openaiService.validateAdCopy(copyResult.adCopy);
 
@@ -857,25 +527,6 @@ router.post('/regenerate-copy', async (req, res) => {
         timestamp: new Date().toISOString()
       });
     } else {
-      // Log failed OpenAI call
-      try {
-        await prisma.apiUsageLog.create({
-          data: {
-            userId: DEFAULT_USER_ID,
-            provider: 'openai',
-            model: model,
-            feature: 'copy_regeneration',
-            estimatedCost: 0,
-            success: false,
-            metadata: {
-              error: 'Failed to generate ad copy'
-            }
-          }
-        });
-      } catch (logError) {
-        console.error('⚠️ Failed to log OpenAI failure:', logError.message);
-      }
-
       return res.status(500).json({
         success: false,
         error: 'Failed to generate ad copy'
@@ -884,27 +535,6 @@ router.post('/regenerate-copy', async (req, res) => {
 
   } catch (error) {
     console.error('❌ Copy regeneration error:', error);
-
-    // Log failed API call on exception
-    try {
-      const DEFAULT_USER_ID = 'default-user';
-      await prisma.apiUsageLog.create({
-        data: {
-          userId: DEFAULT_USER_ID,
-          provider: 'openai',
-          model: model,
-          feature: 'copy_regeneration',
-          estimatedCost: 0,
-          success: false,
-          metadata: {
-            error: error.message
-          }
-        }
-      });
-    } catch (logError) {
-      console.error('⚠️ Failed to log error:', logError.message);
-    }
-
     return res.status(500).json({
       success: false,
       error: error.message || 'Failed to regenerate ad copy'

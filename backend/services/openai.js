@@ -313,31 +313,20 @@ Your output will be rejected if character limits are exceeded. Quality > Quantit
       console.log(`   Primary Text: ${result.primaryText?.split(/\s+/).length || 0} words`);
       console.log(`   Alternative Headlines: ${result.alternativeHeadlines?.length || 0}`);
 
-      // Build metadata with complete token usage for cost tracking
+      // Build metadata with reasoning tokens if available (GPT-5)
       const metadata = {
         model: completion.model || model,
         modelName: modelConfig.name,
         timestamp: new Date().toISOString(),
-        // Detailed token breakdown for cost calculation
-        promptTokens: completion.usage.prompt_tokens || 0,
-        completionTokens: completion.usage.completion_tokens || 0,
-        totalTokens: completion.usage.total_tokens || 0,
-        // For backwards compatibility
         tokensUsed: completion.usage.total_tokens,
         costMultiplier: modelConfig.costMultiplier
       };
 
-      // Add reasoning tokens for GPT-5/o1 models
+      // Add reasoning tokens for GPT-5 models
       if (modelConfig.isReasoningModel && completion.usage.completion_tokens_details?.reasoning_tokens) {
         metadata.reasoningTokens = completion.usage.completion_tokens_details.reasoning_tokens;
         console.log(`🧠 Reasoning Tokens: ${metadata.reasoningTokens}`);
       }
-
-      // Log token usage summary
-      console.log(`📊 Token Usage Summary:`);
-      console.log(`   Prompt: ${metadata.promptTokens.toLocaleString()}`);
-      console.log(`   Completion: ${metadata.completionTokens.toLocaleString()}`);
-      console.log(`   Total: ${metadata.totalTokens.toLocaleString()}`);
 
       return {
         success: true,
