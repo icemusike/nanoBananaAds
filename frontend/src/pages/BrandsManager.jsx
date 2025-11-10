@@ -1,9 +1,26 @@
 import { useState, useEffect } from 'react';
-import { Building2, Plus, Edit, Trash2, Check, X, Upload, Star, StarOff, Palette, Loader2 } from 'lucide-react';
+import { Building2, Plus, Edit, Trash2, Check, X, Upload, Star, StarOff, Palette, Loader2, Info } from 'lucide-react';
 import axios from 'axios';
 import BrainLoader from '../components/BrainLoader';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+
+// Info Tooltip Component
+function InfoTooltip({ text }) {
+  return (
+    <div className="group relative inline-block">
+      <Info className="w-4 h-4 text-gray-500 hover:text-primary-400 cursor-help transition-colors" />
+      <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 hidden group-hover:block w-64 z-50">
+        <div className="bg-dark-800 text-gray-200 text-xs rounded-lg p-3 shadow-xl border border-dark-600">
+          {text}
+          <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-px">
+            <div className="border-4 border-transparent border-t-dark-800"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function BrandsManager() {
   const [brands, setBrands] = useState([]);
@@ -255,22 +272,26 @@ export default function BrandsManager() {
 
         {/* Brand Form Modal */}
         {showForm && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
-            <div className="card max-w-4xl w-full my-8">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold">
-                  {editingBrand ? 'Edit Brand' : 'Add New Brand'}
-                </h2>
-                <button onClick={resetForm} className="text-gray-400 hover:text-white">
-                  <X className="w-6 h-6" />
-                </button>
-              </div>
+          <div className="fixed inset-0 bg-black/50 z-50 overflow-y-auto">
+            <div className="min-h-screen px-4 py-8 flex items-center justify-center">
+              <div className="card max-w-4xl w-full my-8">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-2xl font-bold">
+                    {editingBrand ? 'Edit Brand' : 'Add New Brand'}
+                  </h2>
+                  <button onClick={resetForm} className="text-gray-400 hover:text-white">
+                    <X className="w-6 h-6" />
+                  </button>
+                </div>
 
               <form onSubmit={handleSubmit} className="space-y-6">
                 {/* Basic Information */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="md:col-span-2">
-                    <label className="label">Brand Name *</label>
+                    <label className="label flex items-center gap-2">
+                      Brand Name *
+                      <InfoTooltip text="Enter your brand or company name. This will be used throughout the ad generation process." />
+                    </label>
                     <input
                       type="text"
                       value={formData.name}
@@ -282,7 +303,10 @@ export default function BrandsManager() {
                   </div>
 
                   <div className="md:col-span-2">
-                    <label className="label">Brand Description *</label>
+                    <label className="label flex items-center gap-2">
+                      Brand Description *
+                      <InfoTooltip text="Describe what your brand does, what products/services you offer, and who you serve. This helps AI create more targeted ads." />
+                    </label>
                     <textarea
                       value={formData.description}
                       onChange={(e) => handleInputChange('description', e.target.value)}
@@ -293,7 +317,10 @@ export default function BrandsManager() {
                   </div>
 
                   <div>
-                    <label className="label">Tagline</label>
+                    <label className="label flex items-center gap-2">
+                      Tagline
+                      <InfoTooltip text="Your brand's memorable slogan or catchphrase that summarizes what you stand for." />
+                    </label>
                     <input
                       type="text"
                       value={formData.tagline}
@@ -304,7 +331,10 @@ export default function BrandsManager() {
                   </div>
 
                   <div>
-                    <label className="label">Website URL</label>
+                    <label className="label flex items-center gap-2">
+                      Website URL
+                      <InfoTooltip text="Your brand's website address. This helps provide context for ad generation." />
+                    </label>
                     <input
                       type="url"
                       value={formData.websiteUrl}
@@ -315,7 +345,10 @@ export default function BrandsManager() {
                   </div>
 
                   <div>
-                    <label className="label">Industry</label>
+                    <label className="label flex items-center gap-2">
+                      Industry
+                      <InfoTooltip text="Select your industry to get more relevant ad templates and copy suggestions." />
+                    </label>
                     <select
                       value={formData.industry}
                       onChange={(e) => handleInputChange('industry', e.target.value)}
@@ -329,7 +362,10 @@ export default function BrandsManager() {
                   </div>
 
                   <div>
-                    <label className="label">Brand Tone</label>
+                    <label className="label flex items-center gap-2">
+                      Brand Tone
+                      <InfoTooltip text="Choose the communication style that best represents your brand's personality in ads." />
+                    </label>
                     <select
                       value={formData.tone}
                       onChange={(e) => handleInputChange('tone', e.target.value)}
@@ -344,7 +380,10 @@ export default function BrandsManager() {
 
                 {/* Logo Upload */}
                 <div>
-                  <label className="label">Brand Logo</label>
+                  <label className="label flex items-center gap-2">
+                    Brand Logo
+                    <InfoTooltip text="Upload your brand logo to include it in generated ads. Supports PNG, JPG, or SVG formats." />
+                  </label>
                   <div className="flex items-center gap-4">
                     {formData.logo && (
                       <img
@@ -371,6 +410,7 @@ export default function BrandsManager() {
                   <label className="label flex items-center gap-2">
                     <Palette className="w-5 h-5" />
                     Brand Colors
+                    <InfoTooltip text="Define your brand's color palette. These colors will be used in ad designs to maintain brand consistency." />
                   </label>
                   <div className="grid grid-cols-3 gap-4">
                     <div>
@@ -429,45 +469,57 @@ export default function BrandsManager() {
 
                 {/* Target Audience */}
                 <div>
-                  <label className="label">Target Audience</label>
+                  <label className="label flex items-center gap-2">
+                    Target Audience
+                    <InfoTooltip text="Describe your ideal customers: demographics, interests, pain points, and behaviors. This helps create more resonant ad copy." />
+                  </label>
                   <textarea
                     value={formData.targetAudience}
                     onChange={(e) => handleInputChange('targetAudience', e.target.value)}
                     className="input-field w-full h-20 resize-none"
-                    placeholder="Describe your ideal customers..."
+                    placeholder="E.g., Small business owners aged 30-50 who struggle with marketing..."
                   />
                 </div>
 
                 {/* Value Proposition */}
                 <div>
-                  <label className="label">Value Proposition</label>
+                  <label className="label flex items-center gap-2">
+                    Value Proposition
+                    <InfoTooltip text="What makes your brand unique? What specific benefits do you offer that competitors don't?" />
+                  </label>
                   <textarea
                     value={formData.valueProposition}
                     onChange={(e) => handleInputChange('valueProposition', e.target.value)}
                     className="input-field w-full h-20 resize-none"
-                    placeholder="What unique value does your brand provide?"
+                    placeholder="E.g., We help businesses increase sales by 3x with AI-powered ads in minutes..."
                   />
                 </div>
 
                 {/* Brand Voice */}
                 <div>
-                  <label className="label">Brand Voice & Personality</label>
+                  <label className="label flex items-center gap-2">
+                    Brand Voice & Personality
+                    <InfoTooltip text="Describe how your brand speaks: Are you formal or casual? Funny or serious? Technical or simple? This shapes the ad copy style." />
+                  </label>
                   <textarea
                     value={formData.brandVoice}
                     onChange={(e) => handleInputChange('brandVoice', e.target.value)}
                     className="input-field w-full h-20 resize-none"
-                    placeholder="How does your brand communicate? What's your personality?"
+                    placeholder="E.g., We're friendly and approachable but knowledgeable. We use simple language and avoid jargon..."
                   />
                 </div>
 
                 {/* Brand Guidelines */}
                 <div>
-                  <label className="label">Brand Guidelines & Notes</label>
+                  <label className="label flex items-center gap-2">
+                    Brand Guidelines & Notes
+                    <InfoTooltip text="Any specific rules, restrictions, or preferences for your brand? Words to avoid? Messaging guidelines? Add them here." />
+                  </label>
                   <textarea
                     value={formData.brandGuidelines}
                     onChange={(e) => handleInputChange('brandGuidelines', e.target.value)}
                     className="input-field w-full h-24 resize-none"
-                    placeholder="Any additional brand guidelines, dos and don'ts..."
+                    placeholder="E.g., Never use sales-y language, always emphasize security, avoid using 'cheap' or 'discount'..."
                   />
                 </div>
 
@@ -483,6 +535,7 @@ export default function BrandsManager() {
                   </button>
                 </div>
               </form>
+            </div>
             </div>
           </div>
         )}
