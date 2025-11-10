@@ -1,7 +1,11 @@
 import express from 'express';
 import prisma from '../utils/prisma.js';
+import { authenticateUser } from '../middleware/auth.js';
 
 const router = express.Router();
+
+// Apply authentication to all routes
+router.use(authenticateUser);
 
 /**
  * GET /api/ads
@@ -11,7 +15,9 @@ router.get('/', async (req, res) => {
   try {
     const { search, industry, limit = 20 } = req.query;
 
-    const where = {};
+    const where = {
+      userId: req.userId
+    };
 
     // Add search filter
     if (search) {
@@ -80,8 +86,11 @@ router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params;
 
-    const ad = await prisma.ad.findUnique({
-      where: { id },
+    const ad = await prisma.ad.findFirst({
+      where: {
+        id,
+        userId: req.userId
+      },
     });
 
     if (!ad) {
@@ -143,6 +152,7 @@ router.post('/', async (req, res) => {
 
     const ad = await prisma.ad.create({
       data: {
+        userId: req.userId,
         imageData,
         imageMimeType,
         imageMetadata,
@@ -187,6 +197,18 @@ router.delete('/:id', async (req, res) => {
   try {
     const { id } = req.params;
 
+    // Verify ad belongs to user
+    const existingAd = await prisma.ad.findFirst({
+      where: { id, userId: req.userId }
+    });
+
+    if (!existingAd) {
+      return res.status(404).json({
+        success: false,
+        message: 'Ad not found or access denied'
+      });
+    }
+
     const ad = await prisma.ad.delete({
       where: { id },
     });
@@ -212,7 +234,9 @@ router.delete('/:id', async (req, res) => {
  */
 router.get('/stats/summary', async (req, res) => {
   try {
-    const totalAds = await prisma.ad.count();
+    const totalAds = await prisma.ad.count({
+      where: { userId: req.userId }
+    });
 
     // Get ads from this month
     const now = new Date();
@@ -220,6 +244,7 @@ router.get('/stats/summary', async (req, res) => {
 
     const thisMonthAds = await prisma.ad.count({
       where: {
+        userId: req.userId,
         createdAt: {
           gte: firstDayOfMonth,
         },
@@ -228,6 +253,7 @@ router.get('/stats/summary', async (req, res) => {
 
     // Get unique industries
     const industries = await prisma.ad.findMany({
+      where: { userId: req.userId },
       select: {
         industry: true,
       },
