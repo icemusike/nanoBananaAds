@@ -1,9 +1,184 @@
 import express from 'express';
 import { validateLicense } from '../services/licenseService.js';
 import { PrismaClient } from '../generated/prisma/index.js';
+import { authenticateUser } from '../middleware/auth.js';
 
 const router = express.Router();
 const prisma = new PrismaClient();
+
+/**
+ * Get current user's license information
+ * GET /api/license/me
+ * Requires authentication
+ */
+router.get('/me', authenticateUser, async (req, res) => {
+  try {
+    // Get active licenses for the authenticated user
+    const licenses = await prisma.license.findMany({
+      where: {
+        userId: req.userId,
+        status: 'active'
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    // If no licenses, return free tier
+    if (licenses.length === 0) {
+      return res.json({
+        success: true,
+        license: null,
+        tier: null,
+        addons: [],
+        features: {
+          unlimited_credits: false,
+          agency_license: false,
+          agency_features: false
+        }
+      });
+    }
+
+    // Get the primary (most recent active) license
+    const primaryLicense = licenses[0];
+
+    // Determine tier from productId
+    const tierMapping = {
+      'starter': 'starter',
+      'pro_unlimited': 'pro_unlimited',
+      'pro-unlimited': 'pro_unlimited',
+      'elite_bundle': 'elite_bundle',
+      'elite-bundle': 'elite_bundle',
+      'agency_license': 'agency_license',
+      'agency-license': 'agency_license'
+    };
+
+    const tier = tierMapping[primaryLicense.productId] || primaryLicense.productId;
+
+    // Check for addons (additional licenses)
+    const addons = licenses
+      .filter(l => l.id !== primaryLicense.id)
+      .map(l => l.productId);
+
+    // Determine features based on licenses
+    const hasAgencyLicense = licenses.some(l =>
+      l.productId === 'agency_license' || l.productId === 'agency-license'
+    );
+
+    const hasUnlimitedCredits = licenses.some(l =>
+      l.productId === 'pro_unlimited' ||
+      l.productId === 'pro-unlimited' ||
+      l.productId === 'elite_bundle' ||
+      l.productId === 'elite-bundle'
+    );
+
+    return res.json({
+      success: true,
+      license: {
+        id: primaryLicense.id,
+        licenseKey: primaryLicense.licenseKey,
+        productId: primaryLicense.productId,
+        tier: tier,
+        status: primaryLicense.status,
+        purchaseDate: primaryLicense.purchaseDate,
+        expiryDate: primaryLicense.expiryDate,
+        isRecurring: primaryLicense.isRecurring
+      },
+      tier: tier,
+      addons: addons,
+      features: {
+        unlimited_credits: hasUnlimitedCredits,
+        agency_license: hasAgencyLicense,
+        agency_features: hasAgencyLicense
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching user license:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Server error'
+    });
+  }
+});
+
+/**
+ * Get current user's credits information
+ * GET /api/license/credits
+ * Requires authentication
+ */
+router.get('/credits', authenticateUser, async (req, res) => {
+  try {
+    // Get active licenses for the authenticated user
+    const licenses = await prisma.license.findMany({
+      where: {
+        userId: req.userId,
+        status: 'active'
+      }
+    });
+
+    // Check if user has unlimited credits
+    const hasUnlimitedCredits = licenses.some(l =>
+      l.productId === 'pro_unlimited' ||
+      l.productId === 'pro-unlimited' ||
+      l.productId === 'elite_bundle' ||
+      l.productId === 'elite-bundle'
+    );
+
+    // If unlimited, return large number
+    if (hasUnlimitedCredits) {
+      return res.json({
+        success: true,
+        total: 999999,
+        used: 0,
+        remaining: 999999,
+        unlimited: true,
+        resetDate: null
+      });
+    }
+
+    // For free/starter tier, calculate from usage
+    const user = await prisma.user.findUnique({
+      where: { id: req.userId },
+      select: {
+        adsGenerated: true,
+        promptsGenerated: true,
+        anglesGenerated: true,
+        createdAt: true
+      }
+    });
+
+    // Free tier: 50 credits/month
+    // Starter tier: 500 credits/month
+    const hasStarterLicense = licenses.some(l => l.productId === 'starter');
+    const monthlyLimit = hasStarterLicense ? 500 : 50;
+
+    // Rough estimate: 1 ad = 1 credit, 1 prompt/angle = 0.1 credit
+    const creditsUsed = (user?.adsGenerated || 0) +
+                        Math.floor((user?.promptsGenerated || 0) * 0.1) +
+                        Math.floor((user?.anglesGenerated || 0) * 0.1);
+
+    const remaining = Math.max(0, monthlyLimit - creditsUsed);
+
+    // Calculate next reset date (first of next month)
+    const resetDate = new Date();
+    resetDate.setMonth(resetDate.getMonth() + 1);
+    resetDate.setDate(1);
+    resetDate.setHours(0, 0, 0, 0);
+
+    return res.json({
+      success: true,
+      total: monthlyLimit,
+      used: creditsUsed,
+      remaining: remaining,
+      unlimited: false,
+      resetDate: resetDate
+    });
+  } catch (error) {
+    console.error('Error fetching credits:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Server error'
+    });
+  }
+});
 
 /**
  * Validate a license key
