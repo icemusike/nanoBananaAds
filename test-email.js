@@ -2,8 +2,8 @@ import { sendTestEmail, sendWelcomeEmail } from './backend/services/emailService
 
 // Set environment variables directly
 process.env.POSTMARK_API_KEY = 'e92a7bb6-e0a4-4ed4-907f-cadf953adeef';
-process.env.POSTMARK_FROM_EMAIL = 'noreply@updates.adgeniusai.io';
-process.env.APP_URL = 'https://nanobananaadfrontend-production.up.railway.app';
+process.env.POSTMARK_FROM_EMAIL = 'adrian@updates.adgeniusai.io';
+process.env.APP_URL = 'https://app.adgeniusai.io';
 
 async function runTests() {
   console.log('🧪 Testing Postmark Email Service\n');

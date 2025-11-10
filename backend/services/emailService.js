@@ -15,12 +15,16 @@ function getClient() {
 }
 
 function getFromEmail() {
-  return process.env.POSTMARK_FROM_EMAIL || 'noreply@updates.adgeniusai.io';
+  return process.env.POSTMARK_FROM_EMAIL || 'adrian@updates.adgeniusai.io';
 }
 
 function getAppUrl() {
-  return process.env.APP_URL || 'https://nanobananaadfrontend-production.up.railway.app';
+  return process.env.APP_URL || 'https://app.adgeniusai.io';
 }
+
+// Logo and profile image URLs (hosted on your domain)
+const LOGO_URL = 'https://app.adgeniusai.io/images/adsgenius_logo_dark.png';
+const ADRIAN_PROFILE_URL = 'https://app.adgeniusai.io/images/adrian-round.png';
 
 /**
  * Send welcome email with login credentials
@@ -169,7 +173,7 @@ export async function sendWelcomeEmail({ to, name, email, password, productName,
   <div class="container">
     <!-- Header -->
     <div class="header">
-      <h1 class="logo">🎯 AdGenius AI</h1>
+      <img src="${LOGO_URL}" alt="AdGenius AI" style="height: 50px; margin: 0 auto; display: block;" />
     </div>
 
     <!-- Main Content -->
@@ -225,13 +229,26 @@ export async function sendWelcomeEmail({ to, name, email, password, productName,
       </div>
 
       <p class="text">
-        If you have any questions or need assistance, our support team is here to help. Simply reply to this email or visit our support center.
+        If you have any questions or need assistance, I'm here to help. Simply reply to this email and I'll get back to you personally.
       </p>
 
-      <p class="text">
-        Happy creating!<br>
-        <strong>The AdGenius AI Team</strong>
-      </p>
+      <!-- Signature -->
+      <div style="margin: 40px 0; padding: 25px; background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-radius: 10px; border-left: 4px solid #667eea;">
+        <table cellpadding="0" cellspacing="0" border="0" style="width: 100%;">
+          <tr>
+            <td style="width: 100px; vertical-align: top;">
+              <img src="${ADRIAN_PROFILE_URL}" alt="Adrian Isfan" style="width: 100px; height: 100px; border-radius: 50%; border: 3px solid #667eea;" />
+            </td>
+            <td style="padding-left: 20px; vertical-align: middle;">
+              <div style="font-size: 18px; font-weight: bold; color: #1a1a1a; margin-bottom: 5px;">Adrian Isfan</div>
+              <div style="font-size: 14px; color: #667eea; font-weight: 600; margin-bottom: 8px;">Founder at AdGenius AI</div>
+              <div style="font-size: 13px; color: #6c757d; line-height: 1.5;">
+                Building the future of AI-powered ad creation
+              </div>
+            </td>
+          </tr>
+        </table>
+      </div>
     </div>
 
     <!-- Footer -->
@@ -276,10 +293,13 @@ What's included:
 • Save and manage your brand library
 • Track your ad performance
 
-If you have any questions, just reply to this email.
+If you have any questions, I'm here to help. Just reply to this email and I'll get back to you personally.
 
-Happy creating!
-The AdGenius AI Team
+Best regards,
+
+Adrian Isfan
+Founder at AdGenius AI
+Building the future of AI-powered ad creation
 
 ---
 © ${new Date().getFullYear()} AdGenius AI - AI-Powered Facebook Ad Creation
@@ -324,8 +344,8 @@ export async function sendTestEmail(to) {
 <body>
   <div class="container">
     <div class="header">
-      <h1>🎯 AdGenius AI</h1>
-      <p>Email Service Test</p>
+      <img src="${LOGO_URL}" alt="AdGenius AI" style="height: 50px; margin: 0 auto 10px; display: block;" />
+      <p style="margin: 0; font-size: 16px;">Email Service Test</p>
     </div>
     <div class="content">
       <p class="success">✅ Success!</p>
@@ -395,18 +415,35 @@ export async function sendPasswordResetEmail({ to, name, resetToken }) {
 <body>
   <div class="container">
     <div class="header">
-      <h1 class="logo">🎯 AdGenius AI</h1>
+      <img src="${LOGO_URL}" alt="AdGenius AI" style="height: 50px; margin: 0 auto; display: block;" />
     </div>
     <div class="content">
       <h2>Password Reset Request</h2>
       <p>Hi ${name},</p>
-      <p>We received a request to reset your password. Click the button below to create a new password:</p>
+      <p>I received a request to reset your password. Click the button below to create a new password:</p>
       <center>
         <a href="${resetUrl}" class="button">Reset Password →</a>
       </center>
       <p>This link will expire in 1 hour for security reasons.</p>
       <p>If you didn't request this, please ignore this email.</p>
-      <p>Best regards,<br>The AdGenius AI Team</p>
+
+      <!-- Signature -->
+      <div style="margin: 40px 0; padding: 25px; background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-radius: 10px; border-left: 4px solid #667eea;">
+        <table cellpadding="0" cellspacing="0" border="0" style="width: 100%;">
+          <tr>
+            <td style="width: 100px; vertical-align: top;">
+              <img src="${ADRIAN_PROFILE_URL}" alt="Adrian Isfan" style="width: 100px; height: 100px; border-radius: 50%; border: 3px solid #667eea;" />
+            </td>
+            <td style="padding-left: 20px; vertical-align: middle;">
+              <div style="font-size: 18px; font-weight: bold; color: #1a1a1a; margin-bottom: 5px;">Adrian Isfan</div>
+              <div style="font-size: 14px; color: #667eea; font-weight: 600; margin-bottom: 8px;">Founder at AdGenius AI</div>
+              <div style="font-size: 13px; color: #6c757d; line-height: 1.5;">
+                Building the future of AI-powered ad creation
+              </div>
+            </td>
+          </tr>
+        </table>
+      </div>
     </div>
     <div class="footer">
       <p style="font-size: 12px; color: #6c757d;">© ${new Date().getFullYear()} AdGenius AI. All rights reserved.</p>
