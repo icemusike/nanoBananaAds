@@ -287,13 +287,57 @@ export async function processTransaction(ipnData) {
  * Send welcome email to new JVZoo customer
  */
 export async function sendWelcomeEmail(user, license) {
-  // TODO: Implement email sending
-  console.log('Welcome email would be sent to:', user.email);
-  console.log('License key:', license.licenseKey);
+  try {
+    // Import email service
+    const { sendWelcomeEmail: sendEmail } = await import('./emailService.js');
 
-  // Integration points:
-  // - SendGrid, AWS SES, or your email service
-  // - Include license key
-  // - Include login link
-  // - Include getting started guide
+    // Generate temporary password (since user was created via JVZoo)
+    const tempPassword = generateTempPassword();
+
+    // Hash and update password in database
+    const bcrypt = (await import('bcryptjs')).default;
+    const hashedPassword = await bcrypt.hash(tempPassword, 10);
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { password: hashedPassword }
+    });
+
+    // Map product ID to friendly name
+    const productNames = {
+      '427079': 'Starter License',
+      '427343': 'Pro Unlimited License',
+      '427357': 'Elite Bundle License',
+      '427368': 'Agency License'
+    };
+
+    const productName = productNames[license.productId] || 'AdGenius AI License';
+
+    // Send welcome email
+    await sendEmail({
+      to: user.email,
+      name: user.name,
+      email: user.email,
+      password: tempPassword,
+      productName: productName,
+      licenseKey: license.licenseKey
+    });
+
+    console.log('✅ Welcome email sent to:', user.email);
+  } catch (error) {
+    console.error('❌ Failed to send welcome email:', error);
+    throw error;
+  }
+}
+
+/**
+ * Generate a temporary password
+ */
+function generateTempPassword() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$%';
+  let password = '';
+  for (let i = 0; i < 12; i++) {
+    password += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return password;
 }

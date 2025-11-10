@@ -2,6 +2,7 @@ import express from 'express';
 import bcrypt from 'bcryptjs';
 import { PrismaClient } from '../../generated/prisma/index.js';
 import { verifyAdminToken, logAdminActivity } from '../../middleware/adminAuth.js';
+import { sendWelcomeEmail } from '../../services/emailService.js';
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -188,13 +189,30 @@ router.post('/', async (req, res) => {
       req
     );
 
+    // Send welcome email with login credentials
+    try {
+      await sendWelcomeEmail({
+        to: email,
+        name: name,
+        email: email,
+        password: password, // Send the plain password before hashing
+        productName: 'AdGenius AI Account',
+        licenseKey: null // No license key for admin-created accounts
+      });
+      console.log('✅ Welcome email sent to:', email);
+    } catch (emailError) {
+      console.error('⚠️ Failed to send welcome email:', emailError);
+      // Don't fail the user creation if email fails
+    }
+
     res.status(201).json({
       success: true,
       user: {
         ...user,
         password: undefined // Don't send password hash
       },
-      message: 'User created successfully'
+      message: 'User created successfully and welcome email sent',
+      emailSent: true
     });
   } catch (error) {
     console.error('Create user error:', error);
