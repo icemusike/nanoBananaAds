@@ -36,7 +36,7 @@ router.get('/stats', async (req, res) => {
 
     // Get license breakdown
     const licenseBreakdown = await prisma.license.groupBy({
-      by: ['licenseTier'],
+      by: ['productId'],
       _count: true
     }).catch(() => []);
 

@@ -57,8 +57,11 @@ router.get('/', async (req, res) => {
           licenses: {
             select: {
               id: true,
-              licenseTier: true,
-              status: true
+              licenseKey: true,
+              productId: true,
+              status: true,
+              purchaseDate: true,
+              expiryDate: true
             }
           }
         }

@@ -14,6 +14,8 @@ import licenseRoute from './routes/license.js';
 import adminAuthRoute from './routes/admin/auth.js';
 import adminUsersRoute from './routes/admin/users.js';
 import adminDashboardRoute from './routes/admin/dashboard.js';
+import adminCostsRoute from './routes/admin/costs.js';
+import adminSettingsRoute from './routes/admin/settings.js';
 
 dotenv.config();
 
@@ -67,6 +69,8 @@ app.use('/api/license', licenseRoute);
 app.use('/api/admin/auth', adminAuthRoute);
 app.use('/api/admin/users', adminUsersRoute);
 app.use('/api/admin/dashboard', adminDashboardRoute);
+app.use('/api/admin/costs', adminCostsRoute);
+app.use('/api/admin/settings', adminSettingsRoute);
 
 // Health check
 app.get('/health', (req, res) => {
