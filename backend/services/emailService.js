@@ -15,7 +15,7 @@ function getClient() {
 }
 
 function getFromEmail() {
-  return process.env.POSTMARK_FROM_EMAIL || 'noreply@adgeniusai.io';
+  return process.env.POSTMARK_FROM_EMAIL || 'noreply@updates.adgeniusai.io';
 }
 
 function getAppUrl() {
