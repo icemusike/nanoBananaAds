@@ -1,11 +1,11 @@
 import express from 'express';
 import prisma from '../utils/prisma.js';
+import { authenticateUser } from '../middleware/auth.js';
 
 const router = express.Router();
 
-// For demo purposes, we'll use a single user ID
-// In production, this would come from authentication
-const DEFAULT_USER_ID = 'default-user';
+// Apply authentication to all routes
+router.use(authenticateUser);
 
 /**
  * GET /api/user/settings
@@ -14,21 +14,37 @@ const DEFAULT_USER_ID = 'default-user';
 router.get('/settings', async (req, res) => {
   try {
     let user = await prisma.user.findUnique({
-      where: { id: DEFAULT_USER_ID }
+      where: { id: req.userId },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        company: true,
+        geminiApiKey: true,
+        openaiApiKey: true,
+        preferredImageModel: true,
+        imageQuality: true,
+        defaultIndustry: true,
+        defaultTone: true,
+        defaultAspectRatio: true,
+        defaultBrandId: true,
+        theme: true,
+        themeMode: true,
+        settings: true,
+        adsGenerated: true,
+        promptsGenerated: true,
+        anglesGenerated: true,
+        createdAt: true,
+        updatedAt: true,
+        emailVerified: true,
+        createdVia: true
+      }
     });
 
-    // Create default user if doesn't exist
     if (!user) {
-      user = await prisma.user.create({
-        data: {
-          id: DEFAULT_USER_ID,
-          preferredImageModel: 'gemini',
-          imageQuality: 'standard',
-          defaultTone: 'professional yet approachable',
-          defaultAspectRatio: 'square',
-          theme: 'solar-dusk',
-          themeMode: 'dark'
-        }
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
       });
     }
 
@@ -68,53 +84,50 @@ router.put('/settings', async (req, res) => {
       settings
     } = req.body;
 
-    // Check if user exists, create if not
-    let user = await prisma.user.findUnique({
-      where: { id: DEFAULT_USER_ID }
+    // Build update data
+    const updateData = {};
+
+    if (name !== undefined) updateData.name = name;
+    if (email !== undefined) updateData.email = email;
+    if (company !== undefined) updateData.company = company;
+    if (geminiApiKey !== undefined) updateData.geminiApiKey = geminiApiKey;
+    if (openaiApiKey !== undefined) updateData.openaiApiKey = openaiApiKey;
+    if (preferredImageModel !== undefined) updateData.preferredImageModel = preferredImageModel;
+    if (imageQuality !== undefined) updateData.imageQuality = imageQuality;
+    if (defaultIndustry !== undefined) updateData.defaultIndustry = defaultIndustry;
+    if (defaultTone !== undefined) updateData.defaultTone = defaultTone;
+    if (defaultAspectRatio !== undefined) updateData.defaultAspectRatio = defaultAspectRatio;
+    if (theme !== undefined) updateData.theme = theme;
+    if (themeMode !== undefined) updateData.themeMode = themeMode;
+    if (settings !== undefined) updateData.settings = settings;
+
+    // Update the authenticated user
+    const user = await prisma.user.update({
+      where: { id: req.userId },
+      data: updateData,
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        company: true,
+        geminiApiKey: true,
+        openaiApiKey: true,
+        preferredImageModel: true,
+        imageQuality: true,
+        defaultIndustry: true,
+        defaultTone: true,
+        defaultAspectRatio: true,
+        defaultBrandId: true,
+        theme: true,
+        themeMode: true,
+        settings: true,
+        adsGenerated: true,
+        promptsGenerated: true,
+        anglesGenerated: true,
+        createdAt: true,
+        updatedAt: true
+      }
     });
-
-    if (!user) {
-      user = await prisma.user.create({
-        data: {
-          id: DEFAULT_USER_ID,
-          name,
-          email,
-          company,
-          geminiApiKey,
-          openaiApiKey,
-          preferredImageModel: preferredImageModel || 'gemini',
-          imageQuality: imageQuality || 'standard',
-          defaultIndustry,
-          defaultTone: defaultTone || 'professional yet approachable',
-          defaultAspectRatio: defaultAspectRatio || 'square',
-          theme: theme || 'solar-dusk',
-          themeMode: themeMode || 'dark',
-          settings
-        }
-      });
-    } else {
-      // Update existing user
-      const updateData = {};
-
-      if (name !== undefined) updateData.name = name;
-      if (email !== undefined) updateData.email = email;
-      if (company !== undefined) updateData.company = company;
-      if (geminiApiKey !== undefined) updateData.geminiApiKey = geminiApiKey;
-      if (openaiApiKey !== undefined) updateData.openaiApiKey = openaiApiKey;
-      if (preferredImageModel !== undefined) updateData.preferredImageModel = preferredImageModel;
-      if (imageQuality !== undefined) updateData.imageQuality = imageQuality;
-      if (defaultIndustry !== undefined) updateData.defaultIndustry = defaultIndustry;
-      if (defaultTone !== undefined) updateData.defaultTone = defaultTone;
-      if (defaultAspectRatio !== undefined) updateData.defaultAspectRatio = defaultAspectRatio;
-      if (theme !== undefined) updateData.theme = theme;
-      if (themeMode !== undefined) updateData.themeMode = themeMode;
-      if (settings !== undefined) updateData.settings = settings;
-
-      user = await prisma.user.update({
-        where: { id: DEFAULT_USER_ID },
-        data: updateData
-      });
-    }
 
     res.json({
       success: true,
@@ -139,38 +152,26 @@ router.post('/increment-usage', async (req, res) => {
   try {
     const { type } = req.body; // 'ads', 'prompts', or 'angles'
 
-    let user = await prisma.user.findUnique({
-      where: { id: DEFAULT_USER_ID }
-    });
+    // Increment appropriate counter for authenticated user
+    const incrementField =
+      type === 'ads' ? 'adsGenerated' :
+      type === 'prompts' ? 'promptsGenerated' :
+      'anglesGenerated';
 
-    if (!user) {
-      // Create user with initial count
-      const incrementData = {
-        id: DEFAULT_USER_ID,
-        adsGenerated: type === 'ads' ? 1 : 0,
-        promptsGenerated: type === 'prompts' ? 1 : 0,
-        anglesGenerated: type === 'angles' ? 1 : 0
-      };
-
-      user = await prisma.user.create({
-        data: incrementData
-      });
-    } else {
-      // Increment appropriate counter
-      const incrementField =
-        type === 'ads' ? 'adsGenerated' :
-        type === 'prompts' ? 'promptsGenerated' :
-        'anglesGenerated';
-
-      user = await prisma.user.update({
-        where: { id: DEFAULT_USER_ID },
-        data: {
-          [incrementField]: {
-            increment: 1
-          }
+    const user = await prisma.user.update({
+      where: { id: req.userId },
+      data: {
+        [incrementField]: {
+          increment: 1
         }
-      });
-    }
+      },
+      select: {
+        id: true,
+        adsGenerated: true,
+        promptsGenerated: true,
+        anglesGenerated: true
+      }
+    });
 
     res.json({
       success: true,
@@ -193,14 +194,27 @@ router.post('/increment-usage', async (req, res) => {
 router.get('/stats', async (req, res) => {
   try {
     const user = await prisma.user.findUnique({
-      where: { id: DEFAULT_USER_ID }
+      where: { id: req.userId },
+      select: {
+        adsGenerated: true,
+        promptsGenerated: true,
+        anglesGenerated: true,
+        createdAt: true
+      }
     });
 
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
     const stats = {
-      adsGenerated: user?.adsGenerated || 0,
-      promptsGenerated: user?.promptsGenerated || 0,
-      anglesGenerated: user?.anglesGenerated || 0,
-      memberSince: user?.createdAt || new Date()
+      adsGenerated: user.adsGenerated || 0,
+      promptsGenerated: user.promptsGenerated || 0,
+      anglesGenerated: user.anglesGenerated || 0,
+      memberSince: user.createdAt
     };
 
     res.json({
