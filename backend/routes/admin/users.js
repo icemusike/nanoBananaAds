@@ -77,10 +77,12 @@ router.get('/', async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Get users error:', error);
+    console.error('❌ Get users error:', error);
+    console.error('Error stack:', error.stack);
     res.status(500).json({
       error: 'Failed to fetch users',
-      message: error.message
+      message: error.message,
+      ...(process.env.NODE_ENV === 'development' && { stack: error.stack })
     });
   }
 });

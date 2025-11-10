@@ -11,22 +11,15 @@ router.use(verifyAdminToken);
 // Get dashboard statistics
 router.get('/stats', async (req, res) => {
   try {
-    // Get counts
-    const [
-      totalUsers,
-      totalAds,
-      totalPrompts,
-      totalAngles,
-      totalBrands,
-      totalLicenses
-    ] = await Promise.all([
-      prisma.user.count(),
-      prisma.user.aggregate({ _sum: { adsGenerated: true } }),
-      prisma.prompt.count(),
-      prisma.angle.count(),
-      prisma.brand.count(),
-      prisma.license.count()
-    ]);
+    // Get counts with error handling
+    const totalUsers = await prisma.user.count().catch(() => 0);
+    const adsAgg = await prisma.user.aggregate({
+      _sum: { adsGenerated: true }
+    }).catch(() => ({ _sum: { adsGenerated: 0 } }));
+    const totalPrompts = await prisma.prompt.count().catch(() => 0);
+    const totalAngles = await prisma.angle.count().catch(() => 0);
+    const totalBrands = await prisma.brand.count().catch(() => 0);
+    const totalLicenses = await prisma.license.count().catch(() => 0);
 
     // Get recent users
     const recentUsers = await prisma.user.findMany({
@@ -39,13 +32,13 @@ router.get('/stats', async (req, res) => {
         createdAt: true,
         adsGenerated: true
       }
-    });
+    }).catch(() => []);
 
     // Get license breakdown
     const licenseBreakdown = await prisma.license.groupBy({
       by: ['licenseTier'],
       _count: true
-    });
+    }).catch(() => []);
 
     // Get user activity over time (last 30 days)
     const thirtyDaysAgo = new Date();
@@ -57,17 +50,17 @@ router.get('/stats', async (req, res) => {
           gte: thirtyDaysAgo
         }
       }
-    });
+    }).catch(() => 0);
 
     res.json({
       success: true,
       stats: {
         users: {
           total: totalUsers,
-          newLast30Days: newUsersLast30Days
+          newLast30Days: newUsersLast30Days || 0
         },
         content: {
-          totalAds: totalAds._sum.adsGenerated || 0,
+          totalAds: adsAgg._sum.adsGenerated || 0,
           totalPrompts,
           totalAngles,
           totalBrands
@@ -80,10 +73,12 @@ router.get('/stats', async (req, res) => {
       recentUsers
     });
   } catch (error) {
-    console.error('Dashboard stats error:', error);
+    console.error('❌ Dashboard stats error:', error);
+    console.error('Error stack:', error.stack);
     res.status(500).json({
       error: 'Failed to fetch dashboard stats',
-      message: error.message
+      message: error.message,
+      ...(process.env.NODE_ENV === 'development' && { stack: error.stack })
     });
   }
 });
