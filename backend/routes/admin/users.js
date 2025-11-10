@@ -333,4 +333,176 @@ router.post('/:userId/reset-password', async (req, res) => {
   }
 });
 
+// Get user's licenses
+router.get('/:userId/licenses', async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    const licenses = await prisma.license.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    res.json({
+      success: true,
+      licenses
+    });
+  } catch (error) {
+    console.error('Get user licenses error:', error);
+    res.status(500).json({
+      error: 'Failed to fetch licenses',
+      message: error.message
+    });
+  }
+});
+
+// Grant a license to a user (Admin manual grant)
+router.post('/:userId/licenses', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const {
+      productId,
+      expiryDate,
+      isRecurring = false,
+      purchaseAmount = 0
+    } = req.body;
+
+    if (!productId) {
+      return res.status(400).json({
+        error: 'Product ID is required',
+        message: 'Please specify which product license to grant'
+      });
+    }
+
+    // Verify user exists
+    const user = await prisma.user.findUnique({
+      where: { id: userId }
+    });
+
+    if (!user) {
+      return res.status(404).json({
+        error: 'User not found',
+        message: 'User does not exist'
+      });
+    }
+
+    // Generate a unique license key
+    const licenseKey = generateLicenseKey();
+
+    // Create manual transaction ID for admin-granted licenses
+    const manualTransactionId = `ADMIN-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+    // Create the license
+    const license = await prisma.license.create({
+      data: {
+        userId,
+        licenseKey,
+        productId,
+        status: 'active',
+        jvzooTransactionId: manualTransactionId,
+        jvzooReceiptId: `ADMIN-${Date.now()}`,
+        jvzooProductId: productId,
+        transactionType: 'ADMIN_GRANT',
+        purchaseDate: new Date(),
+        purchaseAmount: purchaseAmount || 0,
+        expiryDate: expiryDate ? new Date(expiryDate) : null,
+        isRecurring: isRecurring || false
+      }
+    });
+
+    // Log admin activity
+    await logAdminActivity(
+      req.adminUser.id,
+      'license_granted',
+      'License',
+      license.id,
+      { userId, productId, licenseKey },
+      req
+    );
+
+    res.json({
+      success: true,
+      license,
+      message: 'License granted successfully'
+    });
+  } catch (error) {
+    console.error('Grant license error:', error);
+    res.status(500).json({
+      error: 'Failed to grant license',
+      message: error.message
+    });
+  }
+});
+
+// Revoke a user's license
+router.delete('/:userId/licenses/:licenseId', async (req, res) => {
+  try {
+    const { userId, licenseId } = req.params;
+
+    // Verify license belongs to user
+    const license = await prisma.license.findFirst({
+      where: {
+        id: licenseId,
+        userId
+      }
+    });
+
+    if (!license) {
+      return res.status(404).json({
+        error: 'License not found',
+        message: 'License does not exist or does not belong to this user'
+      });
+    }
+
+    // Update license status instead of deleting (for audit trail)
+    const updatedLicense = await prisma.license.update({
+      where: { id: licenseId },
+      data: {
+        status: 'cancelled',
+        cancelledAt: new Date()
+      }
+    });
+
+    // Log admin activity
+    await logAdminActivity(
+      req.adminUser.id,
+      'license_revoked',
+      'License',
+      licenseId,
+      { userId, licenseKey: license.licenseKey },
+      req
+    );
+
+    res.json({
+      success: true,
+      message: 'License revoked successfully',
+      license: updatedLicense
+    });
+  } catch (error) {
+    console.error('Revoke license error:', error);
+    res.status(500).json({
+      error: 'Failed to revoke license',
+      message: error.message
+    });
+  }
+});
+
+// Helper function to generate license key
+function generateLicenseKey() {
+  const segments = 4;
+  const segmentLength = 4;
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Removed ambiguous chars
+
+  const key = [];
+  for (let i = 0; i < segments; i++) {
+    let segment = '';
+    for (let j = 0; j < segmentLength; j++) {
+      segment += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    key.push(segment);
+  }
+
+  return key.join('-');
+}
+
 export default router;
