@@ -505,6 +505,90 @@ router.delete('/:userId/licenses/:licenseId', async (req, res) => {
   }
 });
 
+// Send credentials email to user
+router.post('/:userId/send-credentials', async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    // Get user
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        company: true
+      }
+    });
+
+    if (!user) {
+      return res.status(404).json({
+        error: 'User not found',
+        message: 'User does not exist'
+      });
+    }
+
+    // Generate new temporary password
+    const tempPassword = generateTempPassword();
+
+    // Hash and save new password
+    const hashedPassword = await bcrypt.hash(tempPassword, 10);
+    await prisma.user.update({
+      where: { id: userId },
+      data: { password: hashedPassword }
+    });
+
+    // Send welcome email with new credentials
+    try {
+      await sendWelcomeEmail({
+        to: user.email,
+        name: user.name,
+        email: user.email,
+        password: tempPassword,
+        productName: 'AdGenius AI Account',
+        licenseKey: null
+      });
+
+      // Log admin activity
+      await logAdminActivity(
+        req.adminUser.id,
+        'credentials_sent',
+        'User',
+        userId,
+        { email: user.email },
+        req
+      );
+
+      res.json({
+        success: true,
+        message: 'Credentials email sent successfully'
+      });
+    } catch (emailError) {
+      console.error('Failed to send credentials email:', emailError);
+      res.status(500).json({
+        error: 'Email sending failed',
+        message: emailError.message
+      });
+    }
+  } catch (error) {
+    console.error('Send credentials error:', error);
+    res.status(500).json({
+      error: 'Failed to send credentials',
+      message: error.message
+    });
+  }
+});
+
+// Helper function to generate temporary password
+function generateTempPassword() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$%';
+  let password = '';
+  for (let i = 0; i < 12; i++) {
+    password += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return password;
+}
+
 // Helper function to generate license key
 function generateLicenseKey() {
   const segments = 4;
