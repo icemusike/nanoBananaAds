@@ -3,8 +3,12 @@ import geminiService from '../services/gemini.js';
 import openaiService from '../services/openai.js';
 import { generateGeminiPrompt, getTemplatesForCategory, TEMPLATE_CATEGORIES } from '../prompts/templates.js';
 import prisma from '../utils/prisma.js';
+import { authenticateUser } from '../middleware/auth.js';
 
 const router = express.Router();
+
+// Apply authentication to all routes
+router.use(authenticateUser);
 
 /**
  * POST /api/generate
@@ -41,11 +45,10 @@ router.post('/generate', async (req, res) => {
     const openaiApiKey = req.headers['x-openai-api-key'];
 
     // Load user settings from database
-    const DEFAULT_USER_ID = 'default-user';
     let userSettings = null;
     try {
       const user = await prisma.user.findUnique({
-        where: { id: DEFAULT_USER_ID }
+        where: { id: req.userId }
       });
       if (user) {
         userSettings = {
@@ -199,6 +202,7 @@ router.post('/generate', async (req, res) => {
       try {
         const savedAd = await prisma.ad.create({
           data: {
+            userId: req.userId, // Associate with authenticated user
             imageData: response.image.imageData.data,
             imageMimeType: response.image.imageData.mimeType,
             imageMetadata: {
@@ -232,7 +236,7 @@ router.post('/generate', async (req, res) => {
         // Increment user usage counter
         try {
           await prisma.user.update({
-            where: { id: DEFAULT_USER_ID },
+            where: { id: req.userId },
             data: { adsGenerated: { increment: 1 } }
           });
           console.log('✅ User ads counter incremented');

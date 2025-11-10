@@ -61,11 +61,14 @@ export default function AdsLibrary() {
       setLoading(true);
       setError(null);
 
+      const token = localStorage.getItem('token');
       const params = new URLSearchParams();
       if (searchQuery) params.append('search', searchQuery);
       if (filterIndustry !== 'all') params.append('industry', filterIndustry);
 
-      const response = await axios.get(`${API_URL}/api/ads?${params.toString()}`);
+      const response = await axios.get(`${API_URL}/api/ads?${params.toString()}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
 
       if (response.data.success) {
         // Transform API data to match expected format
@@ -118,7 +121,10 @@ export default function AdsLibrary() {
     }
 
     try {
-      const response = await axios.get(`${API_URL}/api/ads/${adId}`);
+      const token = localStorage.getItem('token');
+      const response = await axios.get(`${API_URL}/api/ads/${adId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       if (response.data.success) {
         const imageData = response.data.ad.imageData;
         // Cache the image data
@@ -133,7 +139,10 @@ export default function AdsLibrary() {
 
   const deleteAd = async (adId) => {
     try {
-      await axios.delete(`${API_URL}/api/ads/${adId}`);
+      const token = localStorage.getItem('token');
+      await axios.delete(`${API_URL}/api/ads/${adId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       // Reload ads after deletion
       loadSavedAds();
     } catch (err) {
@@ -187,12 +196,15 @@ export default function AdsLibrary() {
         alert('Copy variation created successfully! Creating new ad in library...');
 
         // Save the new variation to database
+        const token = localStorage.getItem('token');
         await axios.post(`${API_URL}/api/ads`, {
           imageData: ad.image.imageData.data,
           imageMimeType: ad.image.imageData.mimeType,
           imageMetadata: ad.image.metadata,
           adCopy: newAd.adCopy,
           formData: ad.formData
+        }, {
+          headers: { Authorization: `Bearer ${token}` }
         });
 
         // Reload ads
