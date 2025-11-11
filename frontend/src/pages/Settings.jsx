@@ -97,16 +97,20 @@ export default function Settings() {
           company: user.company || ''
         });
 
+        const userTheme = user.theme || 'clean-slate';
+        const userThemeMode = user.themeMode || 'light';
+
         setPreferences({
           defaultIndustry: user.defaultIndustry || '',
           defaultTone: user.defaultTone || 'professional yet approachable',
           defaultAspectRatio: user.defaultAspectRatio || 'square',
           defaultModel: user.defaultModel || 'gpt-4o-2024-08-06',
-          theme: user.theme || 'clean-slate',
-          themeMode: user.themeMode || 'light'
+          theme: userTheme,
+          themeMode: userThemeMode
         });
 
         // Load API keys from database (overwrites localStorage if present)
+        // Only set if user has custom keys (not empty)
         if (user.geminiApiKey || user.openaiApiKey) {
           setApiKeys({
             gemini: user.geminiApiKey || '',
@@ -119,11 +123,11 @@ export default function Settings() {
           }));
         }
 
-        // Apply theme from database if different
-        if (user.theme && user.theme !== themeName) {
-          changeTheme(user.theme);
+        // Apply theme from database if different from current
+        if (userTheme !== themeName) {
+          changeTheme(userTheme);
         }
-        if (user.themeMode && user.themeMode !== mode) {
+        if (userThemeMode !== mode) {
           toggleMode();
         }
       }

@@ -46,8 +46,8 @@ model User {
   defaultModel        String @default("gpt-4o-2024-08-06") // Default OpenAI model for copy generation
 
   // Theme preferences
-  theme               String @default("solar-dusk") // Theme name
-  themeMode           String @default("dark") // dark or light
+  theme               String @default("clean-slate") // Theme name
+  themeMode           String @default("light") // dark or light
 
   // Default brand
   defaultBrandId      String?

@@ -48,6 +48,18 @@ router.get('/settings', async (req, res) => {
       });
     }
 
+    // SECURITY: Never expose admin's default API keys to users
+    // If user's keys match admin keys from environment, return empty strings
+    const adminGeminiKey = process.env.GEMINI_API_KEY;
+    const adminOpenaiKey = process.env.OPENAI_API_KEY;
+
+    if (user.geminiApiKey === adminGeminiKey) {
+      user.geminiApiKey = '';
+    }
+    if (user.openaiApiKey === adminOpenaiKey) {
+      user.openaiApiKey = '';
+    }
+
     res.json({
       success: true,
       user
@@ -87,11 +99,22 @@ router.put('/settings', async (req, res) => {
     // Build update data
     const updateData = {};
 
+    // SECURITY: Prevent users from saving admin's API keys to their account
+    // If they try to save admin keys, treat as empty (they'll use admin keys via fallback)
+    const adminGeminiKey = process.env.GEMINI_API_KEY;
+    const adminOpenaiKey = process.env.OPENAI_API_KEY;
+
     if (name !== undefined) updateData.name = name;
     if (email !== undefined) updateData.email = email;
     if (company !== undefined) updateData.company = company;
-    if (geminiApiKey !== undefined) updateData.geminiApiKey = geminiApiKey;
-    if (openaiApiKey !== undefined) updateData.openaiApiKey = openaiApiKey;
+
+    // Only save user's custom API keys, not admin keys
+    if (geminiApiKey !== undefined) {
+      updateData.geminiApiKey = (geminiApiKey === adminGeminiKey || geminiApiKey === '') ? null : geminiApiKey;
+    }
+    if (openaiApiKey !== undefined) {
+      updateData.openaiApiKey = (openaiApiKey === adminOpenaiKey || openaiApiKey === '') ? null : openaiApiKey;
+    }
     if (preferredImageModel !== undefined) updateData.preferredImageModel = preferredImageModel;
     if (imageQuality !== undefined) updateData.imageQuality = imageQuality;
     if (defaultIndustry !== undefined) updateData.defaultIndustry = defaultIndustry;
@@ -128,6 +151,18 @@ router.put('/settings', async (req, res) => {
         updatedAt: true
       }
     });
+
+    // SECURITY: Never expose admin's default API keys to users
+    // If user's keys match admin keys from environment, return empty strings
+    const adminGeminiKey = process.env.GEMINI_API_KEY;
+    const adminOpenaiKey = process.env.OPENAI_API_KEY;
+
+    if (user.geminiApiKey === adminGeminiKey) {
+      user.geminiApiKey = '';
+    }
+    if (user.openaiApiKey === adminOpenaiKey) {
+      user.openaiApiKey = '';
+    }
 
     res.json({
       success: true,
