@@ -72,11 +72,10 @@ export default function Settings() {
 
   const loadSettings = async () => {
     try {
-      // Load API keys from localStorage first (fallback)
-      const savedApiKeys = localStorage.getItem('apiKeys');
-      if (savedApiKeys) {
-        setApiKeys(JSON.parse(savedApiKeys));
-      }
+      // SECURITY: Don't load API keys from localStorage
+      // Admin keys should never be stored client-side
+      // Clear any cached keys
+      localStorage.removeItem('apiKeys');
 
       // Get token for authentication
       const token = localStorage.getItem('token');
@@ -109,19 +108,13 @@ export default function Settings() {
           themeMode: userThemeMode
         });
 
-        // Load API keys from database (overwrites localStorage if present)
-        // Only set if user has custom keys (not empty)
-        if (user.geminiApiKey || user.openaiApiKey) {
-          setApiKeys({
-            gemini: user.geminiApiKey || '',
-            openai: user.openaiApiKey || ''
-          });
-          // Also update localStorage to stay in sync
-          localStorage.setItem('apiKeys', JSON.stringify({
-            gemini: user.geminiApiKey || '',
-            openai: user.openaiApiKey || ''
-          }));
-        }
+        // SECURITY: API keys are never loaded from the backend
+        // Backend always returns empty strings for security
+        // Users should see blank fields (admin keys are used on backend only)
+        setApiKeys({
+          gemini: '',
+          openai: ''
+        });
 
         // Apply theme from database if different from current
         if (userTheme !== themeName) {
@@ -258,8 +251,14 @@ export default function Settings() {
 
   const handleSaveSettings = async () => {
     try {
-      // Save API keys to localStorage
-      localStorage.setItem('apiKeys', JSON.stringify(apiKeys));
+      // SECURITY: Don't save admin API keys to localStorage
+      // Only save if user has entered custom keys
+      const hasCustomKeys = apiKeys.gemini.trim() !== '' || apiKeys.openai.trim() !== '';
+      if (hasCustomKeys) {
+        localStorage.setItem('apiKeys', JSON.stringify(apiKeys));
+      } else {
+        localStorage.removeItem('apiKeys');
+      }
 
       // Get token for authentication
       const token = localStorage.getItem('token');
@@ -268,9 +267,9 @@ export default function Settings() {
       const response = await axios.put(`${API_URL}/api/user/settings`, {
         ...userInfo,
         ...preferences,
-        // Map API keys to backend field names
-        geminiApiKey: apiKeys.gemini,
-        openaiApiKey: apiKeys.openai
+        // Only send API keys if user has entered custom ones
+        geminiApiKey: apiKeys.gemini.trim() !== '' ? apiKeys.gemini : '',
+        openaiApiKey: apiKeys.openai.trim() !== '' ? apiKeys.openai : ''
       }, {
         headers: {
           Authorization: `Bearer ${token}`

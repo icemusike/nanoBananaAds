@@ -52,14 +52,11 @@ router.get('/settings', async (req, res) => {
       });
     }
 
-    // SECURITY: Never expose admin's default API keys to users
-    // If user's keys match admin keys from environment, return empty strings
-    if (user.geminiApiKey === ADMIN_GEMINI_KEY) {
-      user.geminiApiKey = '';
-    }
-    if (user.openaiApiKey === ADMIN_OPENAI_KEY) {
-      user.openaiApiKey = '';
-    }
+    // SECURITY: Never expose ANY keys to users - keep fields blank
+    // Users should only see empty fields in the UI
+    // The backend will use admin default keys as fallback automatically
+    user.geminiApiKey = '';
+    user.openaiApiKey = '';
 
     res.json({
       success: true,
@@ -150,14 +147,11 @@ router.put('/settings', async (req, res) => {
       }
     });
 
-    // SECURITY: Never expose admin's default API keys to users
-    // If user's keys match admin keys from environment, return empty strings
-    if (user.geminiApiKey === ADMIN_GEMINI_KEY) {
-      user.geminiApiKey = '';
-    }
-    if (user.openaiApiKey === ADMIN_OPENAI_KEY) {
-      user.openaiApiKey = '';
-    }
+    // SECURITY: Never expose ANY keys to users - keep fields blank
+    // Users should only see empty fields in the UI
+    // The backend will use admin default keys as fallback automatically
+    user.geminiApiKey = '';
+    user.openaiApiKey = '';
 
     res.json({
       success: true,
