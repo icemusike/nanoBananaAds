@@ -14,7 +14,7 @@ router.use(authenticateUser);
  * POST /api/generate
  * Main endpoint to generate complete ad creative (image + copy)
  */
-router.post('/generate', async (req, res) => {
+router.post('/', async (req, res) => {
   try {
     const {
       description,
@@ -267,7 +267,7 @@ router.post('/generate', async (req, res) => {
  * POST /api/generate-image
  * Generate only image (for regeneration)
  */
-router.post('/generate-image', async (req, res) => {
+router.post('/image', async (req, res) => {
   try {
     const { prompt, customPrompt } = req.body;
 
@@ -292,7 +292,7 @@ router.post('/generate-image', async (req, res) => {
  * POST /api/generate-copy
  * Generate only ad copy (for regeneration)
  */
-router.post('/generate-copy', async (req, res) => {
+router.post('/copy', async (req, res) => {
   try {
     // Extract model from request body, default to GPT-4o
     const params = {
@@ -333,7 +333,7 @@ router.get('/models', (req, res) => {
  * POST /api/generate-headlines
  * Generate headline variations for A/B testing
  */
-router.post('/generate-headlines', async (req, res) => {
+router.post('/headlines', async (req, res) => {
   try {
     const { description, targetAudience, count } = req.body;
     const headlines = await openaiService.generateHeadlineVariations({

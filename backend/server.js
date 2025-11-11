@@ -56,7 +56,7 @@ app.use(bodyParser.urlencoded({ extended: true, limit: '50mb' }));
 
 // Routes
 app.use('/api/auth', authRoute);
-app.use('/api', generateRoute);
+app.use('/api/generate', generateRoute);
 app.use('/api/ads', adsRoute);
 app.use('/api/prompts', promptsRoute);
 app.use('/api/angles', anglesRoute);
