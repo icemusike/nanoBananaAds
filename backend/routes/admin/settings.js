@@ -154,7 +154,7 @@ router.post('/test/gemini', async (req, res) => {
     console.log('🧪 Testing Gemini API key...');
 
     // Import gemini service
-    const geminiService = (await import('../services/gemini.js')).default;
+    const geminiService = (await import('../../services/gemini.js')).default;
 
     // Test with a simple prompt
     const testPrompt = "A simple test image of a yellow banana on white background";
@@ -198,7 +198,7 @@ router.post('/test/openai', async (req, res) => {
     console.log('🧪 Testing OpenAI API key...');
 
     // Import openai service
-    const openaiService = (await import('../services/openai.js')).default;
+    const openaiService = (await import('../../services/openai.js')).default;
 
     // Test with a simple copy generation
     const result = await openaiService.generateAdCopy({
