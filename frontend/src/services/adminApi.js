@@ -74,7 +74,8 @@ export const settingsApi = {
   getAll: () => adminApi.get('/settings'),
   getByCategory: (category) => adminApi.get(`/settings/${category}`),
   update: (key, data) => adminApi.put(`/settings/${key}`, data),
-  testApi: (provider, apiKey) => adminApi.post('/settings/test-api', { provider, apiKey }),
+  testGemini: (apiKey) => adminApi.post('/settings/test/gemini', { apiKey }),
+  testOpenai: (apiKey) => adminApi.post('/settings/test/openai', { apiKey }),
   getSystemInfo: () => adminApi.get('/settings/system/info')
 };
 

@@ -23,6 +23,8 @@ export default function PlatformSettings() {
   });
 
   const [testingApi, setTestingApi] = useState(false);
+  const [testingGemini, setTestingGemini] = useState(false);
+  const [testingOpenai, setTestingOpenai] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -101,30 +103,42 @@ export default function PlatformSettings() {
   };
 
   const handleTestApiKey = async (provider) => {
-    setTestingApi(true);
     setError('');
     setSuccess('');
 
     try {
       const apiKey = provider === 'gemini' ? apiKeys.geminiApiKey : apiKeys.openaiApiKey;
 
-      if (!apiKey || apiKey.startsWith('***')) {
+      if (!apiKey || apiKey.trim() === '' || apiKey.startsWith('***')) {
         setError('Please enter a valid API key first');
-        setTestingApi(false);
         return;
       }
 
-      const response = await settingsApi.testApi(provider, apiKey);
-
-      if (response.data.success && response.data.testResult.success) {
-        setSuccess(`${provider.toUpperCase()} API connection successful! Model: ${response.data.testResult.model}`);
+      // Set loading state for specific provider
+      if (provider === 'gemini') {
+        setTestingGemini(true);
       } else {
-        setError(`${provider.toUpperCase()} API test failed: ${response.data.testResult.message}`);
+        setTestingOpenai(true);
+      }
+
+      const response = provider === 'gemini'
+        ? await settingsApi.testGemini(apiKey)
+        : await settingsApi.testOpenai(apiKey);
+
+      if (response.data.success) {
+        setSuccess(`${provider === 'gemini' ? 'Gemini' : 'OpenAI'} API key is valid! ${response.data.details}`);
+      } else {
+        setError(`${provider === 'gemini' ? 'Gemini' : 'OpenAI'} API test failed: ${response.data.message}`);
       }
     } catch (err) {
-      setError('API test failed: ' + (err.response?.data?.message || err.message));
+      const errorMsg = err.response?.data?.message || err.message;
+      setError(`API test failed: ${errorMsg}`);
     } finally {
-      setTestingApi(false);
+      if (provider === 'gemini') {
+        setTestingGemini(false);
+      } else {
+        setTestingOpenai(false);
+      }
     }
   };
 
@@ -367,10 +381,10 @@ export default function PlatformSettings() {
                   <button
                     type="button"
                     onClick={() => handleTestApiKey('gemini')}
-                    disabled={testingApi}
-                    className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg transition disabled:opacity-50"
+                    disabled={testingGemini}
+                    className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {testingApi ? 'Testing...' : 'Test Connection'}
+                    {testingGemini ? '⏳ Testing Gemini...' : '🧪 Test Gemini Key'}
                   </button>
                 </div>
               </div>
@@ -391,10 +405,10 @@ export default function PlatformSettings() {
                   <button
                     type="button"
                     onClick={() => handleTestApiKey('openai')}
-                    disabled={testingApi}
-                    className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg transition disabled:opacity-50"
+                    disabled={testingOpenai}
+                    className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {testingApi ? 'Testing...' : 'Test Connection'}
+                    {testingOpenai ? '⏳ Testing OpenAI...' : '🧪 Test OpenAI Key'}
                   </button>
                 </div>
               </div>

@@ -94,6 +94,142 @@ function formatUptime(seconds) {
   return parts.length > 0 ? parts.join(' ') : '< 1m';
 }
 
+// Update a setting
+router.put('/:key', async (req, res) => {
+  try {
+    const { key } = req.params;
+    const { value } = req.body;
+
+    console.log(`🔧 Admin updating setting: ${key}`);
+
+    // For now, we'll store API keys in environment variables
+    // In production, you might want to store these in a database table
+
+    // Validate the key
+    const allowedKeys = ['gemini_api_key', 'openai_api_key'];
+    if (!allowedKeys.includes(key)) {
+      return res.status(400).json({
+        error: 'Invalid setting key',
+        message: `Key must be one of: ${allowedKeys.join(', ')}`
+      });
+    }
+
+    // For API keys, we'll update the process.env
+    // Note: These changes are temporary and won't persist across server restarts
+    // You should add these to Railway environment variables for persistence
+    if (key === 'gemini_api_key') {
+      process.env.GEMINI_API_KEY = value;
+      console.log('✅ Gemini API key updated in process.env');
+    } else if (key === 'openai_api_key') {
+      process.env.OPENAI_API_KEY = value;
+      console.log('✅ OpenAI API key updated in process.env');
+    }
+
+    res.json({
+      success: true,
+      message: `Setting ${key} updated successfully`,
+      note: 'For persistence, please add this to Railway environment variables'
+    });
+  } catch (error) {
+    console.error('❌ Update setting error:', error);
+    res.status(500).json({
+      error: 'Failed to update setting',
+      message: error.message
+    });
+  }
+});
+
+// Test Gemini API key
+router.post('/test/gemini', async (req, res) => {
+  try {
+    const { apiKey } = req.body;
+
+    if (!apiKey) {
+      return res.status(400).json({
+        error: 'API key is required',
+        message: 'Please provide a Gemini API key to test'
+      });
+    }
+
+    console.log('🧪 Testing Gemini API key...');
+
+    // Import gemini service
+    const geminiService = (await import('../services/gemini.js')).default;
+
+    // Test with a simple prompt
+    const testPrompt = "A simple test image of a yellow banana on white background";
+
+    const result = await geminiService.generateImage(testPrompt, {
+      apiKey: apiKey
+    });
+
+    if (result && result.imageData) {
+      console.log('✅ Gemini API key test successful');
+      res.json({
+        success: true,
+        message: 'Gemini API key is valid and working',
+        details: 'Successfully generated a test image'
+      });
+    } else {
+      throw new Error('No image data returned');
+    }
+  } catch (error) {
+    console.error('❌ Gemini test failed:', error);
+    res.status(400).json({
+      success: false,
+      error: 'Gemini API key test failed',
+      message: error.message || 'Invalid or expired API key'
+    });
+  }
+});
+
+// Test OpenAI API key
+router.post('/test/openai', async (req, res) => {
+  try {
+    const { apiKey } = req.body;
+
+    if (!apiKey) {
+      return res.status(400).json({
+        error: 'API key is required',
+        message: 'Please provide an OpenAI API key to test'
+      });
+    }
+
+    console.log('🧪 Testing OpenAI API key...');
+
+    // Import openai service
+    const openaiService = (await import('../services/openai.js')).default;
+
+    // Test with a simple copy generation
+    const result = await openaiService.generateAdCopy({
+      description: 'Test product',
+      targetAudience: 'Test audience',
+      industry: 'Technology',
+      visualDescription: 'A test image',
+      tone: 'professional',
+      apiKey: apiKey
+    });
+
+    if (result && result.success) {
+      console.log('✅ OpenAI API key test successful');
+      res.json({
+        success: true,
+        message: 'OpenAI API key is valid and working',
+        details: 'Successfully generated test ad copy'
+      });
+    } else {
+      throw new Error('No response from OpenAI');
+    }
+  } catch (error) {
+    console.error('❌ OpenAI test failed:', error);
+    res.status(400).json({
+      success: false,
+      error: 'OpenAI API key test failed',
+      message: error.message || 'Invalid or expired API key'
+    });
+  }
+});
+
 // Get system info
 router.get('/system/info', async (req, res) => {
   try {
