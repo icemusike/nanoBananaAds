@@ -1,12 +1,19 @@
 import express from 'express';
 import prisma from '../utils/prisma.js';
 import { authenticateUser } from '../middleware/auth.js';
+import { getAdminApiKeys } from '../utils/systemSettings.js';
 
 const router = express.Router();
 
-// SECURITY: Admin's default API keys (used for masking)
-const ADMIN_GEMINI_KEY = process.env.GEMINI_API_KEY;
-const ADMIN_OPENAI_KEY = process.env.OPENAI_API_KEY;
+// SECURITY: Admin's default API keys will be loaded from database
+// Cached at module level for performance
+let ADMIN_KEYS_CACHE = null;
+async function getAdminKeys() {
+  if (!ADMIN_KEYS_CACHE) {
+    ADMIN_KEYS_CACHE = await getAdminApiKeys();
+  }
+  return ADMIN_KEYS_CACHE;
+}
 
 // Apply authentication to all routes
 router.use(authenticateUser);

@@ -364,3 +364,18 @@ model JVZooTransaction {
   @@index([createdAt])
   @@index([jvzooProductId])
 }
+
+// System settings for admin configuration
+model SystemSettings {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Setting key-value pair
+  key       String   @unique
+  value     String?  @db.Text
+  category  String   @default("general") // general, api_keys, features, etc.
+
+  @@index([key])
+  @@index([category])
+}

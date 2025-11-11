@@ -45,11 +45,11 @@ export default function PlatformSettings() {
       if (settingsRes.data.success) {
         setSettings(settingsRes.data.settings);
 
-        // Populate forms if settings exist
-        if (settingsRes.data.settings.api_keys) {
+        // Populate forms if settings exist (from database)
+        if (settingsRes.data.settings.apiKeys) {
           setApiKeys({
-            geminiApiKey: settingsRes.data.settings.api_keys.gemini_api_key?.value || '',
-            openaiApiKey: settingsRes.data.settings.api_keys.openai_api_key?.value || ''
+            geminiApiKey: settingsRes.data.settings.apiKeys.geminiApiKey || '',
+            openaiApiKey: settingsRes.data.settings.apiKeys.openaiApiKey || ''
           });
         }
 

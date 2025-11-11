@@ -4,6 +4,7 @@ import openaiService from '../services/openai.js';
 import { generateGeminiPrompt, getTemplatesForCategory, TEMPLATE_CATEGORIES } from '../prompts/templates.js';
 import prisma from '../utils/prisma.js';
 import { authenticateUser } from '../middleware/auth.js';
+import { getAdminApiKeys } from '../utils/systemSettings.js';
 
 const router = express.Router();
 
@@ -70,10 +71,13 @@ router.post('/', async (req, res) => {
       console.log('⚠️ Could not load user settings, using defaults:', settingsError.message);
     }
 
-    // API Key Priority: Headers > User DB > Environment Variables
-    // This allows users to optionally set their own keys, otherwise use admin defaults
-    const geminiApiKey = req.headers['x-gemini-api-key'] || userGeminiKey || process.env.GEMINI_API_KEY;
-    const openaiApiKey = req.headers['x-openai-api-key'] || userOpenaiKey || process.env.OPENAI_API_KEY;
+    // Get admin default API keys from database
+    const adminKeys = await getAdminApiKeys();
+
+    // API Key Priority: Headers > User DB > Admin Database > Environment Variables
+    // This allows users to optionally set their own keys, otherwise use admin defaults from database
+    const geminiApiKey = req.headers['x-gemini-api-key'] || userGeminiKey || adminKeys.geminiApiKey || process.env.GEMINI_API_KEY;
+    const openaiApiKey = req.headers['x-openai-api-key'] || userOpenaiKey || adminKeys.openaiApiKey || process.env.OPENAI_API_KEY;
 
     // Use settings with fallbacks
     const finalAspectRatio = aspectRatio || userSettings?.defaultAspectRatio || 'square';
@@ -467,8 +471,11 @@ router.get('/test-gemini', async (req, res) => {
       console.log('⚠️ Could not load user Gemini key:', err.message);
     }
 
-    // API Key Priority: Headers > User DB > Environment Variables
-    const geminiApiKey = req.headers['x-gemini-api-key'] || userGeminiKey || process.env.GEMINI_API_KEY;
+    // Get admin default API keys from database
+    const adminKeys = await getAdminApiKeys();
+
+    // API Key Priority: Headers > User DB > Admin Database > Environment Variables
+    const geminiApiKey = req.headers['x-gemini-api-key'] || userGeminiKey || adminKeys.geminiApiKey || process.env.GEMINI_API_KEY;
 
     const simplePrompt = "Create a picture of a banana";
 
@@ -521,8 +528,11 @@ router.post('/regenerate-copy', async (req, res) => {
       console.log('⚠️ Could not load user OpenAI key:', err.message);
     }
 
-    // API Key Priority: Headers > User DB > Environment Variables
-    const openaiApiKey = req.headers['x-openai-api-key'] || userOpenaiKey || process.env.OPENAI_API_KEY;
+    // Get admin default API keys from database
+    const adminKeys = await getAdminApiKeys();
+
+    // API Key Priority: Headers > User DB > Admin Database > Environment Variables
+    const openaiApiKey = req.headers['x-openai-api-key'] || userOpenaiKey || adminKeys.openaiApiKey || process.env.OPENAI_API_KEY;
 
     // Validation
     if (!description || !targetAudience) {

@@ -1,6 +1,7 @@
 import express from 'express';
 import { PrismaClient } from '../../generated/prisma/index.js';
 import { verifyAdminToken } from '../../middleware/adminAuth.js';
+import { getAdminApiKeys, setSystemSetting, getSystemSetting } from '../../utils/systemSettings.js';
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -41,6 +42,9 @@ router.get('/', async (req, res) => {
       databaseStatus = 'disconnected';
     }
 
+    // Get admin API keys from database
+    const adminKeys = await getAdminApiKeys();
+
     // Return system settings with real database data
     res.json({
       success: true,
@@ -64,9 +68,13 @@ router.get('/', async (req, res) => {
             totalBrands
           }
         },
+        apiKeys: {
+          geminiApiKey: adminKeys.geminiApiKey || '',
+          openaiApiKey: adminKeys.openaiApiKey || ''
+        },
         features: {
-          geminiEnabled: !!process.env.GEMINI_API_KEY,
-          openaiEnabled: !!process.env.OPENAI_API_KEY,
+          geminiEnabled: !!adminKeys.geminiApiKey,
+          openaiEnabled: !!adminKeys.openaiApiKey,
           jvzooEnabled: !!process.env.JVZOO_SECRET_KEY
         }
       }
@@ -102,9 +110,6 @@ router.put('/:key', async (req, res) => {
 
     console.log(`🔧 Admin updating setting: ${key}`);
 
-    // For now, we'll store API keys in environment variables
-    // In production, you might want to store these in a database table
-
     // Validate the key
     const allowedKeys = ['gemini_api_key', 'openai_api_key'];
     if (!allowedKeys.includes(key)) {
@@ -114,21 +119,19 @@ router.put('/:key', async (req, res) => {
       });
     }
 
-    // For API keys, we'll update the process.env
-    // Note: These changes are temporary and won't persist across server restarts
-    // You should add these to Railway environment variables for persistence
+    // Save API keys to database for persistence across deployments
     if (key === 'gemini_api_key') {
-      process.env.GEMINI_API_KEY = value;
-      console.log('✅ Gemini API key updated in process.env');
+      await setSystemSetting('admin_gemini_api_key', value, 'api_keys');
+      console.log('✅ Gemini API key saved to database');
     } else if (key === 'openai_api_key') {
-      process.env.OPENAI_API_KEY = value;
-      console.log('✅ OpenAI API key updated in process.env');
+      await setSystemSetting('admin_openai_api_key', value, 'api_keys');
+      console.log('✅ OpenAI API key saved to database');
     }
 
     res.json({
       success: true,
-      message: `Setting ${key} updated successfully`,
-      note: 'For persistence, please add this to Railway environment variables'
+      message: `Setting ${key} saved successfully to database`,
+      note: 'API key is now persistent across Railway deployments'
     });
   } catch (error) {
     console.error('❌ Update setting error:', error);
