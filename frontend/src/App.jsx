@@ -4,12 +4,10 @@ import { AuthProvider } from './context/AuthContext';
 import { AdminProvider } from './context/AdminContext';
 import { LicenseProvider } from './context/LicenseContext';
 import { AgencyProvider } from './context/AgencyContext';
-import { ClientPortalProvider } from './context/ClientPortalContext';
+import { ClientPortalProvider } from './context/ClientPortalProvider';
 import Navigation from './components/Navigation';
 import ProtectedRoute from './components/ProtectedRoute';
 import ClientPortalProtectedRoute from './components/ClientPortalProtectedRoute';
-import LandingPage from './pages/LandingPage';
-import Signup from './pages/Signup';
 import Login from './pages/Login';
 import ForgotPassword from './pages/ForgotPassword';
 import CreateAds from './pages/CreateAds';
@@ -56,11 +54,10 @@ function App() {
                 <Router>
                   <div className="min-h-screen bg-background text-foreground">
                     <Routes>
-              {/* Public Landing Page */}
-              <Route path="/" element={<LandingPage />} />
+              {/* Public Login Page */}
+              <Route path="/" element={<Login />} />
 
               {/* Auth Routes */}
-              <Route path="/signup" element={<Signup />} />
               <Route path="/login" element={<Login />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
 
