@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, Mail, CheckCircle } from 'lucide-react';
+import { useTheme } from '../context/ThemeContext';
 
 function ForgotPassword() {
+  const { mode } = useTheme();
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -33,7 +35,7 @@ function ForgotPassword() {
           <div className="text-center mb-8">
             <Link to="/" className="inline-flex flex-col items-center justify-center mb-4">
               <img
-                src="/images/adgeniusai_logo_light.png"
+                src={mode === 'light' ? '/images/adgeniusai_logo_dark.png' : '/images/adgeniusai_logo_light.png'}
                 alt="AdGenius AI"
                 className="h-16 w-auto mb-3"
               />
@@ -68,7 +70,7 @@ function ForgotPassword() {
         <div className="text-center mb-8">
           <Link to="/" className="inline-flex flex-col items-center justify-center mb-4">
             <img
-              src="/images/adgeniusai_logo_light.png"
+              src={mode === 'light' ? '/images/adgeniusai_logo_dark.png' : '/images/adgeniusai_logo_light.png'}
               alt="AdGenius AI"
               className="h-16 w-auto mb-3"
             />

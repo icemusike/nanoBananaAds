@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 
 function Signup() {
   const navigate = useNavigate();
   const { signup } = useAuth();
+  const { mode } = useTheme();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -54,7 +56,7 @@ function Signup() {
         <div className="text-center mb-8">
           <Link to="/" className="inline-flex flex-col items-center justify-center mb-4">
             <img
-              src="/images/adgeniusai_logo_light.png"
+              src={mode === 'light' ? '/images/adgeniusai_logo_dark.png' : '/images/adgeniusai_logo_light.png'}
               alt="AdGenius AI"
               className="h-16 w-auto mb-3"
             />
