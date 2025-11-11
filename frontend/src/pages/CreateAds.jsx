@@ -400,28 +400,18 @@ export default function CreateAds() {
       return;
     }
 
-    // Get API keys from localStorage
+    // SECURITY: Get API keys from localStorage (only if user has custom keys)
+    // If no custom keys, backend will automatically use admin default keys
     const savedApiKeys = localStorage.getItem('apiKeys');
     let apiKeys = { gemini: '', openai: '' };
 
     if (savedApiKeys) {
-      apiKeys = JSON.parse(savedApiKeys);
-    }
-
-    // Check if API keys are present
-    if (!apiKeys.gemini && !apiKeys.openai) {
-      setError('API keys not found. Please add your Gemini and OpenAI API keys in Settings.');
-      return;
-    }
-
-    if (!apiKeys.gemini) {
-      setError('Gemini API key not found. Please add it in Settings.');
-      return;
-    }
-
-    if (!apiKeys.openai) {
-      setError('OpenAI API key not found. Please add it in Settings.');
-      return;
+      try {
+        apiKeys = JSON.parse(savedApiKeys);
+      } catch (e) {
+        // Invalid JSON, use empty keys (admin defaults)
+        apiKeys = { gemini: '', openai: '' };
+      }
     }
 
     setLoading(true);
@@ -444,13 +434,21 @@ export default function CreateAds() {
       };
 
       const token = localStorage.getItem('token');
-      const response = await axios.post(`${API_URL}/api/generate`, requestData, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'x-gemini-api-key': apiKeys.gemini,
-          'x-openai-api-key': apiKeys.openai
-        }
-      });
+
+      // Build headers - only include custom API keys if user has set them
+      const headers = {
+        'Authorization': `Bearer ${token}`
+      };
+
+      // Only send custom keys if they exist (backend uses admin defaults as fallback)
+      if (apiKeys.gemini && apiKeys.gemini.trim() !== '') {
+        headers['x-gemini-api-key'] = apiKeys.gemini;
+      }
+      if (apiKeys.openai && apiKeys.openai.trim() !== '') {
+        headers['x-openai-api-key'] = apiKeys.openai;
+      }
+
+      const response = await axios.post(`${API_URL}/api/generate`, requestData, { headers });
 
       if (response.data.success) {
         setResults(response.data);

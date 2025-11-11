@@ -152,20 +152,27 @@ export default function AdsLibrary() {
   };
 
   const handleRegenerateCopy = async (ad) => {
-    // Get API keys from localStorage
+    // SECURITY: Get API keys from localStorage (only if user has custom keys)
+    // If no custom keys, backend will automatically use admin default keys
     const savedApiKeys = localStorage.getItem('apiKeys');
     let apiKeys = { gemini: '', openai: '' };
 
     if (savedApiKeys) {
-      apiKeys = JSON.parse(savedApiKeys);
-    }
-
-    if (!apiKeys.openai) {
-      alert('OpenAI API key not found. Please add it in Settings.');
-      return;
+      try {
+        apiKeys = JSON.parse(savedApiKeys);
+      } catch (e) {
+        // Invalid JSON, use empty keys (admin defaults)
+        apiKeys = { gemini: '', openai: '' };
+      }
     }
 
     try {
+      // Build headers - only include custom API key if user has set it
+      const headers = {};
+      if (apiKeys.openai && apiKeys.openai.trim() !== '') {
+        headers['x-openai-api-key'] = apiKeys.openai;
+      }
+
       const response = await axios.post(`${API_URL}/api/regenerate-copy`, {
         description: ad.formData.description,
         targetAudience: ad.formData.targetAudience,
@@ -176,11 +183,7 @@ export default function AdsLibrary() {
         valueProposition: ad.formData.valueProposition,
         callToAction: ad.adCopy.callToAction,
         model: 'gpt-4o-2024-08-06'
-      }, {
-        headers: {
-          'x-openai-api-key': apiKeys.openai
-        }
-      });
+      }, { headers });
 
       if (response.data.success) {
         // Create a new ad with the same image but new copy
