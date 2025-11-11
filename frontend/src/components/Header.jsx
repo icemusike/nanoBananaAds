@@ -13,7 +13,7 @@ export default function Header() {
         <div className="flex items-center justify-between">
           <div className="flex items-center">
             <img
-              src={mode === 'light' ? '/images/adsgenius_logo_dark.png' : '/images/adsgenius_logo_light.png'}
+              src={mode === 'light' ? '/images/adgeniusai_logo_dark.png' : '/images/adgeniusai_logo_light.png'}
               alt="AdGenius AI"
               className="h-10 w-auto"
             />

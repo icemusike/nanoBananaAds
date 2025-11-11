@@ -57,7 +57,7 @@ export default function Navigation() {
           {/* Logo */}
           <NavLink to="/app" className="flex items-center hover:opacity-80 transition-opacity">
             <img
-              src={mode === 'light' ? '/images/adsgenius_logo_dark.png' : '/images/adsgenius_logo_light.png'}
+              src={mode === 'light' ? '/images/adgeniusai_logo_dark.png' : '/images/adgeniusai_logo_light.png'}
               alt="AdGenius AI"
               className="h-8 w-auto"
             />

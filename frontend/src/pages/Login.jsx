@@ -41,7 +41,7 @@ function Login() {
         <div className="text-center mb-8">
           <Link to="/" className="inline-flex flex-col items-center justify-center mb-4">
             <img
-              src="/images/adsgenius_logo_light.png"
+              src="/images/adgeniusai_logo_light.png"
               alt="AdGenius AI"
               className="h-16 w-auto mb-3"
             />
