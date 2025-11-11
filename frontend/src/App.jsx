@@ -4,7 +4,7 @@ import { AuthProvider } from './context/AuthContext';
 import { AdminProvider } from './context/AdminContext';
 import { LicenseProvider } from './context/LicenseContext';
 import { AgencyProvider } from './context/AgencyContext';
-import { ClientPortalProvider } from './context/ClientPortalProvider';
+import { ClientPortalProvider } from './context/ClientPortalContext';
 import Navigation from './components/Navigation';
 import ProtectedRoute from './components/ProtectedRoute';
 import ClientPortalProtectedRoute from './components/ClientPortalProtectedRoute';
