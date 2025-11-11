@@ -40,26 +40,40 @@ router.post('/', async (req, res) => {
       simpleMode = false // NEW: Simple Mode - bypass templates
     } = req.body;
 
-    // Extract API keys from headers (sent from frontend localStorage)
-    const geminiApiKey = req.headers['x-gemini-api-key'];
-    const openaiApiKey = req.headers['x-openai-api-key'];
-
-    // Load user settings from database
+    // Load user settings and API keys from database
     let userSettings = null;
+    let userGeminiKey = null;
+    let userOpenaiKey = null;
+
     try {
       const user = await prisma.user.findUnique({
-        where: { id: req.userId }
+        where: { id: req.userId },
+        select: {
+          defaultAspectRatio: true,
+          defaultTone: true,
+          geminiApiKey: true,
+          openaiApiKey: true
+        }
       });
       if (user) {
         userSettings = {
           defaultAspectRatio: user.defaultAspectRatio || 'square',
           defaultTone: user.defaultTone || 'professional yet approachable'
         };
+        userGeminiKey = user.geminiApiKey;
+        userOpenaiKey = user.openaiApiKey;
         console.log('✓ User settings loaded:', userSettings);
+        console.log('✓ User has custom Gemini key:', !!userGeminiKey);
+        console.log('✓ User has custom OpenAI key:', !!userOpenaiKey);
       }
     } catch (settingsError) {
       console.log('⚠️ Could not load user settings, using defaults:', settingsError.message);
     }
+
+    // API Key Priority: Headers > User DB > Environment Variables
+    // This allows users to optionally set their own keys, otherwise use admin defaults
+    const geminiApiKey = req.headers['x-gemini-api-key'] || userGeminiKey || process.env.GEMINI_API_KEY;
+    const openaiApiKey = req.headers['x-openai-api-key'] || userOpenaiKey || process.env.OPENAI_API_KEY;
 
     // Use settings with fallbacks
     const finalAspectRatio = aspectRatio || userSettings?.defaultAspectRatio || 'square';
@@ -80,18 +94,18 @@ router.post('/', async (req, res) => {
       });
     }
 
-    // Check if API keys are available
-    if (!geminiApiKey && !process.env.GEMINI_API_KEY) {
+    // Check if API keys are available (from any source)
+    if (!geminiApiKey) {
       return res.status(401).json({
-        error: 'Gemini API key not found. Please add it in Settings.',
-        details: 'Go to Settings and add your Google Gemini API key'
+        error: 'Gemini API key not configured',
+        details: 'No Gemini API key found. Please contact your administrator or add your own key in Settings.'
       });
     }
 
-    if (!openaiApiKey && !process.env.OPENAI_API_KEY) {
+    if (!openaiApiKey) {
       return res.status(401).json({
-        error: 'OpenAI API key not found. Please add it in Settings.',
-        details: 'Go to Settings and add your OpenAI API key for ad copy generation'
+        error: 'OpenAI API key not configured',
+        details: 'No OpenAI API key found. Please contact your administrator or add your own key in Settings.'
       });
     }
 
@@ -441,7 +455,20 @@ router.get('/test-gemini', async (req, res) => {
   try {
     console.log('🧪 Testing Gemini image generation with simple prompt...');
 
-    const geminiApiKey = req.headers['x-gemini-api-key'];
+    // Load user's API key from database
+    let userGeminiKey = null;
+    try {
+      const user = await prisma.user.findUnique({
+        where: { id: req.userId },
+        select: { geminiApiKey: true }
+      });
+      userGeminiKey = user?.geminiApiKey;
+    } catch (err) {
+      console.log('⚠️ Could not load user Gemini key:', err.message);
+    }
+
+    // API Key Priority: Headers > User DB > Environment Variables
+    const geminiApiKey = req.headers['x-gemini-api-key'] || userGeminiKey || process.env.GEMINI_API_KEY;
 
     const simplePrompt = "Create a picture of a banana";
 
@@ -482,8 +509,20 @@ router.post('/regenerate-copy', async (req, res) => {
       model = 'gpt-4o-2024-08-06'
     } = req.body;
 
-    // Extract API key from headers
-    const openaiApiKey = req.headers['x-openai-api-key'];
+    // Load user's API key from database
+    let userOpenaiKey = null;
+    try {
+      const user = await prisma.user.findUnique({
+        where: { id: req.userId },
+        select: { openaiApiKey: true }
+      });
+      userOpenaiKey = user?.openaiApiKey;
+    } catch (err) {
+      console.log('⚠️ Could not load user OpenAI key:', err.message);
+    }
+
+    // API Key Priority: Headers > User DB > Environment Variables
+    const openaiApiKey = req.headers['x-openai-api-key'] || userOpenaiKey || process.env.OPENAI_API_KEY;
 
     // Validation
     if (!description || !targetAudience) {
@@ -493,9 +532,10 @@ router.post('/regenerate-copy', async (req, res) => {
       });
     }
 
-    if (!openaiApiKey && !process.env.OPENAI_API_KEY) {
+    if (!openaiApiKey) {
       return res.status(401).json({
-        error: 'OpenAI API key not found. Please add it in Settings.'
+        error: 'OpenAI API key not configured',
+        details: 'No OpenAI API key found. Please contact your administrator or add your own key in Settings.'
       });
     }
 
