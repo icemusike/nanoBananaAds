@@ -102,8 +102,8 @@ export default function Settings() {
           defaultTone: user.defaultTone || 'professional yet approachable',
           defaultAspectRatio: user.defaultAspectRatio || 'square',
           defaultModel: user.defaultModel || 'gpt-4o-2024-08-06',
-          theme: user.theme || 'solar-dusk',
-          themeMode: user.themeMode || 'dark'
+          theme: user.theme || 'clean-slate',
+          themeMode: user.themeMode || 'light'
         });
 
         // Load API keys from database (overwrites localStorage if present)

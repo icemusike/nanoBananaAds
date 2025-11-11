@@ -113,4 +113,4 @@ export const themes = {
   }
 };
 
-export const defaultTheme = 'solar-dusk';
+export const defaultTheme = 'clean-slate';
