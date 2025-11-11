@@ -78,8 +78,14 @@ export default function Settings() {
         setApiKeys(JSON.parse(savedApiKeys));
       }
 
+      // Get token for authentication
+      const token = localStorage.getItem('token');
+
       // Load user settings from database
       const response = await axios.get(`${API_URL}/api/user/settings`, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        },
         timeout: 5000
       });
       if (response.data.success && response.data.user) {
@@ -130,7 +136,11 @@ export default function Settings() {
 
   const loadStats = async () => {
     try {
+      const token = localStorage.getItem('token');
       const response = await axios.get(`${API_URL}/api/user/stats`, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        },
         timeout: 5000
       });
       if (response.data.success) {
@@ -247,6 +257,9 @@ export default function Settings() {
       // Save API keys to localStorage
       localStorage.setItem('apiKeys', JSON.stringify(apiKeys));
 
+      // Get token for authentication
+      const token = localStorage.getItem('token');
+
       // Save user info, preferences, AND API keys to database
       const response = await axios.put(`${API_URL}/api/user/settings`, {
         ...userInfo,
@@ -254,6 +267,10 @@ export default function Settings() {
         // Map API keys to backend field names
         geminiApiKey: apiKeys.gemini,
         openaiApiKey: apiKeys.openai
+      }, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
       });
 
       if (response.data.success) {
