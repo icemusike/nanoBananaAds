@@ -2,6 +2,7 @@ import express from 'express';
 import prisma from '../utils/prisma.js';
 import openaiService from '../services/openai.js';
 import { authenticateUser } from '../middleware/auth.js';
+import { getAdminApiKeys } from '../utils/systemSettings.js';
 
 const router = express.Router();
 
@@ -20,7 +21,6 @@ router.post('/generate', async (req, res) => {
       industry,
       targetAudience,
       currentApproach,
-      apiKey,
       saveToLibrary = false
     } = req.body;
 
@@ -31,6 +31,32 @@ router.post('/generate', async (req, res) => {
       });
     }
 
+    // Load user's OpenAI API key from database
+    let userOpenaiKey = null;
+    try {
+      const user = await prisma.user.findUnique({
+        where: { id: req.userId },
+        select: { openaiApiKey: true }
+      });
+      userOpenaiKey = user?.openaiApiKey;
+    } catch (err) {
+      console.log('⚠️ Could not load user OpenAI key:', err.message);
+    }
+
+    // Get admin default API keys from database
+    const adminKeys = await getAdminApiKeys();
+
+    // API Key Priority: Headers > User DB > Admin Database > Environment Variables
+    const openaiApiKey = req.headers['x-openai-api-key'] || userOpenaiKey || adminKeys.openaiApiKey || process.env.OPENAI_API_KEY;
+
+    if (!openaiApiKey) {
+      return res.status(401).json({
+        success: false,
+        error: 'OpenAI API key not configured',
+        message: 'No OpenAI API key found. Please contact your administrator or add your own key in Settings.'
+      });
+    }
+
     // Generate angles using OpenAI
     const result = await openaiService.generateAdAngles({
       businessName,
@@ -38,7 +64,7 @@ router.post('/generate', async (req, res) => {
       industry,
       targetAudience,
       currentApproach,
-      apiKey
+      apiKey: openaiApiKey
     });
 
     // Optionally save all angles to database

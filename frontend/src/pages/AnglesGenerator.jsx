@@ -27,9 +27,14 @@ export default function AnglesGenerator() {
 
   const loadBrands = async () => {
     try {
+      const token = localStorage.getItem('token');
       const [brandsRes, settingsRes] = await Promise.all([
-        axios.get(`${API_URL}/api/brands`),
-        axios.get(`${API_URL}/api/user/settings`)
+        axios.get(`${API_URL}/api/brands`, {
+          headers: { Authorization: `Bearer ${token}` }
+        }),
+        axios.get(`${API_URL}/api/user/settings`, {
+          headers: { Authorization: `Bearer ${token}` }
+        })
       ]);
 
       if (brandsRes.data.success) {
@@ -68,7 +73,10 @@ export default function AnglesGenerator() {
 
     // Increment brand usage count
     try {
-      await axios.put(`${API_URL}/api/brands/${brand.id}/use`);
+      const token = localStorage.getItem('token');
+      await axios.put(`${API_URL}/api/brands/${brand.id}/use`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
     } catch (err) {
       console.error('Failed to update brand usage:', err);
     }
@@ -99,9 +107,12 @@ export default function AnglesGenerator() {
 
     try {
       setLoading(true);
+      const token = localStorage.getItem('token');
       const response = await axios.post(`${API_URL}/api/angles/generate`, {
         ...formData,
         saveToLibrary: true // Auto-save all angles to library
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
       });
 
       if (response.data.success) {

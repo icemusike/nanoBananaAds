@@ -329,7 +329,7 @@ export default function CreateAds() {
   const loadTemplates = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get(`${API_URL}/api/templates`, {
+      const response = await axios.get(`${API_URL}/api/generate/templates`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (response.data.success) {
