@@ -733,9 +733,6 @@ export default function Settings() {
                         </span>
                       )}
                     </div>
-                    <p className="text-xs text-foreground/60">
-                      Next billing: {billing.nextBillingDate.toLocaleDateString()}
-                    </p>
                   </div>
 
                   {/* Credits Overview */}
@@ -806,9 +803,6 @@ export default function Settings() {
                       <p className="text-sm font-bold text-primary">
                         {billing.costBreakdown.imageGeneration} credits
                       </p>
-                      <p className="text-xs text-foreground/60">
-                        ${(billing.costBreakdown.imageGeneration / 100).toFixed(2)}
-                      </p>
                     </div>
                   </div>
 
@@ -826,9 +820,6 @@ export default function Settings() {
                     <div className="text-right">
                       <p className="text-sm font-bold text-accent">
                         {billing.costBreakdown.copyGeneration} credits
-                      </p>
-                      <p className="text-xs text-foreground/60">
-                        ${(billing.costBreakdown.copyGeneration / 100).toFixed(2)}
                       </p>
                     </div>
                   </div>
@@ -850,9 +841,6 @@ export default function Settings() {
                       <p className="text-sm font-bold text-secondary">
                         {billing.costBreakdown.promptGeneration} credits
                       </p>
-                      <p className="text-xs text-foreground/60">
-                        ${(billing.costBreakdown.promptGeneration / 100).toFixed(2)}
-                      </p>
                     </div>
                   </div>
                 </div>
@@ -868,9 +856,6 @@ export default function Settings() {
                       <p className="text-xl font-bold text-foreground">
                         {billing.creditsUsed} credits
                       </p>
-                      <p className="text-sm text-foreground/70">
-                        ${(billing.creditsUsed / 100).toFixed(2)}
-                      </p>
                     </div>
                   </div>
                 </div>
@@ -878,9 +863,9 @@ export default function Settings() {
                 {/* Info Note */}
                 <div className="bg-accent/10 border border-accent/30 rounded-lg p-3 mt-4">
                   <p className="text-xs text-accent leading-relaxed">
-                    <strong>💡 How Credits Work:</strong> Credits are calculated based on AI API usage.
-                    1 credit = $0.01. Image generation costs ~4 credits, ad copy ~0.5 credits,
-                    prompts/angles ~0.02 credits each.
+                    <strong>💡 How Credits Work:</strong> Credits are used for AI generation.
+                    Image generation uses more credits than prompts or angles.
+                    Upgrade to Pro License or Elite Bundle for unlimited credits!
                   </p>
                 </div>
               </div>

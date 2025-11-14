@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import axios from 'axios';
+import { useLicense } from './LicenseContext';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
@@ -14,57 +15,21 @@ export function useAgency() {
 }
 
 export function AgencyProvider({ children }) {
-  const [hasAgencyLicense, setHasAgencyLicense] = useState(false);
-  const [agencyLicense, setAgencyLicense] = useState(null);
+  const { hasAgencyFeatures, isAgency, isElite, loading: licenseLoading } = useLicense();
   const [clients, setClients] = useState([]);
   const [selectedClient, setSelectedClient] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // Check if user has agency license
-  useEffect(() => {
-    checkAgencyLicense();
-  }, []);
+  // Use license context to determine if user has agency license
+  const hasAgencyLicense = hasAgencyFeatures || isAgency || isElite;
 
-  const checkAgencyLicense = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const token = localStorage.getItem('token');
+  const agencyLicense = hasAgencyLicense ? {
+    isActive: true,
+    tier: isElite ? 'elite_bundle' : 'agency_license'
+  } : null;
 
-      if (!token) {
-        setHasAgencyLicense(false);
-        setLoading(false);
-        return;
-      }
-
-      // Try to access agency endpoint to check license
-      const response = await axios.get(`${API_URL}/api/agency/clients`, {
-        headers: { Authorization: `Bearer ${token}` },
-        params: { limit: 1 }
-      });
-
-      // If we can access the endpoint, user has agency license
-      setHasAgencyLicense(true);
-      setAgencyLicense({
-        isActive: true,
-        // License details will be populated by the response
-      });
-    } catch (error) {
-      // 403 means no agency license, 401 means not authenticated - both are OK, just no license
-      if (error.response?.status === 403 || error.response?.status === 401) {
-        setHasAgencyLicense(false);
-        setAgencyLicense(null);
-      } else {
-        console.error('Error checking agency license:', error);
-        // Don't set error state for network issues - just assume no license
-        setHasAgencyLicense(false);
-        setAgencyLicense(null);
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
+  // No longer need checkAgencyLicense function - using LicenseContext instead
 
   // Fetch all clients
   const fetchClients = async (filters = {}) => {
@@ -396,9 +361,8 @@ export function AgencyProvider({ children }) {
     agencyLicense,
     clients,
     selectedClient,
-    loading,
+    loading: loading || licenseLoading,
     error,
-    checkAgencyLicense,
     fetchClients,
     createClient,
     updateClient,
