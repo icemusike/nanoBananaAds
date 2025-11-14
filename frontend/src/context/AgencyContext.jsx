@@ -40,21 +40,6 @@ export function AgencyProvider({ children }) {
                            license?.license?.tier === 'agency_license' ||
                            license?.license?.tier === 'elite_bundle';
 
-  // Debug logging for production troubleshooting
-  console.log('🔍 AgencyContext Full License Context:', licenseContext);
-  console.log('🔍 AgencyContext License Check:', {
-    hasAgencyFeatures,
-    isAgency,
-    isElite,
-    hasAgencyLicense,
-    licenseLoading,
-    tier: license?.license?.tier,
-    rawAgencyFeatures: license?.features?.agency_features,
-    rawAgencyLicense: license?.features?.agency_license,
-    features: license?.features,
-    fullLicense: license
-  });
-
   const agencyLicense = hasAgencyLicense ? {
     isActive: true,
     tier: isElite ? 'elite_bundle' : 'agency_license'

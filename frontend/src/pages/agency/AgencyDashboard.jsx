@@ -56,7 +56,6 @@ export default function AgencyDashboard() {
 
   // Show loading state while license is being checked
   if (licenseLoading) {
-    console.log('🔍 AgencyDashboard: License still loading...');
     return (
       <div className="container mx-auto px-4 py-12">
         <div className="max-w-2xl mx-auto text-center">
@@ -67,11 +66,8 @@ export default function AgencyDashboard() {
     );
   }
 
-  console.log('🔍 AgencyDashboard: License loaded. hasAgencyLicense =', hasAgencyLicense);
-
   // Only show upgrade modal after license has loaded and user doesn't have access
   if (!hasAgencyLicense) {
-    console.log('❌ AgencyDashboard: No agency license - showing upgrade modal');
     return (
       <div className="container mx-auto px-4 py-12">
         <div className="max-w-2xl mx-auto text-center">
