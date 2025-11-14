@@ -48,20 +48,41 @@ export function verifyJVZooIPN(ipnData, secretKey) {
 
 /**
  * Map JVZoo product ID to internal product identifier
+ *
+ * Products Structure:
+ * - Frontend (427079): Base AdGeniusAI access
+ * - Pro License (427343, 427345): Unlimited generations
+ * - Templates License (427347, 427349): Template library access
+ * - Agency License (427351, 427353): Agency features (client management)
+ * - Reseller License (427355, 427359): Can resell the platform
+ * - Elite Bundle (427357): FE + All upgrade features unlocked
  */
 export function mapProductId(jvzooProductId) {
-  // TODO: Update these mappings with your actual JVZoo product IDs
   const productMapping = {
-    // Example mappings - replace with your actual JVZoo product IDs
-    '123456': 'adgenius-frontend',      // Front-end offer
-    '123457': 'adgenius-pro',           // OTO 1: Pro Unlimited
-    '123458': 'adgenius-pro-lite',      // OTO 1 Downsell: Pro Lite
-    '123459': 'adgenius-templates',     // OTO 2: Template Library
-    '123460': 'adgenius-elite',         // OTO 3: Elite Bundle
-    '123461': 'adgenius-agency',        // OTO 4: Agency License
+    // Frontend Offer
+    '427079': 'frontend',
+
+    // OTO 1: Pro License (Main + Downsell)
+    '427343': 'pro_license',
+    '427345': 'pro_license',
+
+    // OTO 2: Templates License (Main + Downsell)
+    '427347': 'templates_license',
+    '427349': 'templates_license',
+
+    // OTO 3: Agency License (Main + Downsell)
+    '427351': 'agency_license',
+    '427353': 'agency_license',
+
+    // OTO 4: Reseller License (Main + Downsell)
+    '427355': 'reseller_license',
+    '427359': 'reseller_license',
+
+    // Elite Bundle (All-in-One)
+    '427357': 'elite_bundle'
   };
 
-  return productMapping[jvzooProductId] || 'adgenius-default';
+  return productMapping[jvzooProductId] || 'unknown';
 }
 
 /**
@@ -305,10 +326,12 @@ export async function sendWelcomeEmail(user, license) {
 
     // Map product ID to friendly name
     const productNames = {
-      '427079': 'Starter License',
-      '427343': 'Pro Unlimited License',
-      '427357': 'Elite Bundle License',
-      '427368': 'Agency License'
+      'frontend': 'AdGenius AI Frontend',
+      'pro_license': 'Pro License (Unlimited Generations)',
+      'templates_license': 'Templates License',
+      'agency_license': 'Agency License',
+      'reseller_license': 'Reseller License',
+      'elite_bundle': 'Elite Bundle (All Features)'
     };
 
     const productName = productNames[license.productId] || 'AdGenius AI License';

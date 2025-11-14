@@ -13,8 +13,8 @@ export default function UserDetail() {
   const [showGrantLicense, setShowGrantLicense] = useState(false);
   const [newPassword, setNewPassword] = useState('');
   const [licenseForm, setLicenseForm] = useState({
-    productId: '427079', // Default to Starter
-    purchaseAmount: 0,
+    productId: 'frontend', // Default to Frontend
+    purchaseAmount: 47,
     isAddon: false
   });
 
@@ -70,7 +70,7 @@ export default function UserDetail() {
       });
       setSuccess('License granted successfully!');
       setShowGrantLicense(false);
-      setLicenseForm({ productId: 'standard', purchaseAmount: 0 });
+      setLicenseForm({ productId: 'frontend', purchaseAmount: 47 });
       fetchUser(); // Refresh user data
     } catch (err) {
       setError('Failed to grant license: ' + (err.response?.data?.message || err.message));
@@ -286,16 +286,12 @@ export default function UserDetail() {
                     const selectedId = e.target.value;
                     // Auto-fill purchase amount based on product
                     const prices = {
-                      '427079': 47,    // Starter
-                      '427343': 97,    // Pro Unlimited
-                      '427345': 67,    // Pro Lite
-                      '427357': 397,   // Elite Bundle
-                      '427347': 127,   // Template Library
-                      '427349': 67,    // Template Pack DS
-                      '427351': 197,   // Agency
-                      '427353': 127,   // Agency DS
-                      '427355': 297,   // Reseller
-                      '427359': 197    // Reseller DS
+                      'frontend': 47,
+                      'pro_license': 97,
+                      'templates_license': 127,
+                      'agency_license': 197,
+                      'reseller_license': 297,
+                      'elite_bundle': 397
                     };
                     setLicenseForm({
                       ...licenseForm,
@@ -306,18 +302,14 @@ export default function UserDetail() {
                   className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 >
                   <optgroup label="Base Licenses">
-                    <option value="427079">Starter ($47) - 100 credits/month</option>
-                    <option value="427343">Pro Unlimited ($97) - Unlimited credits</option>
-                    <option value="427345">Pro Lite ($67) - Unlimited credits</option>
-                    <option value="427357">Elite Bundle ($397) - Everything included</option>
+                    <option value="frontend">Frontend ($47) - Base access, 500 credits/month</option>
+                    <option value="pro_license">Pro License ($97) - Unlimited generations</option>
+                    <option value="elite_bundle">Elite Bundle ($397) - All features included</option>
                   </optgroup>
-                  <optgroup label="Addons (Require Base License)">
-                    <option value="427347">Template Library ($127) - Premium templates</option>
-                    <option value="427349">Template Pack DS ($67) - Top 10 Industries</option>
-                    <option value="427351">Agency License ($197) - Requires Pro+</option>
-                    <option value="427353">Agency DS ($127) - Requires Pro+</option>
-                    <option value="427355">Reseller Rights ($297) - Requires Agency</option>
-                    <option value="427359">Reseller DS ($197) - Requires Agency</option>
+                  <optgroup label="Addon Licenses">
+                    <option value="templates_license">Templates License ($127) - Template library access</option>
+                    <option value="agency_license">Agency License ($197) - Agency features, 10 activations</option>
+                    <option value="reseller_license">Reseller License ($297) - Resell platform, 50 activations</option>
                   </optgroup>
                 </select>
               </div>
@@ -336,8 +328,11 @@ export default function UserDetail() {
             </div>
             <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 mt-4">
               <p className="text-sm text-blue-800 dark:text-blue-200">
-                <strong>Note:</strong> Elite Bundle automatically includes all addons.
-                Addons require appropriate base licenses (Agency requires Pro+, Reseller requires Agency).
+                <strong>License Structure:</strong><br/>
+                • <strong>Frontend</strong>: Base license with 500 credits/month<br/>
+                • <strong>Pro License</strong>: Unlimited generations (recommended base)<br/>
+                • <strong>Elite Bundle</strong>: Includes ALL features (Pro + Templates + Agency + Reseller)<br/>
+                • <strong>Addons</strong>: Can be combined with any base license
               </p>
             </div>
             <div className="flex gap-2 mt-4">

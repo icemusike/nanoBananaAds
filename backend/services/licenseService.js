@@ -236,9 +236,12 @@ export async function handleCancellation(jvzooTransactionId) {
  */
 function getMaxActivations(productId) {
   const activationLimits = {
-    'adgenius-pro': 3,
-    'adgenius-elite': 10,
-    'adgenius-agency': 50,
+    'frontend': 1,            // Base license - 1 activation
+    'pro_license': 3,         // Pro - 3 activations
+    'templates_license': 1,   // Templates - 1 activation
+    'agency_license': 10,     // Agency - 10 activations
+    'reseller_license': 50,   // Reseller - 50 activations
+    'elite_bundle': 10,       // Elite - 10 activations
     'default': 1
   };
 

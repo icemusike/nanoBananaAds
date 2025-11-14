@@ -199,10 +199,20 @@ export function LicenseProvider({ children }) {
 
     // Computed properties
     hasLicense: !!license,
-    isStarter: license?.license?.tier === 'starter',
-    isPro: license?.license?.tier === 'pro_unlimited',
+    isFrontend: license?.license?.tier === 'frontend',
+    isPro: license?.license?.tier === 'pro_license',
+    hasTemplates: license?.license?.tier === 'templates_license' || license?.features?.templates_library,
+    isAgency: license?.license?.tier === 'agency_license' || license?.features?.agency_license,
+    isReseller: license?.license?.tier === 'reseller_license' || license?.features?.reseller_license,
     isElite: license?.license?.tier === 'elite_bundle',
-    hasUnlimitedCredits: license?.features?.unlimited_credits || false
+    hasUnlimitedCredits: license?.features?.unlimited_credits || false,
+
+    // Feature helpers
+    hasProFeatures: license?.features?.pro_license || license?.features?.all_features || false,
+    hasTemplatesLibrary: license?.features?.templates_library || license?.features?.all_features || false,
+    hasAgencyFeatures: license?.features?.agency_features || license?.features?.all_features || false,
+    hasResellerFeatures: license?.features?.reseller_license || license?.features?.all_features || false,
+    hasWhiteLabel: license?.features?.white_label || license?.features?.all_features || false
   };
 
   return (

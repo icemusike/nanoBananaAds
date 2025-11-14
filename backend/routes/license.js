@@ -40,45 +40,43 @@ router.get('/me', authenticateUser, async (req, res) => {
     // Get the primary (most recent active) license
     const primaryLicense = licenses[0];
 
-    // Determine tier from productId (supports both internal names and JVZoo product IDs)
+    // Determine tier from productId
+    // Priority: Elite Bundle > Highest tier owned
     const tierMapping = {
-      // Internal product IDs
-      'starter': 'starter',
-      'pro_unlimited': 'pro_unlimited',
-      'pro-unlimited': 'pro_unlimited',
-      'elite_bundle': 'elite_bundle',
-      'elite-bundle': 'elite_bundle',
+      'frontend': 'frontend',
+      'pro_license': 'pro_license',
+      'templates_license': 'templates_license',
       'agency_license': 'agency_license',
-      'agency-license': 'agency_license',
-      // JVZoo product IDs
-      '427079': 'starter',           // JVZoo Starter
-      '427343': 'pro_unlimited',     // JVZoo Pro Unlimited
-      '427357': 'elite_bundle',      // JVZoo Elite Bundle
-      '427368': 'agency_license'     // JVZoo Agency License
+      'reseller_license': 'reseller_license',
+      'elite_bundle': 'elite_bundle'
     };
 
-    const tier = tierMapping[primaryLicense.productId] || primaryLicense.productId;
+    // If user has Elite Bundle, that's the primary tier (it includes everything)
+    const hasEliteBundle = licenses.some(l => l.productId === 'elite_bundle');
+    const tier = hasEliteBundle ? 'elite_bundle' : tierMapping[primaryLicense.productId] || primaryLicense.productId;
 
-    // Check for addons (additional licenses)
-    const addons = licenses
-      .filter(l => l.id !== primaryLicense.id)
-      .map(l => l.productId);
+    // Get all product IDs for addon detection
+    const productIds = licenses.map(l => l.productId);
 
     // Determine features based on licenses
-    const hasAgencyLicense = licenses.some(l =>
-      l.productId === 'agency_license' ||
-      l.productId === 'agency-license' ||
-      l.productId === '427368'  // JVZoo Agency License
+    const hasProLicense = licenses.some(l =>
+      l.productId === 'pro_license' || l.productId === 'elite_bundle'
     );
 
-    const hasUnlimitedCredits = licenses.some(l =>
-      l.productId === 'pro_unlimited' ||
-      l.productId === 'pro-unlimited' ||
-      l.productId === 'elite_bundle' ||
-      l.productId === 'elite-bundle' ||
-      l.productId === '427343' ||  // JVZoo Pro Unlimited
-      l.productId === '427357'     // JVZoo Elite Bundle
+    const hasTemplatesLicense = licenses.some(l =>
+      l.productId === 'templates_license' || l.productId === 'elite_bundle'
     );
+
+    const hasAgencyLicense = licenses.some(l =>
+      l.productId === 'agency_license' || l.productId === 'elite_bundle'
+    );
+
+    const hasResellerLicense = licenses.some(l =>
+      l.productId === 'reseller_license' || l.productId === 'elite_bundle'
+    );
+
+    // Pro License and Elite Bundle get unlimited credits
+    const hasUnlimitedCredits = hasProLicense || hasEliteBundle;
 
     return res.json({
       success: true,
@@ -93,11 +91,16 @@ router.get('/me', authenticateUser, async (req, res) => {
         isRecurring: primaryLicense.isRecurring
       },
       tier: tier,
-      addons: addons,
+      licenses: productIds, // All licenses user owns
       features: {
         unlimited_credits: hasUnlimitedCredits,
+        pro_license: hasProLicense,
+        templates_library: hasTemplatesLicense,
         agency_license: hasAgencyLicense,
-        agency_features: hasAgencyLicense
+        agency_features: hasAgencyLicense,
+        reseller_license: hasResellerLicense,
+        white_label: hasResellerLicense,
+        all_features: hasEliteBundle
       }
     });
   } catch (error) {
@@ -124,14 +127,10 @@ router.get('/credits', authenticateUser, async (req, res) => {
       }
     });
 
-    // Check if user has unlimited credits (Pro Unlimited or Elite Bundle)
+    // Check if user has unlimited credits (Pro License or Elite Bundle)
     const hasUnlimitedCredits = licenses.some(l =>
-      l.productId === 'pro_unlimited' ||
-      l.productId === 'pro-unlimited' ||
-      l.productId === 'elite_bundle' ||
-      l.productId === 'elite-bundle' ||
-      l.productId === '427343' ||  // JVZoo Pro Unlimited
-      l.productId === '427357'     // JVZoo Elite Bundle
+      l.productId === 'pro_license' ||
+      l.productId === 'elite_bundle'
     );
 
     // If unlimited, return large number
@@ -146,7 +145,7 @@ router.get('/credits', authenticateUser, async (req, res) => {
       });
     }
 
-    // For free/starter tier, calculate from usage
+    // For frontend tier, calculate from usage
     const user = await prisma.user.findUnique({
       where: { id: req.userId },
       select: {
@@ -158,12 +157,11 @@ router.get('/credits', authenticateUser, async (req, res) => {
     });
 
     // Free tier: 50 credits/month
-    // Starter tier: 500 credits/month
-    const hasStarterLicense = licenses.some(l =>
-      l.productId === 'starter' ||
-      l.productId === '427079'  // JVZoo Starter
+    // Frontend tier: 500 credits/month
+    const hasFrontendLicense = licenses.some(l =>
+      l.productId === 'frontend'
     );
-    const monthlyLimit = hasStarterLicense ? 500 : 50;
+    const monthlyLimit = hasFrontendLicense ? 500 : 50;
 
     // Rough estimate: 1 ad = 1 credit, 1 prompt/angle = 0.1 credit
     const creditsUsed = (user?.adsGenerated || 0) +

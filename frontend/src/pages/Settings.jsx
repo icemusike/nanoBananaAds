@@ -190,30 +190,40 @@ export default function Settings() {
         console.log('🔵 Addons:', addonsData);
         console.log('🔵 Features:', features);
 
-        // Check if user has agency addon - API returns array of strings like ['agency_license']
-        const hasAgencyAddon = addonsData.includes('agency_license') ||
-                               features.agency_license ||
-                               features.agency_features;
-
+        // Get all licenses user owns
+        const ownedLicenses = licenseResponse.data.licenses || [];
         const hasUnlimitedCreds = features.unlimited_credits || false;
 
         // Map license tier to friendly plan name
         const planNames = {
-          'starter': 'Starter',
-          'pro_unlimited': 'Pro Unlimited',
+          'frontend': 'Frontend',
+          'pro_license': 'Pro License',
+          'templates_license': 'Templates',
+          'agency_license': 'Agency',
+          'reseller_license': 'Reseller',
           'elite_bundle': 'Elite Bundle'
         };
 
-        // If user has agency addon, show that as the primary plan
-        const basePlan = planNames[licenseData?.tier] || 'Free';
-        const planName = hasAgencyAddon ? `${basePlan} + Agency` : basePlan;
+        // Build comprehensive plan name showing all owned licenses
+        const baseTier = licenseData?.tier || 'Free';
+        const basePlan = planNames[baseTier] || 'Free';
+
+        // Build addon list (exclude the base tier)
+        const addons = ownedLicenses
+          .filter(l => l !== baseTier && planNames[l])
+          .map(l => planNames[l]);
+
+        const planName = addons.length > 0
+          ? `${basePlan} + ${addons.join(' + ')}`
+          : basePlan;
 
         // Update billing with real license data
         setBilling(prev => ({
           ...prev,
           plan: planName,
           tier: licenseData?.tier || null,
-          hasAgencyAddon,
+          ownedLicenses: ownedLicenses,
+          features: features,
           hasUnlimitedCredits: hasUnlimitedCreds,
           creditsTotal: credits.total || 0,
           creditsUsed: credits.used || 0,
