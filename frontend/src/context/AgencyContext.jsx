@@ -15,16 +15,33 @@ export function useAgency() {
 }
 
 export function AgencyProvider({ children }) {
-  const { hasAgencyFeatures, isAgency, isElite, loading: licenseLoading, license } = useLicense();
+  const licenseContext = useLicense();
+  const {
+    hasAgencyFeatures,
+    isAgency,
+    isElite,
+    loading: licenseLoading,
+    license,
+    features
+  } = licenseContext;
+
   const [clients, setClients] = useState([]);
   const [selectedClient, setSelectedClient] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
   // Use license context to determine if user has agency license
-  const hasAgencyLicense = hasAgencyFeatures || isAgency || isElite;
+  // Check both the computed properties AND the raw features object
+  const hasAgencyLicense = hasAgencyFeatures ||
+                           isAgency ||
+                           isElite ||
+                           license?.features?.agency_features === true ||
+                           license?.features?.agency_license === true ||
+                           license?.license?.tier === 'agency_license' ||
+                           license?.license?.tier === 'elite_bundle';
 
   // Debug logging for production troubleshooting
+  console.log('🔍 AgencyContext Full License Context:', licenseContext);
   console.log('🔍 AgencyContext License Check:', {
     hasAgencyFeatures,
     isAgency,
@@ -32,6 +49,8 @@ export function AgencyProvider({ children }) {
     hasAgencyLicense,
     licenseLoading,
     tier: license?.license?.tier,
+    rawAgencyFeatures: license?.features?.agency_features,
+    rawAgencyLicense: license?.features?.agency_license,
     features: license?.features,
     fullLicense: license
   });
