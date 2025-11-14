@@ -34,6 +34,12 @@ export function LicenseProvider({ children }) {
       });
 
       if (data.success) {
+        console.log('🔍 LicenseContext: API Response:', {
+          tier: data.license?.tier,
+          features: data.features,
+          licenses: data.licenses,
+          fullData: data
+        });
         setLicense(data);
       } else {
         setLicense(null);

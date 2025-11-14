@@ -24,6 +24,18 @@ export function AgencyProvider({ children }) {
   // Use license context to determine if user has agency license
   const hasAgencyLicense = hasAgencyFeatures || isAgency || isElite;
 
+  // Debug logging for production troubleshooting
+  console.log('🔍 AgencyContext License Check:', {
+    hasAgencyFeatures,
+    isAgency,
+    isElite,
+    hasAgencyLicense,
+    licenseLoading,
+    tier: license?.license?.tier,
+    features: license?.features,
+    fullLicense: license
+  });
+
   const agencyLicense = hasAgencyLicense ? {
     isActive: true,
     tier: isElite ? 'elite_bundle' : 'agency_license'
