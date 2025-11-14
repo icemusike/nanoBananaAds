@@ -7,6 +7,8 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+
 const LicenseContext = createContext(null);
 
 export function LicenseProvider({ children }) {
@@ -27,7 +29,7 @@ export function LicenseProvider({ children }) {
         return;
       }
 
-      const { data } = await axios.get('/api/license/me', {
+      const { data } = await axios.get(`${API_URL}/api/license/me`, {
         headers: {
           Authorization: `Bearer ${token}`
         }
@@ -95,7 +97,7 @@ export function LicenseProvider({ children }) {
       const token = localStorage.getItem('token');
       if (!token) return null;
 
-      const { data } = await axios.get('/api/license/credits', {
+      const { data } = await axios.get(`${API_URL}/api/license/credits`, {
         headers: {
           Authorization: `Bearer ${token}`
         }
@@ -114,7 +116,7 @@ export function LicenseProvider({ children }) {
       const token = localStorage.getItem('token');
       if (!token) throw new Error('Not authenticated');
 
-      const { data } = await axios.post('/api/license/consume-credits', {
+      const { data } = await axios.post(`${API_URL}/api/license/consume-credits`, {
         actionType,
         metadata
       }, {
@@ -143,7 +145,7 @@ export function LicenseProvider({ children }) {
       const token = localStorage.getItem('token');
       if (!token) return false;
 
-      const { data } = await axios.post('/api/license/check-feature', {
+      const { data } = await axios.post(`${API_URL}/api/license/check-feature`, {
         feature: featureName
       }, {
         headers: {
@@ -164,7 +166,7 @@ export function LicenseProvider({ children }) {
       const token = localStorage.getItem('token');
       if (!token) return null;
 
-      const { data } = await axios.get('/api/license/stats', {
+      const { data } = await axios.get(`${API_URL}/api/license/stats`, {
         headers: {
           Authorization: `Bearer ${token}`
         }
