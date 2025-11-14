@@ -5,7 +5,7 @@ import { useAgency } from '../../context/AgencyContext';
 import axios from 'axios';
 
 export default function AgencyDashboard() {
-  const { hasAgencyLicense, clients, fetchClients } = useAgency();
+  const { hasAgencyLicense, clients, fetchClients, loading: licenseLoading } = useAgency();
   const [stats, setStats] = useState({
     totalClients: 0,
     activeClients: 0,
@@ -54,6 +54,19 @@ export default function AgencyDashboard() {
     }
   }, [clients]);
 
+  // Show loading state while license is being checked
+  if (licenseLoading) {
+    return (
+      <div className="container mx-auto px-4 py-12">
+        <div className="max-w-2xl mx-auto text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Checking license...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Only show upgrade modal after license has loaded and user doesn't have access
   if (!hasAgencyLicense) {
     return (
       <div className="container mx-auto px-4 py-12">

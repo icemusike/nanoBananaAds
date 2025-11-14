@@ -44,7 +44,6 @@ export default function Settings() {
     creditsUsed: 0,
     monthlyCreditsLimit: 1000,
     billingCycle: 'monthly',
-    nextBillingDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
     plan: 'Free',
     tier: null, // Raw tier value (starter, pro_unlimited, elite_bundle)
     hasAgencyAddon: false,
@@ -228,8 +227,7 @@ export default function Settings() {
           creditsTotal: credits.total || 0,
           creditsUsed: credits.used || 0,
           creditsRemaining: credits.remaining !== undefined ? credits.remaining : 0,
-          monthlyCreditsLimit: credits.total || 0,
-          nextBillingDate: credits.resetDate ? new Date(credits.resetDate) : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+          monthlyCreditsLimit: credits.total || 0
         }));
       }
     } catch (error) {

@@ -15,7 +15,7 @@ export function useAgency() {
 }
 
 export function AgencyProvider({ children }) {
-  const { hasAgencyFeatures, isAgency, isElite, loading: licenseLoading } = useLicense();
+  const { hasAgencyFeatures, isAgency, isElite, loading: licenseLoading, license } = useLicense();
   const [clients, setClients] = useState([]);
   const [selectedClient, setSelectedClient] = useState(null);
   const [loading, setLoading] = useState(false);
