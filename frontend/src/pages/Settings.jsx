@@ -700,36 +700,190 @@ export default function Settings() {
           {/* Billing & Credits Tab */}
           {activeTab === 'billing' && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Current Plan */}
+              {/* License & Upgrade Progress */}
+              <div className="bg-card border border-border rounded-lg p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center gap-2">
+                    <ShieldCheck className="w-6 h-6 text-primary" />
+                    <h2 className="text-xl font-bold">Your Licenses</h2>
+                  </div>
+                  {billing.tier !== 'elite_bundle' && (
+                    <button
+                      onClick={() => setShowPricingModal(true)}
+                      className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-primary to-accent text-white rounded-lg hover:opacity-90 transition-all shadow-lg hover:shadow-xl"
+                    >
+                      <Zap className="w-4 h-4" />
+                      Upgrade Now
+                    </button>
+                  )}
+                </div>
+
+                <div className="space-y-6">
+                  {/* License Badges */}
+                  <div>
+                    <h3 className="text-sm font-semibold text-foreground/70 mb-3">Active Licenses</h3>
+                    <div className="grid grid-cols-2 gap-3">
+                      {/* Frontend License */}
+                      <div className={`p-3 rounded-lg border-2 transition-all ${
+                        billing.ownedLicenses?.includes('frontend')
+                          ? 'border-primary bg-primary/10'
+                          : 'border-border bg-muted/30 opacity-50'
+                      }`}>
+                        <div className="flex items-center gap-2 mb-1">
+                          {billing.ownedLicenses?.includes('frontend') ? (
+                            <Check className="w-4 h-4 text-primary" />
+                          ) : (
+                            <X className="w-4 h-4 text-muted-foreground" />
+                          )}
+                          <span className="text-xs font-bold text-foreground">Frontend</span>
+                        </div>
+                        <p className="text-xs text-foreground/60">500 credits/mo</p>
+                      </div>
+
+                      {/* Pro License */}
+                      <div className={`p-3 rounded-lg border-2 transition-all ${
+                        billing.ownedLicenses?.includes('pro_license')
+                          ? 'border-accent bg-accent/10'
+                          : 'border-border bg-muted/30 opacity-50'
+                      }`}>
+                        <div className="flex items-center gap-2 mb-1">
+                          {billing.ownedLicenses?.includes('pro_license') ? (
+                            <Check className="w-4 h-4 text-accent" />
+                          ) : (
+                            <X className="w-4 h-4 text-muted-foreground" />
+                          )}
+                          <span className="text-xs font-bold text-foreground">Pro</span>
+                        </div>
+                        <p className="text-xs text-foreground/60">Unlimited credits</p>
+                      </div>
+
+                      {/* Templates License */}
+                      <div className={`p-3 rounded-lg border-2 transition-all ${
+                        billing.ownedLicenses?.includes('templates_license')
+                          ? 'border-secondary bg-secondary/10'
+                          : 'border-border bg-muted/30 opacity-50'
+                      }`}>
+                        <div className="flex items-center gap-2 mb-1">
+                          {billing.ownedLicenses?.includes('templates_license') ? (
+                            <Check className="w-4 h-4 text-secondary" />
+                          ) : (
+                            <X className="w-4 h-4 text-muted-foreground" />
+                          )}
+                          <span className="text-xs font-bold text-foreground">Templates</span>
+                        </div>
+                        <p className="text-xs text-foreground/60">Template library</p>
+                      </div>
+
+                      {/* Agency License */}
+                      <div className={`p-3 rounded-lg border-2 transition-all ${
+                        billing.ownedLicenses?.includes('agency_license')
+                          ? 'border-primary bg-primary/10'
+                          : 'border-border bg-muted/30 opacity-50'
+                      }`}>
+                        <div className="flex items-center gap-2 mb-1">
+                          {billing.ownedLicenses?.includes('agency_license') ? (
+                            <Check className="w-4 h-4 text-primary" />
+                          ) : (
+                            <X className="w-4 h-4 text-muted-foreground" />
+                          )}
+                          <span className="text-xs font-bold text-foreground">Agency</span>
+                        </div>
+                        <p className="text-xs text-foreground/60">Client management</p>
+                      </div>
+
+                      {/* Reseller License */}
+                      <div className={`p-3 rounded-lg border-2 transition-all ${
+                        billing.ownedLicenses?.includes('reseller_license')
+                          ? 'border-accent bg-accent/10'
+                          : 'border-border bg-muted/30 opacity-50'
+                      }`}>
+                        <div className="flex items-center gap-2 mb-1">
+                          {billing.ownedLicenses?.includes('reseller_license') ? (
+                            <Check className="w-4 h-4 text-accent" />
+                          ) : (
+                            <X className="w-4 h-4 text-muted-foreground" />
+                          )}
+                          <span className="text-xs font-bold text-foreground">Reseller</span>
+                        </div>
+                        <p className="text-xs text-foreground/60">White-label</p>
+                      </div>
+
+                      {/* Elite Bundle */}
+                      <div className={`p-3 rounded-lg border-2 transition-all ${
+                        billing.tier === 'elite_bundle'
+                          ? 'border-accent bg-gradient-to-br from-primary/20 to-accent/20'
+                          : 'border-border bg-muted/30 opacity-50'
+                      }`}>
+                        <div className="flex items-center gap-2 mb-1">
+                          {billing.tier === 'elite_bundle' ? (
+                            <Check className="w-4 h-4 text-accent" />
+                          ) : (
+                            <X className="w-4 h-4 text-muted-foreground" />
+                          )}
+                          <span className="text-xs font-bold text-foreground">Elite Bundle</span>
+                        </div>
+                        <p className="text-xs text-foreground/60">All features</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Upgrade Progress */}
+                  {billing.tier !== 'elite_bundle' && (
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <h3 className="text-sm font-semibold text-foreground/70">Upgrade Progress</h3>
+                        <span className="text-xs font-bold text-primary">
+                          {(() => {
+                            const total = 6; // Frontend, Pro, Templates, Agency, Reseller, Elite
+                            const owned = (billing.ownedLicenses || []).length;
+                            return Math.round((owned / total) * 100);
+                          })()}% Unlocked
+                        </span>
+                      </div>
+                      <div className="w-full h-3 bg-muted rounded-full overflow-hidden mb-2 border border-border">
+                        <div
+                          className="h-full bg-gradient-to-r from-primary via-accent to-secondary transition-all duration-700"
+                          style={{
+                            width: `${(() => {
+                              const total = 6;
+                              const owned = (billing.ownedLicenses || []).length;
+                              return Math.round((owned / total) * 100);
+                            })()}%`
+                          }}
+                        ></div>
+                      </div>
+                      <p className="text-xs text-foreground/60">
+                        Unlock all features to maximize your ad creation potential!
+                      </p>
+                    </div>
+                  )}
+
+                  {billing.tier === 'elite_bundle' && (
+                    <div className="p-4 bg-gradient-to-r from-primary/10 to-accent/10 border-2 border-primary/30 rounded-lg">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Check className="w-5 h-5 text-accent" />
+                        <span className="font-bold text-accent">Elite Bundle Active</span>
+                      </div>
+                      <p className="text-xs text-foreground/70">
+                        You have unlocked all features! Enjoy unlimited access to everything AdGenius AI has to offer.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Current Plan Summary (moved from above) */}
               <div className="bg-card border border-border rounded-lg p-6">
                 <div className="flex items-center gap-2 mb-6">
                   <CreditCard className="w-6 h-6 text-primary" />
-                  <h2 className="text-xl font-bold">Current Plan</h2>
+                  <h2 className="text-xl font-bold">Plan Summary</h2>
                 </div>
 
                 <div className="space-y-6">
                   <div className="bg-gradient-to-r from-primary/10 to-accent/10 border border-primary/30 rounded-lg p-6">
-                    <div className="flex items-center justify-between mb-3">
-                      <div>
-                        <span className="text-sm text-foreground/70 block mb-1">Active Plan</span>
-                        <span className="text-2xl font-bold text-primary">{billing.plan}</span>
-                      </div>
-                      {/* Only show upgrade button if not at max tier */}
-                      {billing.tier !== 'elite_bundle' && (
-                        <button
-                          onClick={() => setShowPricingModal(true)}
-                          className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
-                        >
-                          <Zap className="w-4 h-4" />
-                          Upgrade
-                        </button>
-                      )}
-                      {billing.tier === 'elite_bundle' && (
-                        <span className="px-4 py-2 bg-accent/20 text-accent rounded-lg font-semibold text-sm">
-                          <Check className="w-4 h-4 inline mr-1" />
-                          Max Plan
-                        </span>
-                      )}
+                    <div className="mb-3">
+                      <span className="text-sm text-foreground/70 block mb-1">Current Plan</span>
+                      <span className="text-2xl font-bold text-primary">{billing.plan}</span>
                     </div>
                   </div>
 
