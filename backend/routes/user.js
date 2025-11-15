@@ -104,18 +104,18 @@ router.put('/settings', async (req, res) => {
     // Build update data
     const updateData = {};
 
-    // SECURITY: Prevent users from saving admin's API keys to their account
-    // If they try to save admin keys, treat as empty (they'll use admin keys via fallback)
+    // SECURITY: User info updates
     if (name !== undefined) updateData.name = name;
     if (email !== undefined) updateData.email = email;
     if (company !== undefined) updateData.company = company;
 
-    // Only save user's custom API keys, not admin keys
+    // Only save user's custom API keys
+    // Empty strings are saved as null (users will use admin default keys via backend fallback)
     if (geminiApiKey !== undefined) {
-      updateData.geminiApiKey = (geminiApiKey === ADMIN_GEMINI_KEY || geminiApiKey === '') ? null : geminiApiKey;
+      updateData.geminiApiKey = geminiApiKey === '' ? null : geminiApiKey;
     }
     if (openaiApiKey !== undefined) {
-      updateData.openaiApiKey = (openaiApiKey === ADMIN_OPENAI_KEY || openaiApiKey === '') ? null : openaiApiKey;
+      updateData.openaiApiKey = openaiApiKey === '' ? null : openaiApiKey;
     }
     if (preferredImageModel !== undefined) updateData.preferredImageModel = preferredImageModel;
     if (imageQuality !== undefined) updateData.imageQuality = imageQuality;
