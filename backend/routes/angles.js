@@ -450,46 +450,59 @@ router.delete('/:id', async (req, res) => {
 
 /**
  * GET /api/angles/stats/summary
- * Get statistics about angles
+ * Get statistics about angles for the current user
  */
 router.get('/stats/summary', async (req, res) => {
   try {
-    const totalAngles = await prisma.angle.count();
+    // Filter all queries by current user
+    const totalAngles = await prisma.angle.count({
+      where: {
+        userId: req.userId
+      }
+    });
 
     const now = new Date();
     const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
     const thisMonthAngles = await prisma.angle.count({
       where: {
+        userId: req.userId,
         createdAt: {
           gte: firstDayOfMonth
         }
       }
     });
 
-    // Get unique emotions
+    // Get unique emotions for current user
     const emotions = await prisma.angle.findMany({
+      where: {
+        userId: req.userId
+      },
       select: {
         targetEmotion: true
       },
       distinct: ['targetEmotion']
     });
 
-    // Get unique industries
+    // Get unique industries for current user
     const industries = await prisma.angle.findMany({
-      select: {
-        industry: true
-      },
-      distinct: ['industry'],
       where: {
+        userId: req.userId,
         industry: {
           not: null
         }
-      }
+      },
+      select: {
+        industry: true
+      },
+      distinct: ['industry']
     });
 
-    // Most used angles
+    // Most used angles by current user
     const mostUsed = await prisma.angle.findMany({
+      where: {
+        userId: req.userId
+      },
       orderBy: {
         usageCount: 'desc'
       },
@@ -505,9 +518,10 @@ router.get('/stats/summary', async (req, res) => {
       }
     });
 
-    // Top rated angles
+    // Top rated angles by current user
     const topRated = await prisma.angle.findMany({
       where: {
+        userId: req.userId,
         performanceRating: {
           not: null
         }
@@ -525,9 +539,12 @@ router.get('/stats/summary', async (req, res) => {
       }
     });
 
-    // Emotion distribution
+    // Emotion distribution for current user
     const emotionStats = await prisma.angle.groupBy({
       by: ['targetEmotion'],
+      where: {
+        userId: req.userId
+      },
       _count: {
         targetEmotion: true
       }

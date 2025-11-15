@@ -446,7 +446,7 @@ export default function AnglesGenerator() {
                         <button
                           onClick={() => {
                             // Navigate to Create Ad with angle context
-                            navigate('/', {
+                            navigate('/app', {
                               state: {
                                 fromAngle: true,
                                 angleData: {

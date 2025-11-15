@@ -112,7 +112,7 @@ export default function AnglesLibrary() {
           }
         });
       } else if (type === 'ad') {
-        navigate('/', {
+        navigate('/app', {
           state: {
             fromAngle: true,
             angleData: angle
