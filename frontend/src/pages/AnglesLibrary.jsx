@@ -27,13 +27,16 @@ export default function AnglesLibrary() {
   const fetchAngles = async () => {
     try {
       setLoading(true);
+      const token = localStorage.getItem('token');
       const params = new URLSearchParams({
         industry: selectedIndustry,
         targetEmotion: selectedEmotion,
         sortBy
       });
 
-      const response = await axios.get(`${API_URL}/api/angles?${params}`);
+      const response = await axios.get(`${API_URL}/api/angles?${params}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       if (response.data.success) {
         setAngles(response.data.angles);
       }
@@ -46,7 +49,10 @@ export default function AnglesLibrary() {
 
   const fetchStats = async () => {
     try {
-      const response = await axios.get(`${API_URL}/api/angles/stats/summary`);
+      const token = localStorage.getItem('token');
+      const response = await axios.get(`${API_URL}/api/angles/stats/summary`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       if (response.data.success) {
         setStats(response.data.stats);
       }
@@ -59,7 +65,10 @@ export default function AnglesLibrary() {
     if (!confirm('Are you sure you want to delete this angle?')) return;
 
     try {
-      await axios.delete(`${API_URL}/api/angles/${id}`);
+      const token = localStorage.getItem('token');
+      await axios.delete(`${API_URL}/api/angles/${id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       setAngles(angles.filter(a => a.id !== id));
       fetchStats(); // Refresh stats
     } catch (error) {
@@ -70,8 +79,11 @@ export default function AnglesLibrary() {
 
   const handleRate = async (angleId) => {
     try {
+      const token = localStorage.getItem('token');
       await axios.put(`${API_URL}/api/angles/${angleId}`, {
         performanceRating: rating
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
       });
       setRatingAngle(null);
       setRating(0);
@@ -85,8 +97,11 @@ export default function AnglesLibrary() {
 
   const handleUseAngle = async (angle, type) => {
     try {
+      const token = localStorage.getItem('token');
       // Track usage
-      await axios.put(`${API_URL}/api/angles/${angle.id}/use`, { type });
+      await axios.put(`${API_URL}/api/angles/${angle.id}/use`, { type }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
 
       // Navigate with angle data
       if (type === 'prompt') {
