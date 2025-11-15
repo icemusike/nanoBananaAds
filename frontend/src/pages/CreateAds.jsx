@@ -90,6 +90,11 @@ export default function CreateAds() {
     if (location.state?.fromAngle && location.state?.angleData) {
       loadAngleData(location.state.angleData);
     }
+
+    // Check if navigated from prompt
+    if (location.state?.fromPrompt && location.state?.promptData) {
+      loadPromptData(location.state.promptData);
+    }
   }, []);
 
   // Reload brands when client selection changes
@@ -216,6 +221,15 @@ export default function CreateAds() {
         : prev.tone,
       imageDescription: imageDesc,
       valueProposition: angleData.whyItWorks || prev.valueProposition
+    }));
+  };
+
+  const loadPromptData = (promptData) => {
+    // Set the generated prompt as the image description
+    setFormData(prev => ({
+      ...prev,
+      imageDescription: promptData.generatedPrompt,
+      industry: promptData.industry || prev.industry
     }));
   };
 

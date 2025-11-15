@@ -15,8 +15,8 @@ export default function CreativePrompts() {
   const [aspectRatio, setAspectRatio] = useState('Square (1:1)');
   const [colorPalette, setColorPalette] = useState('Bold professional colors');
   const [loading, setLoading] = useState(false);
-  const [generatedPrompt, setGeneratedPrompt] = useState(null);
-  const [copied, setCopied] = useState(false);
+  const [generatedPrompts, setGeneratedPrompts] = useState([]);
+  const [copied, setCopied] = useState(null);
   const [brands, setBrands] = useState([]);
   const [selectedBrand, setSelectedBrand] = useState(null);
 
@@ -171,7 +171,12 @@ export default function CreativePrompts() {
       });
 
       if (response.data.success) {
-        setGeneratedPrompt(response.data);
+        // Add new prompt to the beginning of the array
+        setGeneratedPrompts(prev => [{
+          ...response.data,
+          id: response.data.savedPrompt?.id || Date.now(),
+          timestamp: new Date().toISOString()
+        }, ...prev]);
       }
     } catch (error) {
       console.error('Error generating prompt:', error);
@@ -181,12 +186,24 @@ export default function CreativePrompts() {
     }
   };
 
-  const copyToClipboard = () => {
-    if (generatedPrompt) {
-      navigator.clipboard.writeText(generatedPrompt.prompt.generatedPrompt);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    }
+  const copyToClipboard = (promptId, text) => {
+    navigator.clipboard.writeText(text);
+    setCopied(promptId);
+    setTimeout(() => setCopied(null), 2000);
+  };
+
+  const useInCreateAd = (promptText) => {
+    navigate('/app', {
+      state: {
+        fromPrompt: true,
+        promptData: {
+          generatedPrompt: promptText,
+          idea,
+          industry,
+          style
+        }
+      }
+    });
   };
 
   return (
@@ -350,17 +367,17 @@ export default function CreativePrompts() {
             <button
               onClick={handleGenerate}
               disabled={loading || !idea.trim()}
-              className="btn-primary w-full"
+              className="btn-primary w-full flex items-center justify-center gap-2"
             >
               {loading ? (
                 <>
                   <Loader2 className="w-5 h-5 animate-spin" />
-                  Generating Optimized Prompt...
+                  <span>Generating Optimized Prompt...</span>
                 </>
               ) : (
                 <>
                   <Wand2 className="w-5 h-5" />
-                  Generate Prompt
+                  <span>Generate Prompt</span>
                 </>
               )}
             </button>
@@ -368,75 +385,87 @@ export default function CreativePrompts() {
             {/* View Library Button */}
             <button
               onClick={() => navigate('/prompt-library')}
-              className="btn-secondary w-full mt-3"
+              className="btn-secondary w-full mt-3 flex items-center justify-center gap-2"
             >
               <BookOpen className="w-5 h-5" />
-              View Prompt Library
+              <span>View Prompt Library</span>
             </button>
           </div>
 
           {/* Output Section */}
-          <div className="card">
-            <h2 className="text-xl font-semibold mb-6">Generated Prompt</h2>
+          <div className="space-y-6">
+            <div className="card">
+              <h2 className="text-xl font-semibold mb-6">Generated Prompts</h2>
 
-            {!generatedPrompt && !loading && (
-              <div className="text-center py-16 text-gray-500">
-                <Sparkles className="w-16 h-16 mx-auto mb-4 opacity-20" />
-                <p>Your optimized prompt will appear here</p>
-              </div>
-            )}
+              {generatedPrompts.length === 0 && !loading && (
+                <div className="text-center py-16 text-gray-500">
+                  <Sparkles className="w-16 h-16 mx-auto mb-4 opacity-20" />
+                  <p>Your optimized prompts will appear here</p>
+                </div>
+              )}
 
-            {loading && (
-              <div className="py-8">
-                <BrainLoader message="Creating your optimized prompt..." />
-              </div>
-            )}
+              {loading && (
+                <div className="py-8">
+                  <BrainLoader message="Creating your optimized prompt..." />
+                </div>
+              )}
+            </div>
 
-            {generatedPrompt && !loading && (
-              <div className="space-y-6">
+            {/* Prompts List */}
+            {generatedPrompts.map((promptData, index) => (
+              <div key={promptData.id} className="card hover:border-primary-500/30 transition-all">
+                <div className="flex items-start justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-primary-400">
+                    Prompt #{generatedPrompts.length - index}
+                  </h3>
+                  <span className="text-xs text-gray-500">
+                    {new Date(promptData.timestamp).toLocaleTimeString()}
+                  </span>
+                </div>
+
                 {/* Metadata */}
-                <div className="grid grid-cols-2 gap-4 p-4 bg-dark-800 rounded-lg">
+                <div className="grid grid-cols-2 gap-4 p-4 bg-dark-800 rounded-lg mb-4">
                   <div>
                     <p className="text-xs text-gray-500 mb-1">Style</p>
                     <p className="text-sm font-medium text-primary-400">
-                      {generatedPrompt.prompt.style}
+                      {promptData.prompt.style}
                     </p>
                   </div>
                   <div>
                     <p className="text-xs text-gray-500 mb-1">Type</p>
                     <p className="text-sm font-medium text-accent-teal">
-                      {generatedPrompt.prompt.promptType}
+                      {promptData.prompt.promptType}
                     </p>
                   </div>
                   <div>
                     <p className="text-xs text-gray-500 mb-1">Aspect Ratio</p>
                     <p className="text-sm font-medium">
-                      {generatedPrompt.prompt.aspectRatio}
+                      {promptData.prompt.aspectRatio}
                     </p>
                   </div>
                   <div>
                     <p className="text-xs text-gray-500 mb-1">Colors</p>
                     <p className="text-sm font-medium">
-                      {generatedPrompt.prompt.suggestedColors}
+                      {promptData.prompt.suggestedColors}
                     </p>
                   </div>
                 </div>
 
                 {/* Generated Prompt */}
-                <div className="relative">
-                  <div className="p-4 bg-dark-800 rounded-lg border border-dark-700 max-h-96 overflow-y-auto">
+                <div className="relative mb-4">
+                  <div className="p-4 bg-dark-800 rounded-lg border border-dark-700 max-h-64 overflow-y-auto">
                     <p className="text-sm text-gray-300 leading-relaxed whitespace-pre-wrap">
-                      {generatedPrompt.prompt.generatedPrompt}
+                      {promptData.prompt.generatedPrompt}
                     </p>
                   </div>
 
                   {/* Copy Button */}
                   <button
-                    onClick={copyToClipboard}
+                    onClick={() => copyToClipboard(promptData.id, promptData.prompt.generatedPrompt)}
                     className="absolute top-2 right-2 p-2 bg-dark-900/80 hover:bg-dark-700 rounded-lg transition-colors"
                     title="Copy to clipboard"
                   >
-                    {copied ? (
+                    {copied === promptData.id ? (
                       <Check className="w-4 h-4 text-green-400" />
                     ) : (
                       <Copy className="w-4 h-4 text-gray-400" />
@@ -447,23 +476,23 @@ export default function CreativePrompts() {
                 {/* Actions */}
                 <div className="flex gap-3">
                   <button
-                    onClick={() => navigate('/create-ad')}
-                    className="btn-primary flex-1"
+                    onClick={() => useInCreateAd(promptData.prompt.generatedPrompt)}
+                    className="btn-primary flex-1 flex items-center justify-center gap-2"
                   >
-                    Use in Create Ad
+                    <Sparkles className="w-4 h-4" />
+                    <span>Use in Create Ad</span>
                   </button>
                   <button
-                    onClick={() => {
-                      setGeneratedPrompt(null);
-                      setIdea('');
-                    }}
-                    className="btn-secondary flex-1"
+                    onClick={handleGenerate}
+                    disabled={loading}
+                    className="btn-secondary flex-1 flex items-center justify-center gap-2"
                   >
-                    Generate Another
+                    <Wand2 className="w-4 h-4" />
+                    <span>Generate Another</span>
                   </button>
                 </div>
               </div>
-            )}
+            ))}
           </div>
         </div>
       </div>
