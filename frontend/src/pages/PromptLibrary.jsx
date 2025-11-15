@@ -23,12 +23,15 @@ export default function PromptLibrary() {
   const loadPrompts = async () => {
     try {
       setLoading(true);
+      const token = localStorage.getItem('token');
       const params = new URLSearchParams();
       if (searchQuery) params.append('search', searchQuery);
       if (filterIndustry !== 'all') params.append('industry', filterIndustry);
       if (filterStyle !== 'all') params.append('style', filterStyle);
 
-      const response = await axios.get(`${API_URL}/api/prompts?${params.toString()}`);
+      const response = await axios.get(`${API_URL}/api/prompts?${params.toString()}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       if (response.data.success) {
         setPrompts(response.data.prompts);
       }
@@ -41,7 +44,10 @@ export default function PromptLibrary() {
 
   const loadStats = async () => {
     try {
-      const response = await axios.get(`${API_URL}/api/prompts/stats/summary`);
+      const token = localStorage.getItem('token');
+      const response = await axios.get(`${API_URL}/api/prompts/stats/summary`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       if (response.data.success) {
         setStats(response.data.stats);
       }
@@ -52,7 +58,10 @@ export default function PromptLibrary() {
 
   const deletePrompt = async (id) => {
     try {
-      await axios.delete(`${API_URL}/api/prompts/${id}`);
+      const token = localStorage.getItem('token');
+      await axios.delete(`${API_URL}/api/prompts/${id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       loadPrompts();
       loadStats();
     } catch (error) {
@@ -229,24 +238,24 @@ export default function PromptLibrary() {
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => setSelectedPrompt(prompt)}
-                    className="flex-1 btn-secondary text-sm"
+                    className="flex-1 btn-secondary text-sm flex items-center justify-center gap-2"
                   >
                     <Eye className="w-4 h-4" />
-                    View Full
+                    <span>View Full</span>
                   </button>
                   <button
                     onClick={() => copyPrompt(prompt.id, prompt.generatedPrompt)}
-                    className="flex-1 btn-secondary text-sm"
+                    className="flex-1 btn-secondary text-sm flex items-center justify-center gap-2"
                   >
                     {copied === prompt.id ? (
                       <>
                         <Check className="w-4 h-4" />
-                        Copied!
+                        <span>Copied!</span>
                       </>
                     ) : (
                       <>
                         <Copy className="w-4 h-4" />
-                        Copy
+                        <span>Copy</span>
                       </>
                     )}
                   </button>
@@ -306,25 +315,25 @@ export default function PromptLibrary() {
             <div className="p-6 border-t border-dark-700 flex gap-3">
               <button
                 onClick={() => copyPrompt(selectedPrompt.id, selectedPrompt.generatedPrompt)}
-                className="btn-primary flex-1"
+                className="btn-primary flex-1 flex items-center justify-center gap-2"
               >
                 {copied === selectedPrompt.id ? (
                   <>
                     <Check className="w-5 h-5" />
-                    Copied to Clipboard
+                    <span>Copied to Clipboard</span>
                   </>
                 ) : (
                   <>
                     <Copy className="w-5 h-5" />
-                    Copy Prompt
+                    <span>Copy Prompt</span>
                   </>
                 )}
               </button>
               <button
                 onClick={() => setSelectedPrompt(null)}
-                className="btn-secondary flex-1"
+                className="btn-secondary flex-1 flex items-center justify-center gap-2"
               >
-                Close
+                <span>Close</span>
               </button>
             </div>
           </div>

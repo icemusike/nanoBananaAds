@@ -282,17 +282,23 @@ router.delete('/:id', async (req, res) => {
 
 /**
  * GET /api/prompts/stats/summary
- * Get statistics about prompts
+ * Get statistics about prompts for the current user
  */
 router.get('/stats/summary', async (req, res) => {
   try {
-    const totalPrompts = await prisma.prompt.count();
+    // Filter all queries by current user
+    const totalPrompts = await prisma.prompt.count({
+      where: {
+        userId: req.userId
+      }
+    });
 
     const now = new Date();
     const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
     const thisMonthPrompts = await prisma.prompt.count({
       where: {
+        userId: req.userId,
         createdAt: {
           gte: firstDayOfMonth
         }
@@ -300,30 +306,35 @@ router.get('/stats/summary', async (req, res) => {
     });
 
     const styles = await prisma.prompt.findMany({
-      select: {
-        style: true
-      },
-      distinct: ['style'],
       where: {
+        userId: req.userId,
         style: {
           not: null
         }
-      }
+      },
+      select: {
+        style: true
+      },
+      distinct: ['style']
     });
 
     const industries = await prisma.prompt.findMany({
-      select: {
-        industry: true
-      },
-      distinct: ['industry'],
       where: {
+        userId: req.userId,
         industry: {
           not: null
         }
-      }
+      },
+      select: {
+        industry: true
+      },
+      distinct: ['industry']
     });
 
     const mostUsed = await prisma.prompt.findMany({
+      where: {
+        userId: req.userId
+      },
       orderBy: {
         usageCount: 'desc'
       },

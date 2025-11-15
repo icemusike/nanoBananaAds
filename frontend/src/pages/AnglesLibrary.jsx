@@ -168,10 +168,10 @@ export default function AnglesLibrary() {
             </div>
             <button
               onClick={() => navigate('/angles-generator')}
-              className="btn-primary"
+              className="btn-primary flex items-center gap-2"
             >
               <Sparkles className="w-5 h-5" />
-              Discover New Angles
+              <span>Discover New Angles</span>
             </button>
           </div>
           <p className="text-gray-400">
@@ -263,10 +263,10 @@ export default function AnglesLibrary() {
             </p>
             <button
               onClick={() => navigate('/angles-generator')}
-              className="btn-primary"
+              className="btn-primary flex items-center gap-2 mx-auto"
             >
               <Sparkles className="w-5 h-5" />
-              Generate Angles
+              <span>Generate Angles</span>
             </button>
           </div>
         ) : (
@@ -372,27 +372,27 @@ export default function AnglesLibrary() {
                   <div className="flex gap-2">
                     <button
                       onClick={() => handleUseAngle(angle, 'prompt')}
-                      className="btn-primary flex-1 text-sm py-2"
+                      className="btn-primary flex-1 text-sm py-2 flex items-center justify-center gap-2"
                     >
                       <Sparkles className="w-4 h-4" />
-                      Generate Prompt
+                      <span>Generate Prompt</span>
                     </button>
                     <button
                       onClick={() => handleUseAngle(angle, 'ad')}
-                      className="btn-secondary flex-1 text-sm py-2"
+                      className="btn-secondary flex-1 text-sm py-2 flex items-center justify-center gap-2"
                     >
                       <Target className="w-4 h-4" />
-                      Create Ad
+                      <span>Create Ad</span>
                     </button>
                   </div>
 
                   {!angle.performanceRating && (
                     <button
                       onClick={() => setRatingAngle(angle.id)}
-                      className="btn-secondary w-full text-sm py-2"
+                      className="btn-secondary w-full text-sm py-2 flex items-center justify-center gap-2"
                     >
                       <Star className="w-4 h-4" />
-                      Rate Performance
+                      <span>Rate Performance</span>
                     </button>
                   )}
                 </div>
@@ -426,18 +426,18 @@ export default function AnglesLibrary() {
                         <button
                           onClick={() => handleRate(angle.id)}
                           disabled={rating === 0}
-                          className="btn-primary flex-1"
+                          className="btn-primary flex-1 flex items-center justify-center gap-2"
                         >
-                          Save Rating
+                          <span>Save Rating</span>
                         </button>
                         <button
                           onClick={() => {
                             setRatingAngle(null);
                             setRating(0);
                           }}
-                          className="btn-secondary flex-1"
+                          className="btn-secondary flex-1 flex items-center justify-center gap-2"
                         >
-                          Cancel
+                          <span>Cancel</span>
                         </button>
                       </div>
                     </div>
