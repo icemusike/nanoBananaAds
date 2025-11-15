@@ -95,8 +95,8 @@ export default function Settings() {
           company: user.company || ''
         });
 
-        const userTheme = user.theme || 'clean-slate';
-        const userThemeMode = user.themeMode || 'light';
+        const userTheme = user.theme || themeName; // Use current theme if not set
+        const userThemeMode = user.themeMode || mode; // Use current mode if not set
 
         setPreferences({
           defaultIndustry: user.defaultIndustry || '',
@@ -115,11 +115,11 @@ export default function Settings() {
           openai: ''
         });
 
-        // Apply theme from database if different from current
-        if (userTheme !== themeName) {
+        // Apply theme from database ONLY if explicitly set by user
+        if (user.theme && userTheme !== themeName) {
           changeTheme(userTheme);
         }
-        if (userThemeMode !== mode) {
+        if (user.themeMode && userThemeMode !== mode) {
           toggleMode();
         }
       }
