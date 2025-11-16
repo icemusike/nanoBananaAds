@@ -1157,140 +1157,196 @@ export default function Settings() {
 
             {/* Upgrade Options */}
             <div className="p-6">
-              <div className="grid md:grid-cols-3 gap-4">
-                {/* Starter Plan - Show only if user is on Free */}
-                {billing.tier === null && (
-                  <div className="bg-muted/50 border border-border rounded-xl p-6 relative">
+              {/* First Row - Individual Licenses */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                {/* Pro License */}
+                {!billing.ownedLicenses?.includes('pro_unlimited') && (
+                  <div className="bg-muted/50 border border-border rounded-xl p-6">
                     <div className="mb-4">
-                      <h3 className="text-2xl font-bold mb-1">Starter</h3>
-                      <p className="text-3xl font-bold text-primary">$27<span className="text-base font-normal text-muted-foreground">/mo</span></p>
+                      <h3 className="text-xl font-bold mb-1">Pro</h3>
+                      <p className="text-2xl font-bold text-primary">$97</p>
+                      <p className="text-xs text-muted-foreground">One-time</p>
                     </div>
-                    <ul className="space-y-2 mb-6">
+                    <ul className="space-y-2 mb-6 text-sm">
                       <li className="flex items-start gap-2">
-                        <Check className="w-5 h-5 text-accent shrink-0 mt-0.5" />
-                        <span className="text-sm">10,000 credits/month</span>
+                        <Check className="w-4 h-4 text-accent shrink-0 mt-0.5" />
+                        <span>Unlimited credits</span>
                       </li>
                       <li className="flex items-start gap-2">
-                        <Check className="w-5 h-5 text-accent shrink-0 mt-0.5" />
-                        <span className="text-sm">GPT-4o access</span>
+                        <Check className="w-4 h-4 text-accent shrink-0 mt-0.5" />
+                        <span>All AI models</span>
                       </li>
                       <li className="flex items-start gap-2">
-                        <Check className="w-5 h-5 text-accent shrink-0 mt-0.5" />
-                        <span className="text-sm">Gemini & DALL-E 3</span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <Check className="w-5 h-5 text-accent shrink-0 mt-0.5" />
-                        <span className="text-sm">All templates</span>
+                        <Check className="w-4 h-4 text-accent shrink-0 mt-0.5" />
+                        <span>Priority support</span>
                       </li>
                     </ul>
-                    <button className="w-full py-2 px-4 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-semibold">
-                      Upgrade to Starter
-                    </button>
-                  </div>
-                )}
-
-                {/* Pro Unlimited - Show if user is Free or Starter */}
-                {(billing.tier === null || billing.tier === 'starter') && (
-                  <div className="bg-gradient-to-br from-primary/10 to-accent/10 border-2 border-primary rounded-xl p-6 relative">
-                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-primary text-primary-foreground rounded-full text-xs font-semibold">
-                      POPULAR
-                    </div>
-                    <div className="mb-4">
-                      <h3 className="text-2xl font-bold mb-1">Pro Unlimited</h3>
-                      <p className="text-3xl font-bold text-primary">$47<span className="text-base font-normal text-muted-foreground">/mo</span></p>
-                    </div>
-                    <ul className="space-y-2 mb-6">
-                      <li className="flex items-start gap-2">
-                        <Check className="w-5 h-5 text-accent shrink-0 mt-0.5" />
-                        <span className="text-sm font-semibold">Unlimited credits</span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <Check className="w-5 h-5 text-accent shrink-0 mt-0.5" />
-                        <span className="text-sm">GPT-4o access</span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <Check className="w-5 h-5 text-accent shrink-0 mt-0.5" />
-                        <span className="text-sm">All AI models</span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <Check className="w-5 h-5 text-accent shrink-0 mt-0.5" />
-                        <span className="text-sm">Priority support</span>
-                      </li>
-                    </ul>
-                    <button className="w-full py-2 px-4 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-semibold">
+                    <a
+                      href="https://adgeniusai.io/pro-upgrade"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block w-full py-2 px-4 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-semibold text-center text-sm"
+                    >
                       Upgrade to Pro
-                    </button>
+                    </a>
                   </div>
                 )}
 
-                {/* Elite Bundle - Show if user is not Elite */}
-                {billing.tier !== 'elite_bundle' && (
-                  <div className="bg-muted/50 border border-border rounded-xl p-6 relative">
+                {/* Templates License */}
+                {!billing.ownedLicenses?.includes('complete_template_library') && (
+                  <div className="bg-muted/50 border border-border rounded-xl p-6">
                     <div className="mb-4">
-                      <h3 className="text-2xl font-bold mb-1">Elite Bundle</h3>
-                      <p className="text-3xl font-bold text-primary">$97<span className="text-base font-normal text-muted-foreground">/mo</span></p>
+                      <h3 className="text-xl font-bold mb-1">Templates</h3>
+                      <p className="text-2xl font-bold text-primary">$127</p>
+                      <p className="text-xs text-muted-foreground">One-time</p>
                     </div>
-                    <ul className="space-y-2 mb-6">
+                    <ul className="space-y-2 mb-6 text-sm">
                       <li className="flex items-start gap-2">
-                        <Check className="w-5 h-5 text-accent shrink-0 mt-0.5" />
-                        <span className="text-sm">Everything in Pro</span>
+                        <Check className="w-4 h-4 text-accent shrink-0 mt-0.5" />
+                        <span>500+ templates</span>
                       </li>
                       <li className="flex items-start gap-2">
-                        <Check className="w-5 h-5 text-accent shrink-0 mt-0.5" />
-                        <span className="text-sm">Complete Template Library</span>
+                        <Check className="w-4 h-4 text-accent shrink-0 mt-0.5" />
+                        <span>All industries</span>
                       </li>
                       <li className="flex items-start gap-2">
-                        <Check className="w-5 h-5 text-accent shrink-0 mt-0.5" />
-                        <span className="text-sm">Advanced analytics</span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <Check className="w-5 h-5 text-accent shrink-0 mt-0.5" />
-                        <span className="text-sm">White-label option</span>
+                        <Check className="w-4 h-4 text-accent shrink-0 mt-0.5" />
+                        <span>Regular updates</span>
                       </li>
                     </ul>
-                    <button className="w-full py-2 px-4 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-semibold">
-                      Upgrade to Elite
-                    </button>
+                    <a
+                      href="https://adgeniusai.io/template-upgrade"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block w-full py-2 px-4 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-semibold text-center text-sm"
+                    >
+                      Get Templates
+                    </a>
+                  </div>
+                )}
+
+                {/* Agency License */}
+                {!billing.ownedLicenses?.includes('agency_license') && (
+                  <div className="bg-muted/50 border border-border rounded-xl p-6">
+                    <div className="mb-4">
+                      <h3 className="text-xl font-bold mb-1">Agency</h3>
+                      <p className="text-2xl font-bold text-primary">$197</p>
+                      <p className="text-xs text-muted-foreground">One-time</p>
+                    </div>
+                    <ul className="space-y-2 mb-6 text-sm">
+                      <li className="flex items-start gap-2">
+                        <Check className="w-4 h-4 text-accent shrink-0 mt-0.5" />
+                        <span>Unlimited clients</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <Check className="w-4 h-4 text-accent shrink-0 mt-0.5" />
+                        <span>Client dashboards</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <Check className="w-4 h-4 text-accent shrink-0 mt-0.5" />
+                        <span>White-label</span>
+                      </li>
+                    </ul>
+                    <a
+                      href="https://adgeniusai.io/agency-upgrade"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block w-full py-2 px-4 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-semibold text-center text-sm"
+                    >
+                      Get Agency
+                    </a>
+                  </div>
+                )}
+
+                {/* Reseller License */}
+                {!billing.ownedLicenses?.includes('reseller_license') && (
+                  <div className="bg-muted/50 border border-border rounded-xl p-6">
+                    <div className="mb-4">
+                      <h3 className="text-xl font-bold mb-1">Reseller</h3>
+                      <p className="text-2xl font-bold text-primary">$297</p>
+                      <p className="text-xs text-muted-foreground">One-time</p>
+                    </div>
+                    <ul className="space-y-2 mb-6 text-sm">
+                      <li className="flex items-start gap-2">
+                        <Check className="w-4 h-4 text-accent shrink-0 mt-0.5" />
+                        <span>Resell rights</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <Check className="w-4 h-4 text-accent shrink-0 mt-0.5" />
+                        <span>Keep 100% profit</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <Check className="w-4 h-4 text-accent shrink-0 mt-0.5" />
+                        <span>Full branding</span>
+                      </li>
+                    </ul>
+                    <a
+                      href="https://adgeniusai.io/reseller-upgrade"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block w-full py-2 px-4 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-semibold text-center text-sm"
+                    >
+                      Get Reseller
+                    </a>
                   </div>
                 )}
               </div>
 
-              {/* Agency Addon */}
-              {!billing.hasAgencyAddon && (
-                <div className="mt-6 bg-accent/10 border border-accent/30 rounded-xl p-6">
-                  <div className="flex items-start justify-between gap-4">
+              {/* Second Row - Elite Bundle */}
+              {billing.tier !== 'elite_bundle' && (
+                <div className="bg-gradient-to-br from-primary/10 to-accent/10 border-2 border-primary rounded-xl p-8 relative">
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 bg-gradient-to-r from-primary to-accent text-primary-foreground rounded-full text-sm font-bold shadow-lg">
+                    ⭐ MOST POPULAR BUNDLE DEAL
+                  </div>
+                  <div className="flex flex-col md:flex-row items-center justify-between gap-6">
                     <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Building2 className="w-6 h-6 text-accent" />
-                        <h3 className="text-xl font-bold">Agency License Add-on</h3>
-                      </div>
-                      <p className="text-sm text-muted-foreground mb-4">
-                        Manage multiple clients, track projects, and collaborate with your team.
+                      <h3 className="text-3xl font-bold mb-2 bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+                        Elite Bundle
+                      </h3>
+                      <p className="text-muted-foreground mb-4">
+                        Get ALL licenses (Pro + Templates + Agency + Reseller) and save $224!
                       </p>
-                      <ul className="grid grid-cols-2 gap-2 text-sm">
-                        <li className="flex items-start gap-2">
-                          <Check className="w-4 h-4 text-accent shrink-0 mt-0.5" />
-                          <span>Unlimited clients</span>
-                        </li>
-                        <li className="flex items-start gap-2">
-                          <Check className="w-4 h-4 text-accent shrink-0 mt-0.5" />
-                          <span>Project management</span>
-                        </li>
-                        <li className="flex items-start gap-2">
-                          <Check className="w-4 h-4 text-accent shrink-0 mt-0.5" />
-                          <span>Client dashboards</span>
-                        </li>
-                        <li className="flex items-start gap-2">
-                          <Check className="w-4 h-4 text-accent shrink-0 mt-0.5" />
-                          <span>Brand isolation</span>
-                        </li>
-                      </ul>
+                      <div className="grid grid-cols-2 gap-3 text-sm mb-4">
+                        <div className="flex items-start gap-2">
+                          <Check className="w-5 h-5 text-accent shrink-0 mt-0.5" />
+                          <span>Everything in Pro</span>
+                        </div>
+                        <div className="flex items-start gap-2">
+                          <Check className="w-5 h-5 text-accent shrink-0 mt-0.5" />
+                          <span>Complete Template Library</span>
+                        </div>
+                        <div className="flex items-start gap-2">
+                          <Check className="w-5 h-5 text-accent shrink-0 mt-0.5" />
+                          <span>Agency License</span>
+                        </div>
+                        <div className="flex items-start gap-2">
+                          <Check className="w-5 h-5 text-accent shrink-0 mt-0.5" />
+                          <span>Reseller Rights</span>
+                        </div>
+                        <div className="flex items-start gap-2">
+                          <Check className="w-5 h-5 text-accent shrink-0 mt-0.5" />
+                          <span>Unlimited everything</span>
+                        </div>
+                        <div className="flex items-start gap-2">
+                          <Check className="w-5 h-5 text-accent shrink-0 mt-0.5" />
+                          <span>Lifetime access</span>
+                        </div>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        <span className="line-through">Regular Price: $621</span> • <span className="text-accent font-semibold">You Save: $224!</span>
+                      </p>
                     </div>
-                    <div className="text-right">
-                      <p className="text-2xl font-bold text-accent mb-2">+$67<span className="text-sm font-normal text-muted-foreground">/mo</span></p>
-                      <button className="py-2 px-6 bg-accent text-accent-foreground rounded-lg hover:bg-accent/90 transition-colors font-semibold whitespace-nowrap">
-                        Add Agency
-                      </button>
+                    <div className="text-center">
+                      <p className="text-5xl font-bold text-primary mb-2">$397</p>
+                      <p className="text-sm text-muted-foreground mb-4">One-time payment</p>
+                      <a
+                        href="https://adgeniusai.io/special-bundle"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-block py-3 px-8 bg-gradient-to-r from-primary to-accent text-primary-foreground rounded-lg hover:opacity-90 transition-opacity font-bold text-lg shadow-lg"
+                      >
+                        Get Elite Bundle →
+                      </a>
                     </div>
                   </div>
                 </div>
