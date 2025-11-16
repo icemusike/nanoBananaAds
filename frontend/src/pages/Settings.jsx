@@ -1159,8 +1159,8 @@ export default function Settings() {
             <div className="p-6">
               {/* First Row - Individual Licenses */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                {/* Pro License - Check for both 'pro' and 'pro_unlimited' */}
-                {!(billing.ownedLicenses?.includes('pro') || billing.ownedLicenses?.includes('pro_unlimited')) && (
+                {/* Pro License - Check for official product ID */}
+                {!billing.ownedLicenses?.includes('pro_license') && (
                   <div className="bg-muted/50 border border-border rounded-xl p-6">
                     <div className="mb-4">
                       <h3 className="text-xl font-bold mb-1">Pro</h3>
@@ -1200,8 +1200,8 @@ export default function Settings() {
                   </div>
                 )}
 
-                {/* Templates License */}
-                {!(billing.ownedLicenses?.includes('templates') || billing.ownedLicenses?.includes('complete_template_library')) && (
+                {/* Templates License - Check for official product ID */}
+                {!billing.ownedLicenses?.includes('templates_license') && (
                   <div className="bg-muted/50 border border-border rounded-xl p-6">
                     <div className="mb-4">
                       <h3 className="text-xl font-bold mb-1">Templates</h3>
@@ -1241,8 +1241,8 @@ export default function Settings() {
                   </div>
                 )}
 
-                {/* Agency License */}
-                {!(billing.ownedLicenses?.includes('agency') || billing.ownedLicenses?.includes('agency_license')) && (
+                {/* Agency License - Check for official product ID */}
+                {!billing.ownedLicenses?.includes('agency_license') && (
                   <div className="bg-muted/50 border border-border rounded-xl p-6">
                     <div className="mb-4">
                       <h3 className="text-xl font-bold mb-1">Agency</h3>
@@ -1282,8 +1282,8 @@ export default function Settings() {
                   </div>
                 )}
 
-                {/* Reseller License */}
-                {!(billing.ownedLicenses?.includes('reseller') || billing.ownedLicenses?.includes('reseller_license')) && (
+                {/* Reseller License - Check for official product ID */}
+                {!billing.ownedLicenses?.includes('reseller_license') && (
                   <div className="bg-muted/50 border border-border rounded-xl p-6">
                     <div className="mb-4">
                       <h3 className="text-xl font-bold mb-1">Reseller</h3>
@@ -1328,10 +1328,10 @@ export default function Settings() {
               {!(
                 billing.tier === 'elite_bundle' ||
                 (
-                  (billing.ownedLicenses?.includes('pro') || billing.ownedLicenses?.includes('pro_unlimited')) &&
-                  (billing.ownedLicenses?.includes('templates') || billing.ownedLicenses?.includes('complete_template_library')) &&
-                  (billing.ownedLicenses?.includes('agency') || billing.ownedLicenses?.includes('agency_license')) &&
-                  (billing.ownedLicenses?.includes('reseller') || billing.ownedLicenses?.includes('reseller_license'))
+                  billing.ownedLicenses?.includes('pro_license') &&
+                  billing.ownedLicenses?.includes('templates_license') &&
+                  billing.ownedLicenses?.includes('agency_license') &&
+                  billing.ownedLicenses?.includes('reseller_license')
                 )
               ) && (
                 <div className="bg-gradient-to-br from-primary/10 to-accent/10 border-2 border-primary rounded-xl p-8 relative">
