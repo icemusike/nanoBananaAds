@@ -1159,15 +1159,15 @@ export default function Settings() {
             <div className="p-6">
               {/* First Row - Individual Licenses */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                {/* Pro License */}
-                {!billing.ownedLicenses?.includes('pro_unlimited') && (
+                {/* Pro License - Check for both 'pro' and 'pro_unlimited' */}
+                {!(billing.ownedLicenses?.includes('pro') || billing.ownedLicenses?.includes('pro_unlimited')) && (
                   <div className="bg-muted/50 border border-border rounded-xl p-6">
                     <div className="mb-4">
                       <h3 className="text-xl font-bold mb-1">Pro</h3>
                       <p className="text-2xl font-bold text-primary">$97</p>
                       <p className="text-xs text-muted-foreground">One-time</p>
                     </div>
-                    <ul className="space-y-2 mb-6 text-sm">
+                    <ul className="space-y-2 mb-4 text-sm">
                       <li className="flex items-start gap-2">
                         <Check className="w-4 h-4 text-accent shrink-0 mt-0.5" />
                         <span>Unlimited credits</span>
@@ -1185,6 +1185,14 @@ export default function Settings() {
                       href="https://adgeniusai.io/pro-upgrade"
                       target="_blank"
                       rel="noopener noreferrer"
+                      className="text-xs text-primary hover:underline mb-3 block"
+                    >
+                      (See all features...)
+                    </a>
+                    <a
+                      href="https://adgeniusai.io/pro-upgrade"
+                      target="_blank"
+                      rel="noopener noreferrer"
                       className="block w-full py-2 px-4 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-semibold text-center text-sm"
                     >
                       Upgrade to Pro
@@ -1193,14 +1201,14 @@ export default function Settings() {
                 )}
 
                 {/* Templates License */}
-                {!billing.ownedLicenses?.includes('complete_template_library') && (
+                {!(billing.ownedLicenses?.includes('templates') || billing.ownedLicenses?.includes('complete_template_library')) && (
                   <div className="bg-muted/50 border border-border rounded-xl p-6">
                     <div className="mb-4">
                       <h3 className="text-xl font-bold mb-1">Templates</h3>
                       <p className="text-2xl font-bold text-primary">$127</p>
                       <p className="text-xs text-muted-foreground">One-time</p>
                     </div>
-                    <ul className="space-y-2 mb-6 text-sm">
+                    <ul className="space-y-2 mb-4 text-sm">
                       <li className="flex items-start gap-2">
                         <Check className="w-4 h-4 text-accent shrink-0 mt-0.5" />
                         <span>500+ templates</span>
@@ -1218,6 +1226,14 @@ export default function Settings() {
                       href="https://adgeniusai.io/template-upgrade"
                       target="_blank"
                       rel="noopener noreferrer"
+                      className="text-xs text-primary hover:underline mb-3 block"
+                    >
+                      (See all features...)
+                    </a>
+                    <a
+                      href="https://adgeniusai.io/template-upgrade"
+                      target="_blank"
+                      rel="noopener noreferrer"
                       className="block w-full py-2 px-4 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-semibold text-center text-sm"
                     >
                       Get Templates
@@ -1226,14 +1242,14 @@ export default function Settings() {
                 )}
 
                 {/* Agency License */}
-                {!billing.ownedLicenses?.includes('agency_license') && (
+                {!(billing.ownedLicenses?.includes('agency') || billing.ownedLicenses?.includes('agency_license')) && (
                   <div className="bg-muted/50 border border-border rounded-xl p-6">
                     <div className="mb-4">
                       <h3 className="text-xl font-bold mb-1">Agency</h3>
                       <p className="text-2xl font-bold text-primary">$197</p>
                       <p className="text-xs text-muted-foreground">One-time</p>
                     </div>
-                    <ul className="space-y-2 mb-6 text-sm">
+                    <ul className="space-y-2 mb-4 text-sm">
                       <li className="flex items-start gap-2">
                         <Check className="w-4 h-4 text-accent shrink-0 mt-0.5" />
                         <span>Unlimited clients</span>
@@ -1251,6 +1267,14 @@ export default function Settings() {
                       href="https://adgeniusai.io/agency-upgrade"
                       target="_blank"
                       rel="noopener noreferrer"
+                      className="text-xs text-primary hover:underline mb-3 block"
+                    >
+                      (See all features...)
+                    </a>
+                    <a
+                      href="https://adgeniusai.io/agency-upgrade"
+                      target="_blank"
+                      rel="noopener noreferrer"
                       className="block w-full py-2 px-4 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-semibold text-center text-sm"
                     >
                       Get Agency
@@ -1259,14 +1283,14 @@ export default function Settings() {
                 )}
 
                 {/* Reseller License */}
-                {!billing.ownedLicenses?.includes('reseller_license') && (
+                {!(billing.ownedLicenses?.includes('reseller') || billing.ownedLicenses?.includes('reseller_license')) && (
                   <div className="bg-muted/50 border border-border rounded-xl p-6">
                     <div className="mb-4">
                       <h3 className="text-xl font-bold mb-1">Reseller</h3>
                       <p className="text-2xl font-bold text-primary">$297</p>
                       <p className="text-xs text-muted-foreground">One-time</p>
                     </div>
-                    <ul className="space-y-2 mb-6 text-sm">
+                    <ul className="space-y-2 mb-4 text-sm">
                       <li className="flex items-start gap-2">
                         <Check className="w-4 h-4 text-accent shrink-0 mt-0.5" />
                         <span>Resell rights</span>
@@ -1284,6 +1308,14 @@ export default function Settings() {
                       href="https://adgeniusai.io/reseller-upgrade"
                       target="_blank"
                       rel="noopener noreferrer"
+                      className="text-xs text-primary hover:underline mb-3 block"
+                    >
+                      (See all features...)
+                    </a>
+                    <a
+                      href="https://adgeniusai.io/reseller-upgrade"
+                      target="_blank"
+                      rel="noopener noreferrer"
                       className="block w-full py-2 px-4 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-semibold text-center text-sm"
                     >
                       Get Reseller
@@ -1292,8 +1324,16 @@ export default function Settings() {
                 )}
               </div>
 
-              {/* Second Row - Elite Bundle */}
-              {billing.tier !== 'elite_bundle' && (
+              {/* Second Row - Elite Bundle - Only show if user doesn't have ALL licenses */}
+              {!(
+                billing.tier === 'elite_bundle' ||
+                (
+                  (billing.ownedLicenses?.includes('pro') || billing.ownedLicenses?.includes('pro_unlimited')) &&
+                  (billing.ownedLicenses?.includes('templates') || billing.ownedLicenses?.includes('complete_template_library')) &&
+                  (billing.ownedLicenses?.includes('agency') || billing.ownedLicenses?.includes('agency_license')) &&
+                  (billing.ownedLicenses?.includes('reseller') || billing.ownedLicenses?.includes('reseller_license'))
+                )
+              ) && (
                 <div className="bg-gradient-to-br from-primary/10 to-accent/10 border-2 border-primary rounded-xl p-8 relative">
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 bg-gradient-to-r from-primary to-accent text-primary-foreground rounded-full text-sm font-bold shadow-lg">
                     ⭐ MOST POPULAR BUNDLE DEAL
