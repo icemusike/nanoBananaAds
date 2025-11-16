@@ -8,30 +8,27 @@ const prisma = new PrismaClient();
  * Verify JVZoo IPN authenticity using SHA-1 hash
  */
 export function verifyJVZooIPN(ipnData, secretKey) {
-  const {
-    ctransreceipt,
-    cproditem,
-    ccustcc,
-    ctransaffiliate,
-    cvendthru,
-    cverify
-  } = ipnData;
+  const { cverify, ...otherFields } = ipnData;
 
-  // Build verification string (JVZoo format)
-  // Formula: secretKey|receipt|product|country|affiliate|vendthru
-  const verificationString = [
-    secretKey,
-    ctransreceipt,
-    cproditem,
-    ccustcc,
-    ctransaffiliate || '',
-    cvendthru
-  ].join('|');
+  // JVZoo Verification Algorithm:
+  // 1. Take all POST parameters EXCEPT cverify
+  // 2. Sort field names alphabetically
+  // 3. Concatenate all values with "|" separator
+  // 4. Append secret key at the END
+  // 5. Calculate SHA1 hash
+  // 6. Take first 8 characters uppercase
+
+  // Sort field names alphabetically
+  const sortedKeys = Object.keys(otherFields).sort();
+
+  // Build verification string: value1|value2|...|valueN|secretKey
+  const values = sortedKeys.map(key => otherFields[key] || '');
+  const verificationString = values.join('|') + '|' + secretKey;
 
   // Calculate SHA-1 hash
   const fullHash = crypto
     .createHash('sha1')
-    .update(verificationString)
+    .update(verificationString, 'utf8')
     .digest('hex')
     .toUpperCase();
 
@@ -42,7 +39,8 @@ export function verifyJVZooIPN(ipnData, secretKey) {
   const isValid = calculatedHash === cverify.toUpperCase();
 
   console.log('IPN Verification:', {
-    verificationString,
+    sortedKeys,
+    verificationString: verificationString.substring(0, 100) + '...',
     fullHash,
     calculatedHash,
     providedHash: cverify.toUpperCase(),
