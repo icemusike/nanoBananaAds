@@ -9,35 +9,41 @@ const prisma = new PrismaClient();
  */
 export function verifyJVZooIPN(ipnData, secretKey) {
   const {
-    ctransaction,
+    ctransreceipt,
     cproditem,
     ccustcc,
     ctransaffiliate,
-    ctransamount,
+    cvendthru,
     cverify
   } = ipnData;
 
-  // Build verification string
+  // Build verification string (JVZoo format)
+  // Formula: secretKey|receipt|product|country|affiliate|vendthru
   const verificationString = [
     secretKey,
-    ctransaction,
+    ctransreceipt,
     cproditem,
     ccustcc,
     ctransaffiliate || '',
-    ctransamount
+    cvendthru
   ].join('|');
 
   // Calculate SHA-1 hash
-  const calculatedHash = crypto
+  const fullHash = crypto
     .createHash('sha1')
     .update(verificationString)
     .digest('hex')
     .toUpperCase();
 
+  // JVZoo uses only the FIRST 8 characters of the hash
+  const calculatedHash = fullHash.substring(0, 8);
+
   // Compare with provided hash
   const isValid = calculatedHash === cverify.toUpperCase();
 
   console.log('IPN Verification:', {
+    verificationString,
+    fullHash,
     calculatedHash,
     providedHash: cverify.toUpperCase(),
     isValid

@@ -132,28 +132,33 @@ router.post('/test-transaction', async (req, res) => {
   } = req.body;
 
   const transactionId = `TEST-${Date.now()}`;
+  const receiptId = `RCPT-${Date.now()}`;
   const secretKey = process.env.JVZOO_SECRET_KEY || 'test-secret-key';
 
-  // Create verification hash
+  // Create verification hash using JVZoo formula
+  // Formula: secretKey|receipt|product|country|affiliate|vendthru
   const crypto = await import('crypto');
   const verificationString = [
     secretKey,
-    transactionId,
+    receiptId,
     productId,
     'US',
-    '',
+    '0',
     amount
   ].join('|');
 
-  const cverify = crypto
+  const fullHash = crypto
     .createHash('sha1')
     .update(verificationString)
     .digest('hex')
     .toUpperCase();
 
+  // JVZoo uses only first 8 characters
+  const cverify = fullHash.substring(0, 8);
+
   const testIPN = {
-    ctransaction: transactionId,
-    ctransreceipt: `RCPT-${Date.now()}`,
+    ctransaction: transactionType,
+    ctransreceipt: receiptId,
     cproditem: productId,
     ctransaction_type: transactionType,
     ccustemail: email,
@@ -161,7 +166,7 @@ router.post('/test-transaction', async (req, res) => {
     ccustcc: 'US',
     ccuststate: 'CA',
     ctransamount: amount,
-    ctransaffiliate: '0.00',
+    ctransaffiliate: '0',
     caffitid: '',
     cvendthru: amount,
     cverify
