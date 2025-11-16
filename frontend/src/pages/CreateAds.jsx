@@ -369,7 +369,7 @@ export default function CreateAds() {
       const token = localStorage.getItem('token');
 
       // Backend will automatically use admin default keys if user has no custom keys
-      const response = await axios.post(`${API_URL}/api/regenerate-copy`, {
+      const response = await axios.post(`${API_URL}/api/generate/regenerate-copy`, {
         description: formData.description,
         targetAudience: formData.targetAudience,
         industry: formData.industry,

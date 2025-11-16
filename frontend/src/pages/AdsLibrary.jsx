@@ -171,7 +171,7 @@ export default function AdsLibrary() {
       }
 
       // Generate new copy using the regenerate-copy endpoint
-      const response = await axios.post(`${API_URL}/api/regenerate-copy`, {
+      const response = await axios.post(`${API_URL}/api/generate/regenerate-copy`, {
         description: ad.formData.description,
         targetAudience: ad.formData.targetAudience,
         industry: ad.formData.industry,
