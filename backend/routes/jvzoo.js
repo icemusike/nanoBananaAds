@@ -64,7 +64,7 @@ router.post('/ipn', async (req, res) => {
     console.log('✓ Transaction processed successfully');
 
     // Send welcome email for new sales
-    if (ipnData.ctransaction_type === 'SALE' && result.user && result.license) {
+    if (ipnData.ctransaction === 'SALE' && result.user && result.license) {
       try {
         await sendWelcomeEmail(result.user, result.license);
         console.log('✓ Welcome email sent');
@@ -160,7 +160,6 @@ router.post('/test-transaction', async (req, res) => {
     ctransaction: transactionType,
     ctransreceipt: receiptId,
     cproditem: productId,
-    ctransaction_type: transactionType,
     ccustemail: email,
     ccustname: name,
     ccustcc: 'US',

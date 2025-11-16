@@ -162,10 +162,9 @@ export async function createOrFindUser(ipnData) {
  */
 export async function processTransaction(ipnData) {
   const {
-    ctransaction,
-    ctransreceipt,
+    ctransaction,        // This is the transaction TYPE (SALE, RFND, etc.)
+    ctransreceipt,       // This is the transaction ID
     cproditem,
-    ctransaction_type,
     ccustemail,
     ccustname,
     ccustcc,
@@ -179,11 +178,11 @@ export async function processTransaction(ipnData) {
   try {
     // Check if already processed (idempotency)
     const existingTransaction = await prisma.jVZooTransaction.findUnique({
-      where: { jvzooTransactionId: ctransaction }
+      where: { jvzooTransactionId: ctransreceipt }
     });
 
     if (existingTransaction) {
-      console.log('Transaction already processed:', ctransaction);
+      console.log('Transaction already processed:', ctransreceipt);
       return { alreadyProcessed: true, transaction: existingTransaction };
     }
 
@@ -191,13 +190,13 @@ export async function processTransaction(ipnData) {
     const productId = mapProductId(cproditem);
 
     // Determine if recurring
-    const isRecurring = ctransaction_type === 'SALE' && productId.includes('recurring');
+    const isRecurring = ctransaction === 'SALE' && productId.includes('recurring');
 
     let user;
     let license;
 
     // Handle different transaction types
-    switch (ctransaction_type) {
+    switch (ctransaction) {
       case 'SALE':
         // Create/find user
         user = await createOrFindUser(ipnData);
@@ -205,10 +204,10 @@ export async function processTransaction(ipnData) {
         // Create license
         license = await createLicense({
           userId: user.id,
-          jvzooTransactionId: ctransaction,
+          jvzooTransactionId: ctransreceipt,
           jvzooReceiptId: ctransreceipt,
           jvzooProductId: cproditem,
-          transactionType: ctransaction_type,
+          transactionType: ctransaction,
           customerEmail: ccustemail,
           purchaseAmount: parseFloat(ctransamount),
           productId,
@@ -220,40 +219,54 @@ export async function processTransaction(ipnData) {
 
       case 'RFND':
         // Handle refund
-        license = await handleRefund(ctransaction);
-        console.log('Refund processed for transaction:', ctransaction);
+        license = await handleRefund(ctransreceipt);
+        console.log('Refund processed for transaction:', ctransreceipt);
         break;
 
       case 'CGBK':
         // Handle chargeback
-        license = await handleChargeback(ctransaction);
-        console.log('Chargeback processed for transaction:', ctransaction);
+        license = await handleChargeback(ctransreceipt);
+        console.log('Chargeback processed for transaction:', ctransreceipt);
         break;
 
       case 'INSTAL':
         // Handle recurring payment
         const nextBillingDate = new Date();
         nextBillingDate.setMonth(nextBillingDate.getMonth() + 1);
-        license = await handleRecurringPayment(ctransaction, nextBillingDate);
-        console.log('Recurring payment processed for transaction:', ctransaction);
+        license = await handleRecurringPayment(ctransreceipt, nextBillingDate);
+        console.log('Recurring payment processed for transaction:', ctransreceipt);
         break;
 
       case 'CANCEL-REBILL':
         // Handle subscription cancellation
-        license = await handleCancellation(ctransaction);
-        console.log('Subscription cancelled for transaction:', ctransaction);
+        license = await handleCancellation(ctransreceipt);
+        console.log('Subscription cancelled for transaction:', ctransreceipt);
         break;
 
       default:
-        console.warn('Unknown transaction type:', ctransaction_type);
+        console.warn('Unknown transaction type:', ctransaction);
+    }
+
+    // Parse vendorEarnings from cvendthru (handle both string and number formats)
+    let vendorEarnings = null;
+    if (cvendthru) {
+      if (typeof cvendthru === 'number') {
+        vendorEarnings = cvendthru;
+      } else if (typeof cvendthru === 'string') {
+        // Try to extract number from string like "c=TP-wbf0Vd0e2hlTJT4Ibldx"
+        const numMatch = cvendthru.match(/[\d.]+/);
+        if (numMatch) {
+          vendorEarnings = parseFloat(numMatch[0]);
+        }
+      }
     }
 
     // Save transaction to audit log
     const transaction = await prisma.jVZooTransaction.create({
       data: {
-        jvzooTransactionId: ctransaction,
+        jvzooTransactionId: ctransreceipt,
         jvzooReceiptId: ctransreceipt,
-        transactionType: ctransaction_type,
+        transactionType: ctransaction,
         jvzooProductId: cproditem,
         customerEmail: ccustemail,
         customerName: ccustname,
@@ -261,7 +274,7 @@ export async function processTransaction(ipnData) {
         customerState: ccuststate,
         amount: ctransamount ? parseFloat(ctransamount) : null,
         affiliateCommission: ctransaffiliate ? parseFloat(ctransaffiliate) : null,
-        vendorEarnings: cvendthru ? parseFloat(cvendthru) : null,
+        vendorEarnings: vendorEarnings,
         verificationHash: ipnData.cverify,
         verified: true,
         processed: true,
@@ -284,9 +297,9 @@ export async function processTransaction(ipnData) {
     try {
       await prisma.jVZooTransaction.create({
         data: {
-          jvzooTransactionId: ctransaction,
+          jvzooTransactionId: ctransreceipt,
           jvzooReceiptId: ctransreceipt,
-          transactionType: ctransaction_type,
+          transactionType: ctransaction,
           jvzooProductId: cproditem,
           customerEmail: ccustemail,
           customerName: ccustname,
