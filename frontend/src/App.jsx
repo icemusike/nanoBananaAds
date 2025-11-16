@@ -18,6 +18,7 @@ import AnglesGenerator from './pages/AnglesGenerator';
 import AnglesLibrary from './pages/AnglesLibrary';
 import BrandsManager from './pages/BrandsManager';
 import Settings from './pages/Settings';
+import Help from './pages/Help';
 import AdminLogin from './pages/admin/AdminLogin';
 import AdminProtectedRoute from './components/admin/AdminProtectedRoute';
 import AdminLayout from './pages/admin/AdminLayout';
@@ -81,6 +82,7 @@ function App() {
               <Route path="/ads-library" element={<ProtectedRoute><AppLayout><AdsLibrary /></AppLayout></ProtectedRoute>} />
               <Route path="/library" element={<ProtectedRoute><AppLayout><AdsLibrary /></AppLayout></ProtectedRoute>} />
               <Route path="/settings" element={<ProtectedRoute><AppLayout><Settings /></AppLayout></ProtectedRoute>} />
+              <Route path="/help" element={<ProtectedRoute><AppLayout><Help /></AppLayout></ProtectedRoute>} />
 
               {/* Agency Routes - Protected */}
               <Route path="/agency" element={<ProtectedRoute><AppLayout><AgencyDashboard /></AppLayout></ProtectedRoute>} />

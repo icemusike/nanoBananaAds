@@ -257,8 +257,7 @@ export default function Navigation() {
                     <button
                       onClick={() => {
                         setUserMenuOpen(false);
-                        // Navigate to help or show help modal
-                        window.open('https://docs.example.com/help', '_blank');
+                        navigate('/help');
                       }}
                       className="flex items-center gap-3 w-full px-4 py-2 text-left transition-colors text-muted-foreground hover:text-foreground hover:bg-muted"
                     >
