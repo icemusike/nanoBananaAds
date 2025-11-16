@@ -31,6 +31,7 @@ export default function CreateAds() {
   const { hasAgencyLicense } = useAgency();
 
   const [loading, setLoading] = useState(false);
+  const [regeneratingCopy, setRegeneratingCopy] = useState(false);
   const [results, setResults] = useState(null);
   const [error, setError] = useState(null);
   const [templates, setTemplates] = useState({});
@@ -355,21 +356,19 @@ export default function CreateAds() {
   };
 
   const handleRegenerateCopy = async () => {
-    // Get API keys from localStorage
-    const savedApiKeys = localStorage.getItem('apiKeys');
-    let apiKeys = { gemini: '', openai: '' };
-
-    if (savedApiKeys) {
-      apiKeys = JSON.parse(savedApiKeys);
-    }
-
-    if (!apiKeys.openai) {
-      setError('OpenAI API key not found. Please add it in Settings.');
+    // Validate required fields
+    if (!formData.description || !formData.targetAudience) {
+      setError('Please fill in required fields before regenerating copy');
       return;
     }
 
+    setRegeneratingCopy(true);
+    setError(null);
+
     try {
       const token = localStorage.getItem('token');
+
+      // Backend will automatically use admin default keys if user has no custom keys
       const response = await axios.post(`${API_URL}/api/regenerate-copy`, {
         description: formData.description,
         targetAudience: formData.targetAudience,
@@ -382,8 +381,7 @@ export default function CreateAds() {
         model: formData.model
       }, {
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'x-openai-api-key': apiKeys.openai
+          'Authorization': `Bearer ${token}`
         }
       });
 
@@ -400,6 +398,8 @@ export default function CreateAds() {
     } catch (err) {
       console.error('Copy regeneration error:', err);
       setError(err.response?.data?.error || 'Failed to regenerate ad copy');
+    } finally {
+      setRegeneratingCopy(false);
     }
   };
 
@@ -782,6 +782,7 @@ export default function CreateAds() {
                 results={results}
                 formData={formData}
                 onRegenerateCopy={handleRegenerateCopy}
+                regeneratingCopy={regeneratingCopy}
               />
             ) : (
               <div className="card h-full flex flex-col items-center justify-center text-center py-16">

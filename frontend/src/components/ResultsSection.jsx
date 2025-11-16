@@ -2,10 +2,9 @@ import { useState } from 'react';
 import { Download, Copy, Check, AlertCircle, Eye, FileText, RefreshCw } from 'lucide-react';
 import { toPng } from 'html-to-image';
 
-export default function ResultsSection({ results, formData, onRegenerateCopy }) {
+export default function ResultsSection({ results, formData, onRegenerateCopy, regeneratingCopy = false }) {
   const [copiedField, setCopiedField] = useState(null);
   const [activeTab, setActiveTab] = useState('preview');
-  const [regeneratingCopy, setRegeneratingCopy] = useState(false);
 
   const copyToClipboard = (text, field) => {
     navigator.clipboard.writeText(text);
@@ -162,16 +161,12 @@ Generated with AdGenius AI 🧠
                 <h3 className="font-semibold text-lg">Ad Copy</h3>
                 {onRegenerateCopy && (
                   <button
-                    onClick={async () => {
-                      setRegeneratingCopy(true);
-                      await onRegenerateCopy();
-                      setRegeneratingCopy(false);
-                    }}
+                    onClick={onRegenerateCopy}
                     disabled={regeneratingCopy}
-                    className="btn-secondary text-sm flex items-center gap-2"
+                    className="btn-secondary text-sm flex items-center justify-center gap-2"
                   >
                     <RefreshCw className={`w-4 h-4 ${regeneratingCopy ? 'animate-spin' : ''}`} />
-                    {regeneratingCopy ? 'Regenerating...' : 'Regenerate Copy'}
+                    <span>{regeneratingCopy ? 'Regenerating...' : 'Regenerate Copy'}</span>
                   </button>
                 )}
               </div>
