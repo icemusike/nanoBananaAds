@@ -152,72 +152,61 @@ export default function AdsLibrary() {
   };
 
   const handleRegenerateCopy = async (ad) => {
-    // SECURITY: Get API keys from localStorage (only if user has custom keys)
-    // If no custom keys, backend will automatically use admin default keys
-    const savedApiKeys = localStorage.getItem('apiKeys');
-    let apiKeys = { gemini: '', openai: '' };
-
-    if (savedApiKeys) {
-      try {
-        apiKeys = JSON.parse(savedApiKeys);
-      } catch (e) {
-        // Invalid JSON, use empty keys (admin defaults)
-        apiKeys = { gemini: '', openai: '' };
-      }
-    }
-
     try {
-      // Build headers - only include custom API key if user has set it
-      const headers = {};
-      if (apiKeys.openai && apiKeys.openai.trim() !== '') {
-        headers['x-openai-api-key'] = apiKeys.openai;
+      // Load image data if not already loaded
+      let imageData = ad.image.imageData.data;
+      if (!imageData) {
+        imageData = await loadImageData(ad.id);
+        if (!imageData) {
+          alert('Failed to load image data. Please try again.');
+          return;
+        }
       }
 
+      // Get auth token
+      const token = localStorage.getItem('token');
+      if (!token) {
+        alert('You must be logged in to create copy variations');
+        return;
+      }
+
+      // Generate new copy using the regenerate-copy endpoint
       const response = await axios.post(`${API_URL}/api/regenerate-copy`, {
         description: ad.formData.description,
         targetAudience: ad.formData.targetAudience,
         industry: ad.formData.industry,
-        imageDescription: ad.formData.description, // Use description as image context
+        imageDescription: ad.formData.description,
         tone: ad.formData.tone,
         copywritingStyle: 'default',
         valueProposition: ad.formData.valueProposition,
         callToAction: ad.adCopy.callToAction,
         model: 'gpt-4o-2024-08-06'
-      }, { headers });
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
 
       if (response.data.success) {
-        // Create a new ad with the same image but new copy
-        const newAd = {
-          ...ad,
-          id: `${ad.id}-variation-${Date.now()}`, // Create a unique ID
-          adCopy: response.data.copy.adCopy,
-          createdAt: new Date().toISOString()
-        };
-
-        // Close modal and reload to show the new variation
-        setSelectedAd(null);
-        alert('Copy variation created successfully! Creating new ad in library...');
-
-        // Save the new variation to database
-        const token = localStorage.getItem('token');
+        // Save the new variation to database with the same image but new copy
         await axios.post(`${API_URL}/api/ads`, {
-          imageData: ad.image.imageData.data,
+          imageData: imageData,
           imageMimeType: ad.image.imageData.mimeType,
           imageMetadata: ad.image.metadata,
-          adCopy: newAd.adCopy,
+          adCopy: response.data.copy.adCopy,
           formData: ad.formData
         }, {
           headers: { Authorization: `Bearer ${token}` }
         });
 
-        // Reload ads
+        // Close modal and reload
+        setSelectedAd(null);
+        alert('Copy variation created successfully!');
         loadSavedAds();
       } else {
         alert('Failed to generate copy variation');
       }
     } catch (err) {
       console.error('Copy regeneration error:', err);
-      alert(err.response?.data?.error || 'Failed to generate copy variation');
+      alert(err.response?.data?.error || 'Failed to generate copy variation. Please try again.');
     }
   };
 
