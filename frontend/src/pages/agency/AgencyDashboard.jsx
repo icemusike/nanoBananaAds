@@ -106,7 +106,7 @@ export default function AgencyDashboard() {
               See more features...
               <ArrowRight className="w-4 h-4" />
             </a>
-            <div className="text-3xl font-bold text-primary mb-2">$297</div>
+            <div className="text-3xl font-bold text-primary mb-2">$197</div>
             <p className="text-sm text-muted-foreground mb-6">One-time payment</p>
             <a
               href="https://adgeniusai.io/agency-upgrade"
