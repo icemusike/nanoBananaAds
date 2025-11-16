@@ -1,5 +1,5 @@
 import express from 'express';
-import { verifyJVZooIPN, processTransaction, sendWelcomeEmail } from '../services/jvzooService.js';
+import { verifyJVZooIPN, processTransaction, sendWelcomeEmail, sendUpgradeNotification } from '../services/jvzooService.js';
 
 const router = express.Router();
 
@@ -63,13 +63,23 @@ router.post('/ipn', async (req, res) => {
 
     console.log('✓ Transaction processed successfully');
 
-    // Send welcome email for new sales
+    // Send appropriate email for new sales
     if (ipnData.ctransaction === 'SALE' && result.user && result.license) {
       try {
-        await sendWelcomeEmail(result.user, result.license);
-        console.log('✓ Welcome email sent');
+        // Check if this is a frontend purchase (new account) or an upgrade
+        const isFrontend = result.license.productId === 'frontend';
+
+        if (isFrontend) {
+          // Frontend purchase: Send welcome email with password
+          await sendWelcomeEmail(result.user, result.license);
+          console.log('✓ Welcome email sent (new account)');
+        } else {
+          // Upgrade purchase: Send upgrade notification (no password change)
+          await sendUpgradeNotification(result.user, result.license);
+          console.log('✓ Upgrade notification sent (existing account)');
+        }
       } catch (emailError) {
-        console.error('Error sending welcome email:', emailError);
+        console.error('Error sending email:', emailError);
         // Don't fail the IPN because of email error
       }
     }

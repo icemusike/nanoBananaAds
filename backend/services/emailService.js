@@ -470,8 +470,275 @@ export async function sendPasswordResetEmail({ to, name, resetToken }) {
   }
 }
 
+/**
+ * Send upgrade notification email (no password change)
+ * @param {Object} options - Email options
+ * @param {string} options.to - Recipient email
+ * @param {string} options.name - User's name
+ * @param {string} options.productName - Product upgraded to (e.g., "Pro License")
+ * @param {string} options.licenseKey - License key for the upgrade
+ */
+export async function sendUpgradeEmail({ to, name, productName, licenseKey }) {
+  try {
+    const htmlBody = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AdGenius AI Account Upgraded</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background-color: #f4f4f7;
+    }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      background-color: #ffffff;
+    }
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      padding: 40px 30px;
+      text-align: center;
+    }
+    .content {
+      padding: 40px 30px;
+    }
+    .title {
+      font-size: 24px;
+      font-weight: bold;
+      color: #1a1a1a;
+      margin: 0 0 20px 0;
+    }
+    .text {
+      font-size: 16px;
+      line-height: 1.6;
+      color: #4a4a4a;
+      margin: 0 0 20px 0;
+    }
+    .upgrade-box {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border-radius: 10px;
+      padding: 30px;
+      margin: 30px 0;
+      text-align: center;
+      color: #ffffff;
+    }
+    .upgrade-title {
+      font-size: 14px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 10px;
+      opacity: 0.9;
+    }
+    .upgrade-product {
+      font-size: 28px;
+      font-weight: bold;
+      margin: 10px 0;
+    }
+    .upgrade-icon {
+      font-size: 48px;
+      margin-bottom: 15px;
+    }
+    .license-box {
+      background-color: #f8f9fa;
+      border: 2px solid #e9ecef;
+      border-radius: 8px;
+      padding: 25px;
+      margin: 30px 0;
+    }
+    .license-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: #6c757d;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 5px;
+    }
+    .license-value {
+      font-size: 16px;
+      font-weight: 600;
+      color: #1a1a1a;
+      font-family: 'Courier New', monospace;
+      background-color: #ffffff;
+      padding: 10px 15px;
+      border-radius: 4px;
+      border: 1px solid #dee2e6;
+    }
+    .button {
+      display: inline-block;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: #ffffff !important;
+      text-decoration: none;
+      padding: 14px 30px;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 16px;
+      margin: 20px 0;
+      text-align: center;
+    }
+    .info-box {
+      background-color: #e7f3ff;
+      border-left: 4px solid #2196F3;
+      padding: 15px;
+      margin: 20px 0;
+      border-radius: 4px;
+    }
+    .info-text {
+      font-size: 14px;
+      color: #014361;
+      margin: 0;
+    }
+    .footer {
+      background-color: #f8f9fa;
+      padding: 30px;
+      text-align: center;
+      border-top: 1px solid #e9ecef;
+    }
+    .footer-text {
+      font-size: 14px;
+      color: #6c757d;
+      margin: 5px 0;
+    }
+    .footer-link {
+      color: #667eea;
+      text-decoration: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <div class="header">
+      <img src="${LOGO_URL}" alt="AdGenius AI" style="height: 50px; margin: 0 auto; display: block;" />
+    </div>
+
+    <!-- Main Content -->
+    <div class="content">
+      <h2 class="title">Congratulations, ${name}! 🎉</h2>
+
+      <p class="text">
+        Your AdGenius AI account has been successfully upgraded!
+      </p>
+
+      <!-- Upgrade Highlight -->
+      <div class="upgrade-box">
+        <div class="upgrade-icon">🚀</div>
+        <div class="upgrade-title">Now Active</div>
+        <div class="upgrade-product">${productName}</div>
+      </div>
+
+      <!-- License Key -->
+      <div class="license-box">
+        <div class="license-label">Your New License Key</div>
+        <div class="license-value">${licenseKey}</div>
+      </div>
+
+      <p class="text">
+        This upgrade has been automatically added to your existing AdGenius AI account. Simply log in with your current credentials to access your new features!
+      </p>
+
+      <div class="info-box">
+        <p class="info-text">
+          <strong>ℹ️ Note:</strong> Your login credentials remain unchanged. Use your existing email and password to access your upgraded account.
+        </p>
+      </div>
+
+      <center>
+        <a href="${getAppUrl()}/login" class="button">Access Your Upgraded Account →</a>
+      </center>
+
+      <p class="text">
+        If you have any questions about your new features or need assistance, I'm here to help. Simply reply to this email and I'll get back to you personally.
+      </p>
+
+      <!-- Signature -->
+      <div style="margin: 40px 0; padding: 25px; background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-radius: 10px; border-left: 4px solid #667eea;">
+        <table cellpadding="0" cellspacing="0" border="0" style="width: 100%;">
+          <tr>
+            <td style="width: 100px; vertical-align: top;">
+              <img src="${ADRIAN_PROFILE_URL}" alt="Adrian Isfan" style="width: 100px; height: 100px; border-radius: 50%; border: 3px solid #667eea;" />
+            </td>
+            <td style="padding-left: 20px; vertical-align: middle;">
+              <div style="font-size: 18px; font-weight: bold; color: #1a1a1a; margin-bottom: 5px;">Adrian Isfan</div>
+              <div style="font-size: 14px; color: #667eea; font-weight: 600; margin-bottom: 8px;">Founder at AdGenius AI</div>
+              <div style="font-size: 13px; color: #6c757d; line-height: 1.5;">
+                Building the future of AI-powered ad creation
+              </div>
+            </td>
+          </tr>
+        </table>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+      <p class="footer-text">
+        <strong>AdGenius AI</strong> - AI-Powered Facebook Ad Creation
+      </p>
+      <p class="footer-text">
+        <a href="${getAppUrl()}" class="footer-link">Visit Dashboard</a> •
+        <a href="${getAppUrl()}/settings" class="footer-link">Settings</a> •
+        <a href="mailto:support@adgeniusai.io" class="footer-link">Support</a>
+      </p>
+      <p class="footer-text" style="margin-top: 20px; font-size: 12px;">
+        © ${new Date().getFullYear()} AdGenius AI. All rights reserved.
+      </p>
+    </div>
+  </div>
+</body>
+</html>
+    `;
+
+    const textBody = `
+Congratulations, ${name}! 🎉
+
+Your AdGenius AI account has been successfully upgraded to ${productName}!
+
+Your New License Key: ${licenseKey}
+
+This upgrade has been automatically added to your existing AdGenius AI account. Simply log in with your current credentials to access your new features!
+
+ℹ️ Note: Your login credentials remain unchanged. Use your existing email and password to access your upgraded account.
+
+Login here: ${getAppUrl()}/login
+
+If you have any questions, I'm here to help. Just reply to this email and I'll get back to you personally.
+
+Best regards,
+
+Adrian Isfan
+Founder at AdGenius AI
+Building the future of AI-powered ad creation
+
+---
+© ${new Date().getFullYear()} AdGenius AI - AI-Powered Facebook Ad Creation
+    `;
+
+    const result = await getClient().sendEmail({
+      From: getFromEmail(),
+      To: to,
+      Subject: `🎉 Your AdGenius AI Account Has Been Upgraded to ${productName}`,
+      HtmlBody: htmlBody,
+      TextBody: textBody,
+      MessageStream: 'outbound'
+    });
+
+    console.log('✅ Upgrade email sent successfully:', result.MessageID);
+    return { success: true, messageId: result.MessageID };
+  } catch (error) {
+    console.error('❌ Failed to send upgrade email:', error);
+    return { success: false, error: error.message };
+  }
+}
+
 export default {
   sendWelcomeEmail,
+  sendUpgradeEmail,
   sendTestEmail,
   sendPasswordResetEmail
 };

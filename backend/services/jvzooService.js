@@ -322,7 +322,8 @@ export async function processTransaction(ipnData) {
 }
 
 /**
- * Send welcome email to new JVZoo customer
+ * Send welcome email to NEW JVZoo customer (Frontend purchase only)
+ * Generates password and sends welcome email with login credentials
  */
 export async function sendWelcomeEmail(user, license) {
   try {
@@ -366,6 +367,42 @@ export async function sendWelcomeEmail(user, license) {
     console.log('✅ Welcome email sent to:', user.email);
   } catch (error) {
     console.error('❌ Failed to send welcome email:', error);
+    throw error;
+  }
+}
+
+/**
+ * Send upgrade notification email to EXISTING customer
+ * Does NOT change password - just notifies them of the upgrade
+ */
+export async function sendUpgradeNotification(user, license) {
+  try {
+    // Import email service
+    const { sendUpgradeEmail } = await import('./emailService.js');
+
+    // Map product ID to friendly name
+    const productNames = {
+      'frontend': 'AdGenius AI Frontend',
+      'pro_license': 'Pro License (Unlimited Generations)',
+      'templates_license': 'Templates License',
+      'agency_license': 'Agency License',
+      'reseller_license': 'Reseller License',
+      'elite_bundle': 'Elite Bundle (All Features)'
+    };
+
+    const productName = productNames[license.productId] || 'AdGenius AI License';
+
+    // Send upgrade email (no password change)
+    await sendUpgradeEmail({
+      to: user.email,
+      name: user.name,
+      productName: productName,
+      licenseKey: license.licenseKey
+    });
+
+    console.log('✅ Upgrade notification sent to:', user.email);
+  } catch (error) {
+    console.error('❌ Failed to send upgrade notification:', error);
     throw error;
   }
 }
