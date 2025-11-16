@@ -263,10 +263,10 @@ export default function BrandsManager() {
           </div>
           <button
             onClick={() => setShowForm(true)}
-            className="btn-primary flex items-center gap-2"
+            className="btn-primary flex items-center justify-center gap-2"
           >
             <Plus className="w-5 h-5" />
-            Add Brand
+            <span>Add Brand</span>
           </button>
         </div>
 
@@ -392,9 +392,9 @@ export default function BrandsManager() {
                         className="w-16 h-16 object-contain bg-white rounded-lg p-2"
                       />
                     )}
-                    <label className="btn-secondary cursor-pointer">
+                    <label className="btn-secondary cursor-pointer flex items-center justify-center gap-2">
                       <Upload className="w-4 h-4" />
-                      Upload Logo
+                      <span>Upload Logo</span>
                       <input
                         type="file"
                         accept="image/*"
@@ -525,13 +525,13 @@ export default function BrandsManager() {
 
                 {/* Form Actions */}
                 <div className="flex gap-4 pt-4">
-                  <button type="submit" className="btn-primary flex-1">
+                  <button type="submit" className="btn-primary flex-1 flex items-center justify-center gap-2">
                     <Check className="w-5 h-5" />
-                    {editingBrand ? 'Update Brand' : 'Create Brand'}
+                    <span>{editingBrand ? 'Update Brand' : 'Create Brand'}</span>
                   </button>
-                  <button type="button" onClick={resetForm} className="btn-secondary">
+                  <button type="button" onClick={resetForm} className="btn-secondary flex items-center justify-center gap-2">
                     <X className="w-5 h-5" />
-                    Cancel
+                    <span>Cancel</span>
                   </button>
                 </div>
               </form>
@@ -546,9 +546,9 @@ export default function BrandsManager() {
             <Building2 className="w-16 h-16 text-gray-600 mx-auto mb-4" />
             <h3 className="text-xl font-semibold mb-2">No brands yet</h3>
             <p className="text-gray-400 mb-6">Create your first brand to speed up ad creation</p>
-            <button onClick={() => setShowForm(true)} className="btn-primary mx-auto">
+            <button onClick={() => setShowForm(true)} className="btn-primary mx-auto flex items-center justify-center gap-2">
               <Plus className="w-5 h-5" />
-              Add Your First Brand
+              <span>Add Your First Brand</span>
             </button>
           </div>
         ) : (
@@ -637,14 +637,14 @@ export default function BrandsManager() {
                 <div className="flex gap-2 pt-4 border-t border-dark-700">
                   <button
                     onClick={() => handleEdit(brand)}
-                    className="btn-secondary flex-1 text-sm py-2"
+                    className="btn-secondary flex-1 text-sm py-2 flex items-center justify-center gap-2"
                   >
                     <Edit className="w-4 h-4" />
-                    Edit
+                    <span>Edit</span>
                   </button>
                   <button
                     onClick={() => handleDelete(brand.id)}
-                    className="btn-secondary text-sm py-2"
+                    className="btn-secondary text-sm py-2 flex items-center justify-center"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
