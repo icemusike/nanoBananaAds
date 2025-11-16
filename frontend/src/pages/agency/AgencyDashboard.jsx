@@ -79,36 +79,43 @@ export default function AgencyDashboard() {
           </p>
           <div className="bg-card border border-border rounded-lg p-6 mb-6">
             <h3 className="font-semibold text-lg mb-4">Agency License Features:</h3>
-            <ul className="text-left space-y-2 mb-6">
+            <ul className="text-left space-y-3 mb-6">
               <li className="flex items-start gap-2">
                 <span className="text-primary mt-1">✓</span>
-                <span>Unlimited client accounts</span>
+                <span>Enhanced agency license for unlimited client capacity</span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-primary mt-1">✓</span>
-                <span>Client dashboard with ad approval workflow</span>
+                <span>Professional client management system with portal access</span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-primary mt-1">✓</span>
-                <span>White-label branding</span>
+                <span>Complete business documentation suite (contracts, proposals, etc.)</span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-primary mt-1">✓</span>
-                <span>Message center for client communication</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-primary mt-1">✓</span>
-                <span>File sharing system</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-primary mt-1">✓</span>
-                <span>Full commercial rights</span>
+                <span>Training on scaling operations and client acquisition</span>
               </li>
             </ul>
-            <div className="text-2xl font-bold text-primary mb-4">$197</div>
-            <button className="w-full bg-primary text-primary-foreground px-6 py-3 rounded-lg hover:bg-primary/90 transition-colors font-medium">
+            <a
+              href="https://adgeniusai.io/agency-upgrade"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 text-primary hover:text-primary/80 font-medium transition-colors mb-6"
+            >
+              See more features...
+              <ArrowRight className="w-4 h-4" />
+            </a>
+            <div className="text-3xl font-bold text-primary mb-2">$297</div>
+            <p className="text-sm text-muted-foreground mb-6">One-time payment</p>
+            <a
+              href="https://adgeniusai.io/agency-upgrade"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block w-full bg-primary text-primary-foreground px-6 py-3 rounded-lg hover:bg-primary/90 transition-colors font-medium"
+            >
               Upgrade to Agency License
-            </button>
+            </a>
           </div>
         </div>
       </div>
