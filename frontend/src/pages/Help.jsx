@@ -3,6 +3,13 @@ import { Mail, Video, HelpCircle, Play } from 'lucide-react';
 export default function Help() {
   const videos = [
     {
+      title: 'Welcome Video - Platform Overview',
+      description: 'Get started with AdGenius AI - a complete overview of the platform and its features',
+      embedCode: '<iframe src="https://share.descript.com/embed/PVwI2h9z5IE" width="100%" height="100%" frameborder="0" allowfullscreen></iframe>',
+      link: 'https://share.descript.com/view/PVwI2h9z5IE',
+      duration: '10:00'
+    },
+    {
       title: 'Mastering Ads Creation',
       description: 'Learn how to create stunning Facebook ads with AI-powered tools',
       embedCode: '<iframe src="https://share.descript.com/embed/LTOiJ0I7kTY" width="100%" height="100%" frameborder="0" allowfullscreen></iframe>',
