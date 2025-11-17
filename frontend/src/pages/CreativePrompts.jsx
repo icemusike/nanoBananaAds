@@ -69,12 +69,15 @@ export default function CreativePrompts() {
       if (brandsRes.data.success) {
         setBrands(brandsRes.data.brands);
 
-        // Load default brand if set
-        const defaultBrandId = settingsRes.data?.user?.defaultBrandId;
-        if (defaultBrandId) {
-          const defaultBrand = brandsRes.data.brands.find(b => b.id === defaultBrandId);
-          if (defaultBrand) {
-            handleSelectBrand(defaultBrand);
+        // Load default brand if set AND we're NOT coming from an angle
+        // (prevent overwriting angle brand context)
+        if (!location.state?.fromAngle) {
+          const defaultBrandId = settingsRes.data?.user?.defaultBrandId;
+          if (defaultBrandId) {
+            const defaultBrand = brandsRes.data.brands.find(b => b.id === defaultBrandId);
+            if (defaultBrand) {
+              handleSelectBrand(defaultBrand);
+            }
           }
         }
       }
