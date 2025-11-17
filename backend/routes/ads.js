@@ -13,7 +13,7 @@ router.use(authenticateUser);
  */
 router.get('/', async (req, res) => {
   try {
-    const { search, industry, limit = 20 } = req.query;
+    const { search, industry, limit } = req.query;
 
     const where = {
       userId: req.userId
@@ -33,10 +33,9 @@ router.get('/', async (req, res) => {
       where.industry = industry;
     }
 
-    const ads = await prisma.ad.findMany({
+    const queryOptions = {
       where,
       orderBy: { createdAt: 'desc' },
-      take: Math.min(parseInt(limit), 20), // Cap at 20 to stay under 5MB limit
       select: {
         id: true,
         headline: true,
@@ -61,7 +60,14 @@ router.get('/', async (req, res) => {
         updatedAt: true,
         // imageData excluded - fetch individually via GET /api/ads/:id
       },
-    });
+    };
+
+    // Add limit only if specified (otherwise fetch all)
+    if (limit) {
+      queryOptions.take = parseInt(limit);
+    }
+
+    const ads = await prisma.ad.findMany(queryOptions);
 
     res.json({
       success: true,
