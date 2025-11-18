@@ -38,7 +38,8 @@ router.post('/', async (req, res) => {
       customTemplateDescription,
       referenceImage, // { data: base64, mimeType: string }
       model = 'gpt-4o-2024-08-06', // NEW: Allow model selection for ad copy generation
-      simpleMode = false // NEW: Simple Mode - bypass templates
+      simpleMode = false, // NEW: Simple Mode - bypass templates
+      clientAccountId // Agency feature: link ad to specific client
     } = req.body;
 
     // Load user settings and API keys from database
@@ -218,9 +219,14 @@ router.post('/', async (req, res) => {
     // Save to database if both image and copy generation succeeded
     if (response.image?.success && response.copy?.success) {
       try {
+        if (clientAccountId) {
+          console.log('🔗 Linking ad to agency client:', clientAccountId);
+        }
+
         const savedAd = await prisma.ad.create({
           data: {
             userId: req.userId, // Associate with authenticated user
+            agencyClientId: clientAccountId || null, // Link to agency client if provided
             imageData: response.image.imageData.data,
             imageMimeType: response.image.imageData.mimeType,
             imageMetadata: {
