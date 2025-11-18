@@ -73,6 +73,7 @@ model User {
   ads                 Ad[]
   licenses            License[]
   jvzooTransactions   JVZooTransaction[]
+  agencyClients       AgencyClient[] @relation("AgencyClients")
 
   @@index([email])
   @@index([defaultBrandId])
@@ -363,6 +364,50 @@ model JVZooTransaction {
   @@index([processed])
   @@index([createdAt])
   @@index([jvzooProductId])
+}
+
+// Agency Client Management (for users with agency license)
+model AgencyClient {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Agency owner (user with agency license)
+  agencyUserId    String
+  agencyUser      User     @relation("AgencyClients", fields: [agencyUserId], references: [id], onDelete: Cascade)
+
+  // Client account details
+  clientEmail     String
+  clientName      String?
+  clientCompany   String?
+  clientPassword  String?  // Hashed password for client portal access
+
+  // Access token for client portal
+  accessToken     String?  @unique
+  tokenExpiry     DateTime?
+
+  // Status
+  status          String   @default("active") // active, suspended, deleted
+
+  // Credits/limits
+  creditsAllocated Int?    // Optional credit limit
+  creditsUsed      Int      @default(0)
+
+  // Last login tracking
+  lastLoginAt     DateTime?
+
+  // Stats (computed from client's generated content)
+  stats           Json?    // { projects: 0, ads: 0, prompts: 0 }
+
+  // Metadata
+  metadata        Json?    // Additional flexible data
+  notes           String?  @db.Text // Agency notes about this client
+
+  @@index([agencyUserId])
+  @@index([clientEmail])
+  @@index([status])
+  @@index([accessToken])
+  @@unique([agencyUserId, clientEmail]) // One email per agency
 }
 
 // System settings for admin configuration

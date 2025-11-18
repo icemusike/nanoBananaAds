@@ -11,6 +11,7 @@ import userRoute from './routes/user.js';
 import brandsRoute from './routes/brands.js';
 import jvzooRoute from './routes/jvzoo.js';
 import licenseRoute from './routes/license.js';
+import agencyRoute from './routes/agency.js';
 import adminAuthRoute from './routes/admin/auth.js';
 import adminUsersRoute from './routes/admin/users.js';
 import adminDashboardRoute from './routes/admin/dashboard.js';
@@ -64,6 +65,7 @@ app.use('/api/user', userRoute);
 app.use('/api/brands', brandsRoute);
 app.use('/api/jvzoo', jvzooRoute);
 app.use('/api/license', licenseRoute);
+app.use('/api/agency', agencyRoute);
 
 // Admin Routes
 app.use('/api/admin/auth', adminAuthRoute);
