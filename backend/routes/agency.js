@@ -395,11 +395,18 @@ router.get('/clients/:clientId/projects', checkAgencyLicense, async (req, res) =
       });
     }
 
-    // For now, return empty array since we haven't implemented projects yet
-    // TODO: Implement projects model and queries
+    // Get all projects for this client
+    const projects = await prisma.agencyProject.findMany({
+      where: {
+        clientId,
+        agencyUserId
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+
     res.json({
       success: true,
-      projects: []
+      projects
     });
   } catch (error) {
     console.error('Error fetching projects:', error);
@@ -418,6 +425,15 @@ router.post('/clients/:clientId/projects', checkAgencyLicense, async (req, res) 
   try {
     const { clientId } = req.params;
     const agencyUserId = req.userId;
+    const { name, description, status, notes } = req.body;
+
+    // Validation
+    if (!name || !name.trim()) {
+      return res.status(400).json({
+        success: false,
+        error: 'Project name is required'
+      });
+    }
 
     // Verify client belongs to this agency
     const client = await prisma.agencyClient.findFirst({
@@ -431,11 +447,22 @@ router.post('/clients/:clientId/projects', checkAgencyLicense, async (req, res) 
       });
     }
 
-    // TODO: Implement project creation
+    // Create project
+    const project = await prisma.agencyProject.create({
+      data: {
+        name,
+        description,
+        status: status || 'active',
+        notes,
+        clientId,
+        agencyUserId
+      }
+    });
+
     res.json({
       success: true,
-      project: {},
-      message: 'Project feature coming soon'
+      project,
+      message: 'Project created successfully'
     });
   } catch (error) {
     console.error('Error creating project:', error);
@@ -452,11 +479,40 @@ router.post('/clients/:clientId/projects', checkAgencyLicense, async (req, res) 
  */
 router.put('/projects/:projectId', checkAgencyLicense, async (req, res) => {
   try {
-    // TODO: Implement project update
+    const { projectId } = req.params;
+    const agencyUserId = req.userId;
+    const { name, description, status, notes } = req.body;
+
+    // Verify project belongs to this agency
+    const existingProject = await prisma.agencyProject.findFirst({
+      where: {
+        id: projectId,
+        agencyUserId
+      }
+    });
+
+    if (!existingProject) {
+      return res.status(404).json({
+        success: false,
+        error: 'Project not found'
+      });
+    }
+
+    // Update project
+    const project = await prisma.agencyProject.update({
+      where: { id: projectId },
+      data: {
+        name,
+        description,
+        status,
+        notes
+      }
+    });
+
     res.json({
       success: true,
-      project: {},
-      message: 'Project feature coming soon'
+      project,
+      message: 'Project updated successfully'
     });
   } catch (error) {
     console.error('Error updating project:', error);
@@ -473,10 +529,32 @@ router.put('/projects/:projectId', checkAgencyLicense, async (req, res) => {
  */
 router.delete('/projects/:projectId', checkAgencyLicense, async (req, res) => {
   try {
-    // TODO: Implement project deletion
+    const { projectId } = req.params;
+    const agencyUserId = req.userId;
+
+    // Verify project belongs to this agency
+    const existingProject = await prisma.agencyProject.findFirst({
+      where: {
+        id: projectId,
+        agencyUserId
+      }
+    });
+
+    if (!existingProject) {
+      return res.status(404).json({
+        success: false,
+        error: 'Project not found'
+      });
+    }
+
+    // Delete project
+    await prisma.agencyProject.delete({
+      where: { id: projectId }
+    });
+
     res.json({
       success: true,
-      message: 'Project feature coming soon'
+      message: 'Project deleted successfully'
     });
   } catch (error) {
     console.error('Error deleting project:', error);
@@ -553,11 +631,41 @@ router.get('/clients/:clientId/brands', checkAgencyLicense, async (req, res) => 
       });
     }
 
-    // For now, return empty array
-    // TODO: Add client assignment tracking to Brand model
+    // Get all brands assigned to this client via ClientBrand junction table
+    const clientBrands = await prisma.clientBrand.findMany({
+      where: { clientId },
+      include: {
+        brand: {
+          select: {
+            id: true,
+            name: true,
+            description: true,
+            tagline: true,
+            industry: true,
+            targetAudience: true,
+            brandVoice: true,
+            tone: true,
+            primaryColor: true,
+            secondaryColor: true,
+            accentColor: true,
+            colorPalette: true,
+            createdAt: true,
+            updatedAt: true
+          }
+        }
+      }
+    });
+
+    // Extract brand data from junction table results
+    const brands = clientBrands.map(cb => ({
+      ...cb.brand,
+      assignedAt: cb.assignedAt,
+      assignedBy: cb.assignedBy
+    }));
+
     res.json({
       success: true,
-      brands: []
+      brands
     });
   } catch (error) {
     console.error('Error fetching client brands:', error);
@@ -589,10 +697,52 @@ router.post('/clients/:clientId/brands/:brandId/assign', checkAgencyLicense, asy
       });
     }
 
-    // TODO: Implement brand assignment
+    // Verify brand belongs to this agency
+    const brand = await prisma.brand.findFirst({
+      where: {
+        id: brandId,
+        userId: agencyUserId
+      }
+    });
+
+    if (!brand) {
+      return res.status(404).json({
+        success: false,
+        error: 'Brand not found'
+      });
+    }
+
+    // Check if already assigned
+    const existing = await prisma.clientBrand.findFirst({
+      where: {
+        clientId,
+        brandId
+      }
+    });
+
+    if (existing) {
+      return res.status(400).json({
+        success: false,
+        error: 'Brand is already assigned to this client'
+      });
+    }
+
+    // Create assignment
+    const assignment = await prisma.clientBrand.create({
+      data: {
+        clientId,
+        brandId,
+        assignedBy: agencyUserId
+      },
+      include: {
+        brand: true
+      }
+    });
+
     res.json({
       success: true,
-      message: 'Brand assignment feature coming soon'
+      assignment,
+      message: 'Brand assigned successfully'
     });
   } catch (error) {
     console.error('Error assigning brand:', error);
@@ -624,10 +774,31 @@ router.post('/clients/:clientId/brands/:brandId/unassign', checkAgencyLicense, a
       });
     }
 
-    // TODO: Implement brand unassignment
+    // Find the assignment
+    const assignment = await prisma.clientBrand.findFirst({
+      where: {
+        clientId,
+        brandId
+      }
+    });
+
+    if (!assignment) {
+      return res.status(404).json({
+        success: false,
+        error: 'Brand is not assigned to this client'
+      });
+    }
+
+    // Delete assignment
+    await prisma.clientBrand.delete({
+      where: {
+        id: assignment.id
+      }
+    });
+
     res.json({
       success: true,
-      message: 'Brand unassignment feature coming soon'
+      message: 'Brand unassigned successfully'
     });
   } catch (error) {
     console.error('Error unassigning brand:', error);

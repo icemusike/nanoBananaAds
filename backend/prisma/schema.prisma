@@ -258,6 +258,9 @@ model Brand {
   // Default brand relationships
   defaultForUsers   User[]   @relation("DefaultBrand")
 
+  // Client assignments (for agency)
+  clientAssignments ClientBrand[]
+
   @@index([userId])
   @@index([createdAt])
   @@index([industry])
@@ -403,11 +406,65 @@ model AgencyClient {
   metadata        Json?    // Additional flexible data
   notes           String?  @db.Text // Agency notes about this client
 
+  // Relationships
+  projects        AgencyProject[]
+  assignedBrands  ClientBrand[]
+
   @@index([agencyUserId])
   @@index([clientEmail])
   @@index([status])
   @@index([accessToken])
   @@unique([agencyUserId, clientEmail]) // One email per agency
+}
+
+// Agency Project Management
+model AgencyProject {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Project details
+  name        String
+  description String?  @db.Text
+  status      String   @default("active") // active, completed, on-hold, cancelled
+
+  // Client relationship
+  clientId    String
+  client      AgencyClient @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  // Agency owner (for quick access)
+  agencyUserId String
+
+  // Project metadata
+  metadata    Json?    // Flexible data for future features
+  notes       String?  @db.Text
+
+  @@index([clientId])
+  @@index([agencyUserId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+// Client-Brand Assignment (many-to-many)
+model ClientBrand {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  // Client relationship
+  clientId  String
+  client    AgencyClient @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  // Brand relationship
+  brandId   String
+  brand     Brand    @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  // Assignment metadata
+  assignedAt DateTime @default(now())
+  assignedBy String  // userId who assigned it
+
+  @@unique([clientId, brandId]) // One brand can only be assigned once to a client
+  @@index([clientId])
+  @@index([brandId])
 }
 
 // System settings for admin configuration
