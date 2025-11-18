@@ -2,6 +2,9 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, Mail, CheckCircle } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
+import axios from 'axios';
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 function ForgotPassword() {
   const { mode } = useTheme();
@@ -16,12 +19,16 @@ function ForgotPassword() {
     setError('');
 
     try {
-      // TODO: Implement actual password reset API call
-      // For now, just simulate success
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      setSubmitted(true);
+      const response = await axios.post(`${API_URL}/api/auth/forgot-password`, {
+        email: email.toLowerCase()
+      });
+
+      if (response.data.success) {
+        setSubmitted(true);
+      }
     } catch (err) {
-      setError('Failed to send reset email. Please try again.');
+      console.error('Forgot password error:', err);
+      setError(err.response?.data?.error || 'Failed to send reset email. Please try again.');
     } finally {
       setLoading(false);
     }

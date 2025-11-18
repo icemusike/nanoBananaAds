@@ -10,6 +10,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import ClientPortalProtectedRoute from './components/ClientPortalProtectedRoute';
 import Login from './pages/Login';
 import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
 import CreateAds from './pages/CreateAds';
 import AdsLibrary from './pages/AdsLibrary';
 import CreativePrompts from './pages/CreativePrompts';
@@ -63,6 +64,7 @@ function App() {
               {/* Auth Routes */}
               <Route path="/login" element={<Login />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
 
               {/* Admin Routes */}
               <Route path="/admin/login" element={<AdminLogin />} />

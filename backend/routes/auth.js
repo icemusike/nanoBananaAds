@@ -1,7 +1,9 @@
 import express from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 import { PrismaClient } from '../generated/prisma/index.js';
+import { sendPasswordResetEmail } from '../services/emailService.js';
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -219,6 +221,139 @@ router.post('/logout', (req, res) => {
   res.json({
     message: 'Logout successful'
   });
+});
+
+/**
+ * POST /api/auth/forgot-password
+ * Request password reset email
+ */
+router.post('/forgot-password', async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    // Validate input
+    if (!email) {
+      return res.status(400).json({
+        error: 'Email is required'
+      });
+    }
+
+    // Find user
+    const user = await prisma.user.findUnique({
+      where: { email: email.toLowerCase() }
+    });
+
+    // Always return success (security: don't reveal if email exists)
+    // But only send email if user exists
+    if (user) {
+      // Generate reset token
+      const resetToken = crypto.randomBytes(32).toString('hex');
+      const resetTokenHash = crypto.createHash('sha256').update(resetToken).digest('hex');
+      const resetExpires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+      // Save token to database
+      await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          resetPasswordToken: resetTokenHash,
+          resetPasswordExpires: resetExpires
+        }
+      });
+
+      // Send email
+      try {
+        await sendPasswordResetEmail({
+          to: user.email,
+          name: user.name,
+          resetToken: resetToken // Send unhashed token in email
+        });
+        console.log(`✅ Password reset email sent to ${user.email}`);
+      } catch (emailError) {
+        console.error('Failed to send password reset email:', emailError);
+        // Don't fail the request if email fails
+      }
+    }
+
+    // Always return success message
+    res.json({
+      success: true,
+      message: 'If an account exists with that email, a password reset link has been sent.'
+    });
+  } catch (error) {
+    console.error('Forgot password error:', error);
+    res.status(500).json({
+      error: 'Failed to process password reset request'
+    });
+  }
+});
+
+/**
+ * POST /api/auth/reset-password
+ * Reset password using token from email
+ */
+router.post('/reset-password', async (req, res) => {
+  try {
+    const { token, password } = req.body;
+
+    // Validate input
+    if (!token || !password) {
+      return res.status(400).json({
+        error: 'Token and new password are required'
+      });
+    }
+
+    // Validate password length
+    if (password.length < 6) {
+      return res.status(400).json({
+        error: 'Password must be at least 6 characters long'
+      });
+    }
+
+    // Hash the token to compare with database
+    const resetTokenHash = crypto.createHash('sha256').update(token).digest('hex');
+
+    // Find user with valid reset token
+    const user = await prisma.user.findFirst({
+      where: {
+        resetPasswordToken: resetTokenHash,
+        resetPasswordExpires: {
+          gt: new Date() // Token not expired
+        }
+      }
+    });
+
+    if (!user) {
+      return res.status(400).json({
+        error: 'Invalid or expired reset token'
+      });
+    }
+
+    // Hash new password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    // Update password and clear reset token
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        password: hashedPassword,
+        resetPasswordToken: null,
+        resetPasswordExpires: null
+      }
+    });
+
+    console.log(`✅ Password reset successful for ${user.email}`);
+
+    res.json({
+      success: true,
+      message: 'Password reset successful. You can now login with your new password.'
+    });
+  } catch (error) {
+    console.error('Reset password error:', error);
+    res.status(500).json({
+      error: 'Failed to reset password'
+    });
+  }
 });
 
 export default router;
