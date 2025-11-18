@@ -30,6 +30,8 @@ import PlatformSettings from './pages/admin/PlatformSettings';
 import AgencyDashboard from './pages/agency/AgencyDashboard';
 import ClientManagement from './pages/agency/ClientManagement';
 import ClientDetail from './pages/agency/ClientDetail';
+import AgencySettings from './pages/agency/AgencySettings';
+import AddNewClient from './pages/agency/AddNewClient';
 import ClientPortalLogin from './pages/client-portal/ClientPortalLogin';
 import ClientPortalDashboard from './pages/client-portal/ClientPortalDashboard';
 import ClientPortalAds from './pages/client-portal/ClientPortalAds';
@@ -87,7 +89,9 @@ function App() {
               {/* Agency Routes - Protected */}
               <Route path="/agency" element={<ProtectedRoute><AppLayout><AgencyDashboard /></AppLayout></ProtectedRoute>} />
               <Route path="/agency/clients" element={<ProtectedRoute><AppLayout><ClientManagement /></AppLayout></ProtectedRoute>} />
+              <Route path="/agency/clients/new" element={<ProtectedRoute><AppLayout><AddNewClient /></AppLayout></ProtectedRoute>} />
               <Route path="/agency/clients/:clientId" element={<ProtectedRoute><AppLayout><ClientDetail /></AppLayout></ProtectedRoute>} />
+              <Route path="/agency/settings" element={<ProtectedRoute><AppLayout><AgencySettings /></AppLayout></ProtectedRoute>} />
 
               {/* Client Portal Routes */}
               <Route path="/client-portal/login" element={<ClientPortalLogin />} />

@@ -40,7 +40,7 @@ export default function AddClientModal({ isOpen, onClose, onSuccess }) {
         creditsAllocated: formData.creditsAllocated ? parseInt(formData.creditsAllocated) : null
       };
 
-      await createClient(clientData);
+      const newClient = await createClient(clientData);
 
       // Reset form
       setFormData({
@@ -50,7 +50,7 @@ export default function AddClientModal({ isOpen, onClose, onSuccess }) {
         creditsAllocated: ''
       });
 
-      onSuccess();
+      onSuccess(newClient?.id);
     } catch (error) {
       console.error('Error creating client:', error);
       setError(error.response?.data?.error || 'Failed to create client. Please try again.');

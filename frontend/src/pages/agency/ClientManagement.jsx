@@ -211,7 +211,7 @@ export default function ClientManagement() {
         <AddClientModal
           isOpen={showAddModal}
           onClose={() => setShowAddModal(false)}
-          onSuccess={() => {
+          onSuccess={(clientId) => {
             setShowAddModal(false);
             loadClients();
           }}
