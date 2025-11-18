@@ -212,6 +212,7 @@ router.post('/', async (req, res) => {
       colorPalette,
       aspectRatio,
       valueProposition,
+      agencyClientId, // Optional - for client portal generated ads
     } = req.body;
 
     // Validate required fields
@@ -225,6 +226,7 @@ router.post('/', async (req, res) => {
     const ad = await prisma.ad.create({
       data: {
         userId: req.userId,
+        agencyClientId: agencyClientId || null, // Link to agency client if provided
         imageData,
         imageMimeType,
         imageMetadata,
