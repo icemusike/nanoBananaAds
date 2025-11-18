@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { Sparkles, Library, Settings, Sun, Moon, Wand2, BookOpen, Lightbulb, Building2, Users, ChevronDown, User, LogOut, HelpCircle } from 'lucide-react';
+import { Sparkles, Library, Settings, Sun, Moon, Wand2, BookOpen, Lightbulb, Building2, Users, ChevronDown, User, LogOut, HelpCircle, Download } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 
@@ -263,6 +263,17 @@ export default function Navigation() {
                     >
                       <HelpCircle className="w-4 h-4" />
                       <span className="font-medium">Help</span>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setUserMenuOpen(false);
+                        navigate('/downloads');
+                      }}
+                      className="flex items-center gap-3 w-full px-4 py-2 text-left transition-colors text-muted-foreground hover:text-foreground hover:bg-muted"
+                    >
+                      <Download className="w-4 h-4" />
+                      <span className="font-medium">Downloads</span>
                     </button>
 
                     <button

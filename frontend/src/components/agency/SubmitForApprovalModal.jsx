@@ -10,7 +10,7 @@ export default function SubmitForApprovalModal({ ad, client, onClose, onSuccess 
   const [error, setError] = useState(null);
 
   const handleSubmit = async () => {
-    if (!ad.clientAccountId) {
+    if (!ad.agencyClientId) {
       setError('This ad is not assigned to a client');
       return;
     }
@@ -169,7 +169,7 @@ export default function SubmitForApprovalModal({ ad, client, onClose, onSuccess 
           </button>
           <button
             onClick={handleSubmit}
-            disabled={loading || !ad.clientAccountId}
+            disabled={loading || !ad.agencyClientId}
             className="px-6 py-2.5 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? (

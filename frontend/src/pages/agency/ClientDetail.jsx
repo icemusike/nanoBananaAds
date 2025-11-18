@@ -597,14 +597,19 @@ export default function ClientDetail() {
                       )}
                     </div>
 
-                    {/* Submit for Approval Button */}
-                    <button
-                      onClick={(e) => handleSubmitForApproval(ad, e)}
-                      className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors text-sm font-medium"
-                    >
-                      <Send className="w-4 h-4" />
-                      Submit for Approval
-                    </button>
+                    {/* Submit for Approval Button - TEMPORARILY HIDDEN */}
+                    {/* TODO: Re-enable after backend approval system is implemented */}
+                    {/* Backend endpoints needed: POST /api/agency/ads/:id/submit-for-approval */}
+                    {/* Database model needed: ClientAdApproval (see APPROVAL_IMPLEMENTATION_GUIDE.md) */}
+                    {false && (
+                      <button
+                        onClick={(e) => handleSubmitForApproval(ad, e)}
+                        className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors text-sm font-medium"
+                      >
+                        <Send className="w-4 h-4" />
+                        Submit for Approval
+                      </button>
+                    )}
                   </div>
                 </div>
               ))}
