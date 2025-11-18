@@ -2,12 +2,14 @@ import { useState, useEffect } from 'react';
 import { Lightbulb, Sparkles, TrendingUp, BookmarkPlus, Loader2, Target, Zap, Save, Library, Building2 } from 'lucide-react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import { useToast } from '../context/ToastContext';
 import BrainLoader from '../components/BrainLoader';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 export default function AnglesGenerator() {
   const navigate = useNavigate();
+  const toast = useToast();
   const [formData, setFormData] = useState({
     businessName: '',
     businessDescription: '',
@@ -101,7 +103,7 @@ export default function AnglesGenerator() {
 
   const handleGenerate = async () => {
     if (!formData.businessName.trim() || !formData.businessDescription.trim()) {
-      alert('Please enter business name and description');
+      toast.warning('Please enter business name and description');
       return;
     }
 
@@ -126,7 +128,7 @@ export default function AnglesGenerator() {
       }
     } catch (error) {
       console.error('Error generating angles:', error);
-      alert('Failed to generate angles. Please try again.');
+      toast.error('Failed to generate angles. Please try again.');
     } finally {
       setLoading(false);
     }

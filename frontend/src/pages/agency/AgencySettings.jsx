@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
 import { Settings, Save, Building2, User, Mail, Phone, MapPin, Globe, Palette } from 'lucide-react';
 import { useAgency } from '../../context/AgencyContext';
+import { useToast } from '../../context/ToastContext';
 import axios from 'axios';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 export default function AgencySettings() {
   const { hasAgencyLicense } = useAgency();
+  const toast = useToast();
   const [saving, setSaving] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const [settings, setSettings] = useState({
@@ -50,9 +52,10 @@ export default function AgencySettings() {
 
       setSuccessMessage('Settings saved successfully!');
       setTimeout(() => setSuccessMessage(''), 3000);
+      toast.success('Settings saved successfully!');
     } catch (error) {
       console.error('Error saving settings:', error);
-      alert('Failed to save settings. Please try again.');
+      toast.error('Failed to save settings. Please try again.');
     } finally {
       setSaving(false);
     }

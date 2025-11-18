@@ -3,6 +3,7 @@ import { Search, Calendar, Tag, Trash2, Eye, Download, Loader2 } from 'lucide-re
 import axios from 'axios';
 import AdDetailModal from '../components/AdDetailModal';
 import BrainLoader from '../components/BrainLoader';
+import { useToast } from '../context/ToastContext';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
@@ -43,6 +44,7 @@ function LazyAdImage({ ad, imageDataCache, onLoadImage }) {
 }
 
 export default function AdsLibrary() {
+  const toast = useToast();
   const [savedAds, setSavedAds] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedAd, setSelectedAd] = useState(null);
@@ -148,7 +150,7 @@ export default function AdsLibrary() {
       loadSavedAds();
     } catch (err) {
       console.error('Error deleting ad:', err);
-      alert('Failed to delete ad');
+      toast.error('Failed to delete ad');
     }
   };
 
@@ -159,7 +161,7 @@ export default function AdsLibrary() {
       if (!imageData) {
         imageData = await loadImageData(ad.id);
         if (!imageData) {
-          alert('Failed to load image data. Please try again.');
+          toast.error('Failed to load image data. Please try again.');
           return;
         }
       }
@@ -167,7 +169,7 @@ export default function AdsLibrary() {
       // Get auth token
       const token = localStorage.getItem('token');
       if (!token) {
-        alert('You must be logged in to create copy variations');
+        toast.warning('You must be logged in to create copy variations');
         return;
       }
 
@@ -200,14 +202,14 @@ export default function AdsLibrary() {
 
         // Close modal and reload
         setSelectedAd(null);
-        alert('Copy variation created successfully!');
+        toast.success('Copy variation created successfully!');
         loadSavedAds();
       } else {
-        alert('Failed to generate copy variation');
+        toast.error('Failed to generate copy variation');
       }
     } catch (err) {
       console.error('Copy regeneration error:', err);
-      alert(err.response?.data?.error || 'Failed to generate copy variation. Please try again.');
+      toast.error(err.response?.data?.error || 'Failed to generate copy variation. Please try again.');
     }
   };
 

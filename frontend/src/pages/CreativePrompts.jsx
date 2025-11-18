@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Wand2, Sparkles, Copy, Check, Loader2, BookOpen, Building2 } from 'lucide-react';
 import axios from 'axios';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useToast } from '../context/ToastContext';
 import BrainLoader from '../components/BrainLoader';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
@@ -9,6 +10,7 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 export default function CreativePrompts() {
   const navigate = useNavigate();
   const location = useLocation();
+  const toast = useToast();
   const [idea, setIdea] = useState('');
   const [industry, setIndustry] = useState('');
   const [style, setStyle] = useState('Professional UGC');
@@ -155,7 +157,7 @@ export default function CreativePrompts() {
 
   const handleGenerate = async () => {
     if (!idea.trim()) {
-      alert('Please enter your ad idea');
+      toast.warning('Please enter your ad idea');
       return;
     }
 
@@ -183,7 +185,7 @@ export default function CreativePrompts() {
       }
     } catch (error) {
       console.error('Error generating prompt:', error);
-      alert('Failed to generate prompt. Please try again.');
+      toast.error('Failed to generate prompt. Please try again.');
     } finally {
       setLoading(false);
     }

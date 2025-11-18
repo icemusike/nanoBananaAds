@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { useToast } from '../../context/ToastContext';
 import { usersApi } from '../../services/adminApi';
 
 export default function UserManagement() {
+  const toast = useToast();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -58,8 +60,9 @@ export default function UserManagement() {
     try {
       await usersApi.delete(userId);
       fetchUsers(); // Refresh list
+      toast.success('User deleted successfully');
     } catch (err) {
-      alert('Failed to delete user: ' + (err.response?.data?.message || err.message));
+      toast.error('Failed to delete user: ' + (err.response?.data?.message || err.message));
     }
   };
 
@@ -85,8 +88,11 @@ export default function UserManagement() {
       setShowAddUser(false);
       setNewUserForm({ name: '', email: '', password: '', company: '' });
       fetchUsers(); // Refresh list
+      toast.success('User created successfully!');
     } catch (err) {
-      setError('Failed to create user: ' + (err.response?.data?.message || err.message));
+      const errorMsg = 'Failed to create user: ' + (err.response?.data?.message || err.message);
+      setError(errorMsg);
+      toast.error(errorMsg);
     }
   };
 

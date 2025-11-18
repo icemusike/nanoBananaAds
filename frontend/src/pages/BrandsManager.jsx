@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Building2, Plus, Edit, Trash2, Check, X, Upload, Star, StarOff, Palette, Loader2, Info } from 'lucide-react';
 import axios from 'axios';
 import BrainLoader from '../components/BrainLoader';
+import { useToast } from '../context/ToastContext';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
@@ -23,6 +24,7 @@ function InfoTooltip({ text }) {
 }
 
 export default function BrandsManager() {
+  const toast = useToast();
   const [brands, setBrands] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -89,7 +91,7 @@ export default function BrandsManager() {
       }
     } catch (error) {
       console.error('Error loading brands:', error);
-      alert('Failed to load brands. Please try logging in again.');
+      toast.error('Failed to load brands. Please try logging in again.');
     } finally {
       setLoading(false);
     }
@@ -152,7 +154,7 @@ export default function BrandsManager() {
       }
     } catch (error) {
       console.error('Error saving brand:', error);
-      alert('Failed to save brand. Please try again.');
+      toast.error('Failed to save brand. Please try again.');
     }
   };
 
@@ -197,7 +199,7 @@ export default function BrandsManager() {
       }
     } catch (error) {
       console.error('Error deleting brand:', error);
-      alert('Failed to delete brand. Please try again.');
+      toast.error('Failed to delete brand. Please try again.');
     }
   };
 
@@ -212,7 +214,7 @@ export default function BrandsManager() {
       }
     } catch (error) {
       console.error('Error setting default brand:', error);
-      alert('Failed to set default brand. Please try again.');
+      toast.error('Failed to set default brand. Please try again.');
     }
   };
 

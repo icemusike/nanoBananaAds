@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { ThemeProvider } from './context/ThemeContext';
+import { ToastProvider } from './context/ToastContext';
 import { AuthProvider } from './context/AuthContext';
 import { AdminProvider } from './context/AdminContext';
 import { LicenseProvider } from './context/LicenseContext';
@@ -50,12 +51,13 @@ function AppLayout({ children }) {
 function App() {
   return (
     <ThemeProvider>
-      <AuthProvider>
-        <LicenseProvider>
-          <AgencyProvider>
-            <ClientPortalProvider>
-              <AdminProvider>
-                <Router>
+      <ToastProvider>
+        <AuthProvider>
+          <LicenseProvider>
+            <AgencyProvider>
+              <ClientPortalProvider>
+                <AdminProvider>
+                  <Router>
                   <div className="min-h-screen bg-background text-foreground">
                     <Routes>
               {/* Public Login Page */}
@@ -102,12 +104,13 @@ function App() {
               <Route path="/client-portal/approvals" element={<ClientPortalProtectedRoute><ClientPortalApprovals /></ClientPortalProtectedRoute>} />
                 </Routes>
               </div>
-            </Router>
-          </AdminProvider>
-            </ClientPortalProvider>
-        </AgencyProvider>
-        </LicenseProvider>
-      </AuthProvider>
+                  </Router>
+                </AdminProvider>
+              </ClientPortalProvider>
+            </AgencyProvider>
+          </LicenseProvider>
+        </AuthProvider>
+      </ToastProvider>
     </ThemeProvider>
   );
 }

@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import { Search, BookOpen, Trash2, Copy, Check, Eye, Loader2, TrendingUp, Filter } from 'lucide-react';
 import axios from 'axios';
+import { useToast } from '../context/ToastContext';
 import BrainLoader from '../components/BrainLoader';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 export default function PromptLibrary() {
+  const toast = useToast();
   const [prompts, setPrompts] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterIndustry, setFilterIndustry] = useState('all');
@@ -66,7 +68,7 @@ export default function PromptLibrary() {
       loadStats();
     } catch (error) {
       console.error('Error deleting prompt:', error);
-      alert('Failed to delete prompt');
+      toast.error('Failed to delete prompt');
     }
   };
 

@@ -2,12 +2,14 @@ import { useState, useEffect } from 'react';
 import { Library, Search, Trash2, TrendingUp, Filter, Star, Sparkles, Target, Loader2, AlertCircle } from 'lucide-react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import { useToast } from '../context/ToastContext';
 import BrainLoader from '../components/BrainLoader';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 export default function AnglesLibrary() {
   const navigate = useNavigate();
+  const toast = useToast();
   const [angles, setAngles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -73,7 +75,7 @@ export default function AnglesLibrary() {
       fetchStats(); // Refresh stats
     } catch (error) {
       console.error('Error deleting angle:', error);
-      alert('Failed to delete angle');
+      toast.error('Failed to delete angle');
     }
   };
 
@@ -88,10 +90,10 @@ export default function AnglesLibrary() {
       setRatingAngle(null);
       setRating(0);
       fetchAngles(); // Refresh
-      alert('Rating saved!');
+      toast.success('Rating saved!');
     } catch (error) {
       console.error('Error rating angle:', error);
-      alert('Failed to save rating');
+      toast.error('Failed to save rating');
     }
   };
 
