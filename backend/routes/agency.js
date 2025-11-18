@@ -488,6 +488,51 @@ router.delete('/projects/:projectId', checkAgencyLicense, async (req, res) => {
 });
 
 /**
+ * GET /api/agency/brands/all
+ * Get all brands owned by the agency user (for assigning to clients)
+ */
+router.get('/brands/all', checkAgencyLicense, async (req, res) => {
+  try {
+    const agencyUserId = req.userId;
+
+    // Get all brands owned by this agency user
+    const brands = await prisma.brand.findMany({
+      where: {
+        userId: agencyUserId
+      },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        tagline: true,
+        industry: true,
+        targetAudience: true,
+        brandVoice: true,
+        tone: true,
+        primaryColor: true,
+        secondaryColor: true,
+        accentColor: true,
+        colorPalette: true,
+        createdAt: true,
+        updatedAt: true
+      }
+    });
+
+    res.json({
+      success: true,
+      brands
+    });
+  } catch (error) {
+    console.error('Error fetching agency brands:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch brands'
+    });
+  }
+});
+
+/**
  * GET /api/agency/clients/:clientId/brands
  * Get brands assigned to a client
  */
