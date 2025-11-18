@@ -85,9 +85,29 @@ router.get('/clients', checkAgencyLicense, async (req, res) => {
       }
     });
 
+    // Compute stats for each client
+    const clientsWithStats = await Promise.all(
+      clients.map(async (client) => {
+        const [projectsCount, brandsCount] = await Promise.all([
+          prisma.agencyProject.count({ where: { clientId: client.id } }),
+          prisma.clientBrand.count({ where: { clientId: client.id } })
+        ]);
+
+        return {
+          ...client,
+          stats: {
+            projects: projectsCount,
+            brands: brandsCount,
+            ads: 0, // Placeholder
+            prompts: 0 // Placeholder
+          }
+        };
+      })
+    );
+
     res.json({
       success: true,
-      clients
+      clients: clientsWithStats
     });
   } catch (error) {
     console.error('Error fetching clients:', error);
@@ -121,9 +141,34 @@ router.get('/clients/:id', checkAgencyLicense, async (req, res) => {
       });
     }
 
+    // Compute current stats dynamically
+    const [projectsCount, brandsCount, adsCount] = await Promise.all([
+      // Count projects for this client
+      prisma.agencyProject.count({
+        where: { clientId: id }
+      }),
+      // Count assigned brands
+      prisma.clientBrand.count({
+        where: { clientId: id }
+      }),
+      // Count ads (placeholder - will be 0 for now as we haven't implemented ad-client linking yet)
+      Promise.resolve(0)
+    ]);
+
+    // Update client stats with computed values
+    const clientWithStats = {
+      ...client,
+      stats: {
+        projects: projectsCount,
+        brands: brandsCount,
+        ads: adsCount,
+        prompts: 0 // Placeholder for future implementation
+      }
+    };
+
     res.json({
       success: true,
-      client
+      client: clientWithStats
     });
   } catch (error) {
     console.error('Error fetching client:', error);
