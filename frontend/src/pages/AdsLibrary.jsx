@@ -122,11 +122,12 @@ export default function AdsLibrary() {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get(`${API_URL}/api/ads/${adId}`, {
+      // Use lightweight image-only endpoint to avoid memory overflow
+      const response = await axios.get(`${API_URL}/api/ads/${adId}/image`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (response.data.success) {
-        const imageData = response.data.ad.imageData;
+        const imageData = response.data.imageData;
         // Cache the image data
         setImageDataCache(prev => ({ ...prev, [adId]: imageData }));
         return imageData;

@@ -85,8 +85,49 @@ router.get('/', async (req, res) => {
 });
 
 /**
+ * GET /api/ads/:id/image
+ * Get ONLY the image data for an ad (lightweight endpoint for lazy loading)
+ */
+router.get('/:id/image', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const ad = await prisma.ad.findFirst({
+      where: {
+        id,
+        userId: req.userId
+      },
+      select: {
+        imageData: true,
+        imageMimeType: true
+      }
+    });
+
+    if (!ad) {
+      return res.status(404).json({
+        success: false,
+        message: 'Ad not found',
+      });
+    }
+
+    res.json({
+      success: true,
+      imageData: ad.imageData,
+      imageMimeType: ad.imageMimeType
+    });
+  } catch (error) {
+    console.error('Error fetching ad image:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch ad image',
+      error: error.message,
+    });
+  }
+});
+
+/**
  * GET /api/ads/:id
- * Get a single ad by ID
+ * Get a single ad by ID (without image data for performance)
  */
 router.get('/:id', async (req, res) => {
   try {
@@ -97,6 +138,31 @@ router.get('/:id', async (req, res) => {
         id,
         userId: req.userId
       },
+      select: {
+        id: true,
+        headline: true,
+        description: true,
+        primaryText: true,
+        callToAction: true,
+        alternativeHeadlines: true,
+        keyBenefits: true,
+        toneAnalysis: true,
+        productDescription: true,
+        targetAudience: true,
+        industry: true,
+        category: true,
+        template: true,
+        tone: true,
+        colorPalette: true,
+        aspectRatio: true,
+        valueProposition: true,
+        imageMimeType: true,
+        imageMetadata: true,
+        copyModel: true,
+        createdAt: true,
+        updatedAt: true,
+        // imageData excluded - use GET /api/ads/:id/image instead
+      }
     });
 
     if (!ad) {
