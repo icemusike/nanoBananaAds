@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { Search, Calendar, Tag, Trash2, Eye, Download, Loader2 } from 'lucide-react';
 import axios from 'axios';
 import AdDetailModal from '../components/AdDetailModal';
@@ -37,74 +37,44 @@ class ImageLoadQueue {
 
 const imageLoadQueue = new ImageLoadQueue(3); // Max 3 concurrent loads
 
-// Truly lazy loading image component with Intersection Observer
+// Optimized lazy loading with max 20 images per page
 function LazyAdImage({ ad, imageDataCache, onLoadImage }) {
   const [imageData, setImageData] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [isVisible, setIsVisible] = useState(false);
-  const imgRef = useRef(null);
+  const [loading, setLoading] = useState(true);
 
-  // Intersection Observer to detect when image comes into view
   useEffect(() => {
-    const imgElement = imgRef.current;
-    if (!imgElement) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting && !isVisible) {
-            setIsVisible(true);
-          }
-        });
-      },
-      {
-        rootMargin: '100px', // Start loading 100px before image is visible
-        threshold: 0.01
-      }
-    );
-
-    observer.observe(imgElement);
-
-    return () => {
-      if (imgElement) {
-        observer.unobserve(imgElement);
-      }
-    };
-  }, [imgRef.current]);
-
-  // Load image only when visible (with queue to prevent overwhelming browser)
-  useEffect(() => {
-    if (!isVisible) return;
-
     const loadImage = async () => {
+      // Check cache first
       if (imageDataCache[ad.id]) {
         setImageData(imageDataCache[ad.id]);
         setLoading(false);
-      } else {
-        setLoading(true);
-        // Use queue to limit concurrent loads
-        const data = await imageLoadQueue.add(() => onLoadImage(ad.id));
-        setImageData(data);
-        setLoading(false);
+        return;
       }
+
+      // Load with queue to prevent overload
+      setLoading(true);
+      const data = await imageLoadQueue.add(() => onLoadImage(ad.id));
+      setImageData(data);
+      setLoading(false);
     };
+
     loadImage();
-  }, [isVisible, ad.id, imageDataCache]);
+  }, [ad.id, imageDataCache]);
+
+  if (loading || !imageData) {
+    return (
+      <div className="w-full h-full flex items-center justify-center bg-dark-800">
+        <Loader2 className="w-8 h-8 text-primary-400 animate-spin" />
+      </div>
+    );
+  }
 
   return (
-    <div ref={imgRef} className="w-full h-full">
-      {!isVisible || loading || !imageData ? (
-        <div className="w-full h-full flex items-center justify-center bg-dark-800">
-          <Loader2 className="w-8 h-8 text-primary-400 animate-spin" />
-        </div>
-      ) : (
-        <img
-          src={`data:${ad.image.imageData.mimeType};base64,${imageData}`}
-          alt={ad.adCopy.headline}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-        />
-      )}
-    </div>
+    <img
+      src={`data:${ad.image.imageData.mimeType};base64,${imageData}`}
+      alt={ad.adCopy.headline}
+      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+    />
   );
 }
 
@@ -118,9 +88,14 @@ export default function AdsLibrary() {
   const [error, setError] = useState(null);
   const [imageDataCache, setImageDataCache] = useState({});
 
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 20; // Max 20 ads per page for performance
+
   // Load saved ads from database
   useEffect(() => {
     loadSavedAds();
+    setCurrentPage(1); // Reset to page 1 when filters change
   }, [searchQuery, filterIndustry]);
 
   const loadSavedAds = async () => {
@@ -291,6 +266,12 @@ export default function AdsLibrary() {
   // Filtered ads (already filtered by API based on search and industry)
   const filteredAds = savedAds;
 
+  // Pagination calculations
+  const totalPages = Math.ceil(filteredAds.length / ITEMS_PER_PAGE);
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const endIndex = startIndex + ITEMS_PER_PAGE;
+  const paginatedAds = filteredAds.slice(startIndex, endIndex);
+
   // Get unique industries for filter
   const industries = ['all', ...new Set(savedAds.map(ad => ad.formData.industry))];
 
@@ -413,8 +394,9 @@ export default function AdsLibrary() {
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredAds.map((ad) => (
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {paginatedAds.map((ad) => (
               <div
                 key={ad.id}
                 className="card group hover:border-primary-500/30 transition-all cursor-pointer"
@@ -482,6 +464,76 @@ export default function AdsLibrary() {
               </div>
             ))}
           </div>
+
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <div className="mt-8 flex items-center justify-center gap-2">
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                disabled={currentPage === 1}
+                className={`px-4 py-2 rounded-lg transition-colors ${
+                  currentPage === 1
+                    ? 'bg-dark-800 text-gray-600 cursor-not-allowed'
+                    : 'bg-primary-600 hover:bg-primary-500 text-white'
+                }`}
+              >
+                Previous
+              </button>
+
+              <div className="flex items-center gap-2">
+                {[...Array(totalPages)].map((_, index) => {
+                  const pageNum = index + 1;
+                  // Show first page, last page, current page, and pages around current
+                  const showPage =
+                    pageNum === 1 ||
+                    pageNum === totalPages ||
+                    Math.abs(pageNum - currentPage) <= 1;
+
+                  if (!showPage && pageNum === 2 && currentPage > 3) {
+                    return <span key={pageNum} className="text-gray-500">...</span>;
+                  }
+                  if (!showPage && pageNum === totalPages - 1 && currentPage < totalPages - 2) {
+                    return <span key={pageNum} className="text-gray-500">...</span>;
+                  }
+                  if (!showPage) return null;
+
+                  return (
+                    <button
+                      key={pageNum}
+                      onClick={() => setCurrentPage(pageNum)}
+                      className={`px-4 py-2 rounded-lg transition-colors ${
+                        currentPage === pageNum
+                          ? 'bg-primary-600 text-white'
+                          : 'bg-dark-800 hover:bg-dark-700 text-gray-300'
+                      }`}
+                    >
+                      {pageNum}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <button
+                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                disabled={currentPage === totalPages}
+                className={`px-4 py-2 rounded-lg transition-colors ${
+                  currentPage === totalPages
+                    ? 'bg-dark-800 text-gray-600 cursor-not-allowed'
+                    : 'bg-primary-600 hover:bg-primary-500 text-white'
+                }`}
+              >
+                Next
+              </button>
+            </div>
+          )}
+
+          {/* Page Info */}
+          {filteredAds.length > 0 && (
+            <div className="mt-4 text-center text-gray-400 text-sm">
+              Showing {startIndex + 1} - {Math.min(endIndex, filteredAds.length)} of {filteredAds.length} ads
+            </div>
+          )}
+        </>
         )}
       </div>
 
