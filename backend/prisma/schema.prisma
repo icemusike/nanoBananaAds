@@ -57,6 +57,10 @@ model User {
   adsGenerated        Int @default(0)
   promptsGenerated    Int @default(0)
   anglesGenerated     Int @default(0)
+  
+  // Credit tracking (robust system)
+  creditsUsedPeriod   Int      @default(0) // Usage in current billing period
+  nextCreditReset     DateTime? // When to reset usage (first of month)
 
   // Settings metadata
   settings            Json? // Additional flexible settings
@@ -293,6 +297,9 @@ model License {
   purchaseDate        DateTime @default(now())
   purchaseAmount      Float?   // Sale amount
   expiryDate          DateTime? // For time-limited licenses
+  
+  // Credit allocation
+  creditsAllocated    Int      @default(0) // Credits this license provides (-1 for unlimited)
 
   // Subscription tracking (for recurring products)
   isRecurring         Boolean  @default(false)

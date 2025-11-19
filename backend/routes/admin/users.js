@@ -1,5 +1,6 @@
 import express from 'express';
 import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
 import { PrismaClient } from '../../generated/prisma/index.js';
 import { verifyAdminToken, logAdminActivity } from '../../middleware/adminAuth.js';
 import { sendWelcomeEmail } from '../../services/emailService.js';
@@ -7,9 +8,14 @@ import { sendWelcomeEmail } from '../../services/emailService.js';
 const router = express.Router();
 const prisma = new PrismaClient();
 
+// JWT Secret (reuse from auth route or config)
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+const IMPERSONATION_EXPIRES_IN = '1h'; // Impersonation tokens are short-lived
+
 // Apply admin authentication to all routes
 router.use(verifyAdminToken);
 
+// ... [Existing code: Get users, Get single user, Create user, Update user, Delete user] ...
 // Get all users with pagination, search, and filters
 router.get('/', async (req, res) => {
   try {
@@ -574,6 +580,60 @@ router.post('/:userId/send-credentials', async (req, res) => {
     console.error('Send credentials error:', error);
     res.status(500).json({
       error: 'Failed to send credentials',
+      message: error.message
+    });
+  }
+});
+
+// Impersonate user (Admin force login)
+router.post('/:userId/impersonate', async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    // Verify user exists
+    const user = await prisma.user.findUnique({
+      where: { id: userId }
+    });
+
+    if (!user) {
+      return res.status(404).json({
+        error: 'User not found',
+        message: 'User does not exist'
+      });
+    }
+
+    // Generate standard auth token for the user
+    // This is exactly the same token structure as normal login
+    const token = jwt.sign(
+      { 
+        userId: user.id, 
+        email: user.email,
+        isImpersonation: true, // Optional flag to track impersonation
+        adminId: req.adminUser.id // Track which admin is impersonating
+      },
+      JWT_SECRET,
+      { expiresIn: IMPERSONATION_EXPIRES_IN }
+    );
+
+    // Log admin activity
+    await logAdminActivity(
+      req.adminUser.id,
+      'user_impersonation',
+      'User',
+      userId,
+      { userEmail: user.email },
+      req
+    );
+
+    res.json({
+      success: true,
+      token,
+      message: 'Impersonation token generated successfully'
+    });
+  } catch (error) {
+    console.error('Impersonation error:', error);
+    res.status(500).json({
+      error: 'Failed to impersonate user',
       message: error.message
     });
   }

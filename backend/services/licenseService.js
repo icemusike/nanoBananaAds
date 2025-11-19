@@ -1,5 +1,6 @@
 import crypto from 'crypto';
 import { PrismaClient } from '../generated/prisma/index.js';
+import { getProductDetails } from '../config/productMapping.js';
 
 const prisma = new PrismaClient();
 
@@ -55,7 +56,8 @@ export async function createLicense({
         isRecurring,
         userId,
         maxActivations: getMaxActivations(productId),
-        expiryDate: getExpiryDate(productId, isRecurring)
+        expiryDate: getExpiryDate(productId, isRecurring),
+        creditsAllocated: getCreditsForProduct(productId)
       }
     });
 
@@ -263,4 +265,158 @@ function getExpiryDate(productId, isRecurring) {
 
   // Lifetime licenses don't expire (return null)
   return null;
+}
+
+/**
+ * Get credits allocated based on product tier
+ * Used when creating the license record
+ */
+function getCreditsForProduct(productId) {
+  const product = Object.values(require('../config/productMapping.js').PRODUCT_MAPPING).find(p => p.id === productId);
+  if (product) return product.credits;
+
+  // Fallback legacy defaults
+  const creditLimits = {
+    'frontend': 500,          // Base license - 500 credits/month
+    'pro_license': -1,        // Pro - Unlimited
+    'templates_license': 0,   // Templates - 0 extra credits
+    'agency_license': 0,      // Agency - 0 extra credits
+    'reseller_license': 0,    // Reseller - 0 extra credits
+    'fastpass_bundle': -1,    // FastPass Bundle - Unlimited
+    'elite_bundle': -1,       // Elite Bundle - Unlimited
+    'default': 0
+  };
+
+  return creditLimits[productId] !== undefined ? creditLimits[productId] : creditLimits['default'];
+}
+
+/**
+ * Get user's aggregated entitlements from all active licenses
+ */
+export async function getUserEntitlements(userId) {
+  const licenses = await prisma.license.findMany({
+    where: {
+      userId,
+      status: 'active'
+    }
+  });
+
+  let creditLimit = 0;
+  let isUnlimited = false;
+  let features = new Set();
+  let tier = 'free';
+  
+  const tierRank = { 'free': 0, 'frontend': 1, 'pro': 2, 'elite': 3 };
+
+  // Default free tier if no licenses
+  if (licenses.length === 0) {
+    creditLimit = 50; // Free tier
+  } else {
+    // Base entitlement for having any license (if not handled by summing)
+    // Actually, summing creditsAllocated is safest if we set them correctly in DB.
+  }
+
+  // We'll use the config mapping to be sure, or rely on DB `creditsAllocated` if we trust it.
+  // Let's rely on the mapping for features, and DB for credits (future proofing).
+  // Actually, for features we need the mapping.
+  
+  const { PRODUCT_MAPPING } = await import('../config/productMapping.js');
+  const productArray = Object.values(PRODUCT_MAPPING);
+
+  licenses.forEach(license => {
+    // Sum credits
+    if (license.creditsAllocated === -1) {
+      isUnlimited = true;
+    } else {
+      creditLimit += license.creditsAllocated;
+    }
+
+    // Find product config for features
+    const config = productArray.find(p => p.id === license.productId);
+    if (config) {
+      config.features.forEach(f => features.add(f));
+      if (tierRank[config.tier] > tierRank[tier]) {
+        tier = config.tier;
+      }
+    }
+  });
+
+  if (isUnlimited) creditLimit = -1;
+
+  return {
+    creditLimit,
+    isUnlimited,
+    features: Array.from(features),
+    tier
+  };
+}
+
+/**
+ * Check and consume credits for a user
+ */
+export async function consumeCredits(userId, amount = 1) {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: userId }
+    });
+
+    if (!user) throw new Error('User not found');
+
+    // 1. Check for Monthly Reset
+    const now = new Date();
+    // Use the fields we added to Schema (creditsUsedPeriod, nextCreditReset)
+    // If they are null (migration issue), treat as now.
+    let nextReset = user.nextCreditReset;
+    
+    if (!nextReset || now >= nextReset) {
+      // Reset credits
+      nextReset = new Date(now);
+      nextReset.setMonth(nextReset.getMonth() + 1);
+      nextReset.setDate(1);
+      nextReset.setHours(0, 0, 0, 0);
+
+      await prisma.user.update({
+        where: { id: userId },
+        data: { 
+          creditsUsedPeriod: 0,
+          nextCreditReset: nextReset
+        }
+      });
+      // Reset local tracking
+      user.creditsUsedPeriod = 0; 
+    }
+
+    // 2. Check Entitlements
+    const { creditLimit, isUnlimited } = await getUserEntitlements(userId);
+
+    if (isUnlimited) {
+      return { success: true, remaining: 999999, unlimited: true };
+    }
+
+    const creditsUsed = user.creditsUsedPeriod || 0;
+
+    if (creditsUsed + amount > creditLimit) {
+      return { 
+        success: false, 
+        error: 'Insufficient credits', 
+        remaining: Math.max(0, creditLimit - creditsUsed) 
+      };
+    }
+
+    // 3. Consume
+    await prisma.user.update({
+      where: { id: userId },
+      data: { creditsUsedPeriod: { increment: amount } }
+    });
+
+    return { 
+      success: true, 
+      remaining: creditLimit - (creditsUsed + amount),
+      unlimited: false
+    };
+
+  } catch (error) {
+    console.error('Error consuming credits:', error);
+    throw error;
+  }
 }

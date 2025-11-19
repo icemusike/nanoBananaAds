@@ -1,5 +1,5 @@
 import express from 'express';
-import { validateLicense } from '../services/licenseService.js';
+import { validateLicense, consumeCredits, getUserEntitlements } from '../services/licenseService.js';
 import { PrismaClient } from '../generated/prisma/index.js';
 import { authenticateUser } from '../middleware/auth.js';
 
@@ -13,7 +13,10 @@ const prisma = new PrismaClient();
  */
 router.get('/me', authenticateUser, async (req, res) => {
   try {
-    // Get active licenses for the authenticated user
+    // Get entitlements which aggregates all active licenses
+    const { tier, features, isUnlimited } = await getUserEntitlements(req.userId);
+
+    // Get active licenses for display
     const licenses = await prisma.license.findMany({
       where: {
         userId: req.userId,
@@ -27,7 +30,7 @@ router.get('/me', authenticateUser, async (req, res) => {
       return res.json({
         success: true,
         license: null,
-        tier: null,
+        tier: 'free',
         addons: [],
         features: {
           unlimited_credits: false,
@@ -37,58 +40,20 @@ router.get('/me', authenticateUser, async (req, res) => {
       });
     }
 
-    // Get the primary (most recent active) license
     const primaryLicense = licenses[0];
-
-    // Determine tier from productId
-    // Priority: Elite Bundle > Highest tier owned
-    const tierMapping = {
-      'frontend': 'frontend',
-      'pro_license': 'pro_license',
-      'templates_license': 'templates_license',
-      'agency_license': 'agency_license',
-      'reseller_license': 'reseller_license',
-      'fastpass_bundle': 'elite_bundle',  // FastPass Bundle treated as elite tier
-      'elite_bundle': 'elite_bundle'
-    };
-
-    // If user has any Elite Bundle (elite_bundle or fastpass_bundle), that's the primary tier
-    const hasEliteBundle = licenses.some(l =>
-      l.productId === 'elite_bundle' || l.productId === 'fastpass_bundle'
-    );
-    const tier = hasEliteBundle ? 'elite_bundle' : tierMapping[primaryLicense.productId] || primaryLicense.productId;
-
-    // Get all product IDs for addon detection
     const productIds = licenses.map(l => l.productId);
 
-    // Determine features based on licenses
-    // Both elite_bundle and fastpass_bundle include all features
-    const hasProLicense = licenses.some(l =>
-      l.productId === 'pro_license' ||
-      l.productId === 'elite_bundle' ||
-      l.productId === 'fastpass_bundle'
-    );
-
-    const hasTemplatesLicense = licenses.some(l =>
-      l.productId === 'templates_license' ||
-      l.productId === 'elite_bundle' ||
-      l.productId === 'fastpass_bundle'
-    );
-
-    const hasAgencyLicense = licenses.some(l =>
-      l.productId === 'agency_license' ||
-      l.productId === 'elite_bundle' ||
-      l.productId === 'fastpass_bundle'
-    );
-
-    const hasResellerLicense = licenses.some(l =>
-      l.productId === 'reseller_license' ||
-      l.productId === 'elite_bundle' ||
-      l.productId === 'fastpass_bundle'
-    );
-
-    // Pro License and Elite Bundle get unlimited credits
-    const hasUnlimitedCredits = hasProLicense || hasEliteBundle;
+    // Construct features object for frontend
+    const featureMap = {
+      unlimited_credits: isUnlimited,
+      pro_license: features.includes('unlimited') || features.includes('bulk'),
+      templates_library: features.includes('templates') || features.includes('all'),
+      agency_license: features.includes('agency') || features.includes('all'),
+      agency_features: features.includes('agency') || features.includes('all'),
+      reseller_license: features.includes('reseller') || features.includes('all'),
+      white_label: features.includes('white_label') || features.includes('all'),
+      all_features: features.includes('all')
+    };
 
     return res.json({
       success: true,
@@ -103,17 +68,8 @@ router.get('/me', authenticateUser, async (req, res) => {
         isRecurring: primaryLicense.isRecurring
       },
       tier: tier,
-      licenses: productIds, // All licenses user owns
-      features: {
-        unlimited_credits: hasUnlimitedCredits,
-        pro_license: hasProLicense,
-        templates_library: hasTemplatesLicense,
-        agency_license: hasAgencyLicense,
-        agency_features: hasAgencyLicense,
-        reseller_license: hasResellerLicense,
-        white_label: hasResellerLicense,
-        all_features: hasEliteBundle
-      }
+      licenses: productIds,
+      features: featureMap
     });
   } catch (error) {
     console.error('Error fetching user license:', error);
@@ -131,67 +87,51 @@ router.get('/me', authenticateUser, async (req, res) => {
  */
 router.get('/credits', authenticateUser, async (req, res) => {
   try {
-    // Get active licenses for the authenticated user
-    const licenses = await prisma.license.findMany({
-      where: {
-        userId: req.userId,
-        status: 'active'
+    const { creditLimit, isUnlimited } = await getUserEntitlements(req.userId);
+    
+    const user = await prisma.user.findUnique({
+      where: { id: req.userId },
+      select: {
+        creditsUsedPeriod: true,
+        nextCreditReset: true
       }
     });
 
-    // Check if user has unlimited credits (Pro License, Elite Bundle, or FastPass Bundle)
-    const hasUnlimitedCredits = licenses.some(l =>
-      l.productId === 'pro_license' ||
-      l.productId === 'elite_bundle' ||
-      l.productId === 'fastpass_bundle'
-    );
+    // Check if reset is needed (display purpose only, actual reset happens on consume)
+    let creditsUsed = user?.creditsUsedPeriod || 0;
+    let resetDate = user?.nextCreditReset;
+    const now = new Date();
+    
+    if (!resetDate) {
+      resetDate = new Date();
+      resetDate.setDate(1);
+      resetDate.setMonth(resetDate.getMonth() + 1);
+      resetDate.setHours(0, 0, 0, 0);
+    } else if (now >= resetDate) {
+      creditsUsed = 0;
+      // Visual reset date update
+      resetDate = new Date(now);
+      resetDate.setDate(1);
+      resetDate.setMonth(resetDate.getMonth() + 1);
+      resetDate.setHours(0, 0, 0, 0);
+    }
 
-    // If unlimited, return large number
-    if (hasUnlimitedCredits) {
+    if (isUnlimited) {
       return res.json({
         success: true,
         total: 999999,
-        used: 0,
+        used: creditsUsed,
         remaining: 999999,
         unlimited: true,
         resetDate: null
       });
     }
 
-    // For frontend tier, calculate from usage
-    const user = await prisma.user.findUnique({
-      where: { id: req.userId },
-      select: {
-        adsGenerated: true,
-        promptsGenerated: true,
-        anglesGenerated: true,
-        createdAt: true
-      }
-    });
-
-    // Free tier: 50 credits/month
-    // Frontend tier: 500 credits/month
-    const hasFrontendLicense = licenses.some(l =>
-      l.productId === 'frontend'
-    );
-    const monthlyLimit = hasFrontendLicense ? 500 : 50;
-
-    // Rough estimate: 1 ad = 1 credit, 1 prompt/angle = 0.1 credit
-    const creditsUsed = (user?.adsGenerated || 0) +
-                        Math.floor((user?.promptsGenerated || 0) * 0.1) +
-                        Math.floor((user?.anglesGenerated || 0) * 0.1);
-
-    const remaining = Math.max(0, monthlyLimit - creditsUsed);
-
-    // Calculate next reset date (first of next month)
-    const resetDate = new Date();
-    resetDate.setMonth(resetDate.getMonth() + 1);
-    resetDate.setDate(1);
-    resetDate.setHours(0, 0, 0, 0);
+    const remaining = Math.max(0, creditLimit - creditsUsed);
 
     return res.json({
       success: true,
-      total: monthlyLimit,
+      total: creditLimit,
       used: creditsUsed,
       remaining: remaining,
       unlimited: false,
@@ -207,14 +147,86 @@ router.get('/credits', authenticateUser, async (req, res) => {
 });
 
 /**
+ * Consume credits
+ * POST /api/license/consume-credits
+ */
+router.post('/consume-credits', authenticateUser, async (req, res) => {
+  try {
+    const { amount = 1, actionType } = req.body;
+    // actionType is optional but good for auditing in future
+    
+    const result = await consumeCredits(req.userId, amount);
+    
+    if (result.success) {
+      return res.json(result);
+    } else {
+      return res.status(403).json(result);
+    }
+  } catch (error) {
+    console.error('Error consuming credits:', error);
+    return res.status(500).json({ success: false, error: 'Server error' });
+  }
+});
+
+/**
+ * Check feature access
+ * POST /api/license/check-feature
+ */
+router.post('/check-feature', authenticateUser, async (req, res) => {
+  try {
+    const { feature } = req.body;
+    const { features, isUnlimited } = await getUserEntitlements(req.userId);
+    
+    // Map internal feature names to frontend feature names
+    const frontendFeatureMap = {
+      'bulk_generation': features.includes('bulk') || features.includes('all') || isUnlimited,
+      'premium_templates': features.includes('templates') || features.includes('all'),
+      'agency_dashboard': features.includes('agency') || features.includes('all'),
+      'client_accounts': features.includes('agency') || features.includes('all'),
+      'reseller_dashboard': features.includes('reseller') || features.includes('all')
+    };
+
+    // Also allow direct internal feature check
+    const hasDirectAccess = features.includes(feature) || features.includes('all');
+
+    const hasAccess = frontendFeatureMap[feature] || hasDirectAccess || false;
+
+    return res.json({ hasAccess });
+  } catch (error) {
+    console.error('Error checking feature:', error);
+    return res.status(500).json({ success: false, error: 'Server error' });
+  }
+});
+
+/**
+ * Get license stats
+ * GET /api/license/stats
+ */
+router.get('/stats', authenticateUser, async (req, res) => {
+  // Reuse credits logic
+  try {
+    const creditsData = await getUserEntitlements(req.userId);
+    const user = await prisma.user.findUnique({
+      where: { id: req.userId },
+      select: { creditsUsedPeriod: true, nextCreditReset: true }
+    });
+
+    return res.json({ 
+      success: true, 
+      stats: {
+        ...creditsData,
+        creditsUsed: user?.creditsUsedPeriod || 0,
+        resetDate: user?.nextCreditReset
+      } 
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: 'Server error' });
+  }
+});
+
+/**
  * Validate a license key
  * POST /api/license/validate
- *
- * Body:
- * {
- *   "licenseKey": "XXXX-XXXX-XXXX-XXXX",
- *   "email": "customer@example.com"
- * }
  */
 router.post('/validate', async (req, res) => {
   try {
@@ -253,8 +265,6 @@ router.post('/validate', async (req, res) => {
 /**
  * Get license details
  * GET /api/license/:licenseKey
- *
- * Requires authentication or admin access in production
  */
 router.get('/:licenseKey', async (req, res) => {
   try {
@@ -280,7 +290,6 @@ router.get('/:licenseKey', async (req, res) => {
       });
     }
 
-    // Don't expose sensitive information
     const safeLicense = {
       licenseKey: license.licenseKey,
       productId: license.productId,
@@ -310,8 +319,6 @@ router.get('/:licenseKey', async (req, res) => {
 /**
  * Get all licenses for a user
  * GET /api/license/user/:email
- *
- * Requires authentication in production
  */
 router.get('/user/:email', async (req, res) => {
   try {
@@ -349,8 +356,6 @@ router.get('/user/:email', async (req, res) => {
 /**
  * Check license status
  * POST /api/license/check
- *
- * Simple status check without full validation
  */
 router.post('/check', async (req, res) => {
   try {
@@ -390,15 +395,8 @@ router.post('/check', async (req, res) => {
 });
 
 /**
- * Activate a license (increment activation count)
+ * Activate a license
  * POST /api/license/activate
- *
- * Body:
- * {
- *   "licenseKey": "XXXX-XXXX-XXXX-XXXX",
- *   "email": "customer@example.com",
- *   "deviceId": "optional-device-identifier"
- * }
  */
 router.post('/activate', async (req, res) => {
   try {
@@ -411,7 +409,6 @@ router.post('/activate', async (req, res) => {
       });
     }
 
-    // First validate the license
     const validation = await validateLicense(licenseKey, email);
 
     if (!validation.valid) {
@@ -421,12 +418,10 @@ router.post('/activate', async (req, res) => {
       });
     }
 
-    // Get the license
     const license = await prisma.license.findUnique({
       where: { licenseKey }
     });
 
-    // Check activation limit
     if (license.activations >= license.maxActivations) {
       return res.json({
         success: false,
@@ -434,7 +429,6 @@ router.post('/activate', async (req, res) => {
       });
     }
 
-    // Increment activation count
     const updated = await prisma.license.update({
       where: { id: license.id },
       data: {

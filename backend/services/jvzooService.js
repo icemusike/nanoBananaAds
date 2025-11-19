@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 import { PrismaClient } from '../generated/prisma/index.js';
 import { createLicense, handleRefund, handleChargeback, handleRecurringPayment, handleCancellation } from './licenseService.js';
+import { getInternalProductId, getProductDetails } from '../config/productMapping.js';
 
 const prisma = new PrismaClient();
 
@@ -48,47 +49,6 @@ export function verifyJVZooIPN(ipnData, secretKey) {
   });
 
   return isValid;
-}
-
-/**
- * Map JVZoo product ID to internal product identifier
- *
- * Products Structure:
- * - Frontend (427079): Base AdGeniusAI access
- * - Pro License (427343, 427345): Unlimited generations
- * - Templates License (427347, 427349): Template library access
- * - Agency License (427351, 427353): Agency features (client management)
- * - Reseller License (427355, 427359): Can resell the platform
- * - FastPass Bundle (427357): Upgrade bundle for existing FE customers - unlocks all features
- * - Elite Bundle Deal (428667): First-time buyer bundle - creates account with all features unlocked
- */
-export function mapProductId(jvzooProductId) {
-  const productMapping = {
-    // Frontend Offer
-    '427079': 'frontend',
-
-    // OTO 1: Pro License (Main + Downsell)
-    '427343': 'pro_license',
-    '427345': 'pro_license',
-
-    // OTO 2: Templates License (Main + Downsell)
-    '427347': 'templates_license',
-    '427349': 'templates_license',
-
-    // OTO 3: Agency License (Main + Downsell)
-    '427351': 'agency_license',
-    '427353': 'agency_license',
-
-    // OTO 4: Reseller License (Main + Downsell)
-    '427355': 'reseller_license',
-    '427359': 'reseller_license',
-
-    // Bundle Offers
-    '427357': 'fastpass_bundle',      // FastPass Bundle (upgrade for existing FE customers)
-    '428667': 'elite_bundle'           // Elite Bundle Deal (first-time buyers with all features)
-  };
-
-  return productMapping[jvzooProductId] || 'unknown';
 }
 
 /**
@@ -189,7 +149,7 @@ export async function processTransaction(ipnData) {
     }
 
     // Map product ID
-    const productId = mapProductId(cproditem);
+    const productId = getInternalProductId(cproditem);
 
     // Determine if recurring
     const isRecurring = ctransaction === 'SALE' && productId.includes('recurring');
@@ -217,6 +177,17 @@ export async function processTransaction(ipnData) {
         });
 
         console.log('License created:', license.licenseKey);
+        
+        // Send appropriate email (Welcome vs Upgrade)
+        // If this is their first license (based on creation time or count), send welcome.
+        // However, createOrFindUser doesn't tell us if it's new.
+        // We can check user.password. If null, they are new (created just now).
+        if (!user.password) {
+           await sendWelcomeEmail(user, license);
+        } else {
+           await sendUpgradeNotification(user, license);
+        }
+        
         break;
 
       case 'RFND':
@@ -249,13 +220,12 @@ export async function processTransaction(ipnData) {
         console.warn('Unknown transaction type:', ctransaction);
     }
 
-    // Parse vendorEarnings from cvendthru (handle both string and number formats)
+    // Parse vendorEarnings
     let vendorEarnings = null;
     if (cvendthru) {
       if (typeof cvendthru === 'number') {
         vendorEarnings = cvendthru;
       } else if (typeof cvendthru === 'string') {
-        // Try to extract number from string like "c=TP-wbf0Vd0e2hlTJT4Ibldx"
         const numMatch = cvendthru.match(/[\d.]+/);
         if (numMatch) {
           vendorEarnings = parseFloat(numMatch[0]);
@@ -295,7 +265,6 @@ export async function processTransaction(ipnData) {
   } catch (error) {
     console.error('Error processing transaction:', error);
 
-    // Save failed transaction to audit log
     try {
       await prisma.jVZooTransaction.create({
         data: {
@@ -344,18 +313,8 @@ export async function sendWelcomeEmail(user, license) {
       data: { password: hashedPassword }
     });
 
-    // Map product ID to friendly name
-    const productNames = {
-      'frontend': 'AdGenius AI Frontend',
-      'pro_license': 'Pro License (Unlimited Generations)',
-      'templates_license': 'Templates License',
-      'agency_license': 'Agency License',
-      'reseller_license': 'Reseller License',
-      'fastpass_bundle': 'FastPass Bundle (All Features Unlocked)',
-      'elite_bundle': 'Elite Bundle (All Features)'
-    };
-
-    const productName = productNames[license.productId] || 'AdGenius AI License';
+    // Get product name from config
+    const productName = getProductDetails(license.jvzooProductId)?.name || 'AdGenius AI License';
 
     // Send welcome email
     await sendEmail({
@@ -383,18 +342,8 @@ export async function sendUpgradeNotification(user, license) {
     // Import email service
     const { sendUpgradeEmail } = await import('./emailService.js');
 
-    // Map product ID to friendly name
-    const productNames = {
-      'frontend': 'AdGenius AI Frontend',
-      'pro_license': 'Pro License (Unlimited Generations)',
-      'templates_license': 'Templates License',
-      'agency_license': 'Agency License',
-      'reseller_license': 'Reseller License',
-      'fastpass_bundle': 'FastPass Bundle (All Features Unlocked)',
-      'elite_bundle': 'Elite Bundle (All Features)'
-    };
-
-    const productName = productNames[license.productId] || 'AdGenius AI License';
+    // Get product name from config
+    const productName = getProductDetails(license.jvzooProductId)?.name || 'AdGenius AI License';
 
     // Send upgrade email (no password change)
     await sendUpgradeEmail({
