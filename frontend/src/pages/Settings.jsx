@@ -205,16 +205,23 @@ export default function Settings() {
 
         // Build comprehensive plan name showing all owned licenses
         const baseTier = licenseData?.tier || 'Free';
-        const basePlan = planNames[baseTier] || 'Free';
+        
+        let planName = 'Free';
+        
+        if (baseTier === 'elite_bundle') {
+          planName = 'Elite Bundle';
+        } else {
+          const basePlan = planNames[baseTier] || 'Free';
+          
+          // Build addon list (exclude the base tier)
+          const addons = ownedLicenses
+            .filter(l => l !== baseTier && planNames[l])
+            .map(l => planNames[l]);
 
-        // Build addon list (exclude the base tier)
-        const addons = ownedLicenses
-          .filter(l => l !== baseTier && planNames[l])
-          .map(l => planNames[l]);
-
-        const planName = addons.length > 0
-          ? `${basePlan} + ${addons.join(' + ')}`
-          : basePlan;
+          planName = addons.length > 0
+            ? `${basePlan} + ${addons.join(' + ')}`
+            : basePlan;
+        }
 
         // Update billing with real license data
         setBilling(prev => ({
@@ -725,12 +732,12 @@ export default function Settings() {
                     <div className="grid grid-cols-2 gap-3">
                       {/* Frontend License */}
                       <div className={`p-3 rounded-lg border-2 transition-all ${
-                        billing.ownedLicenses?.includes('frontend')
+                        billing.ownedLicenses?.includes('frontend') || billing.tier === 'elite_bundle'
                           ? 'border-primary bg-primary/10'
                           : 'border-border bg-muted/30 opacity-50'
                       }`}>
                         <div className="flex items-center gap-2 mb-1">
-                          {billing.ownedLicenses?.includes('frontend') ? (
+                          {billing.ownedLicenses?.includes('frontend') || billing.tier === 'elite_bundle' ? (
                             <Check className="w-4 h-4 text-primary" />
                           ) : (
                             <X className="w-4 h-4 text-muted-foreground" />
@@ -742,12 +749,12 @@ export default function Settings() {
 
                       {/* Pro License */}
                       <div className={`p-3 rounded-lg border-2 transition-all ${
-                        billing.ownedLicenses?.includes('pro_license')
+                        billing.ownedLicenses?.includes('pro_license') || billing.tier === 'elite_bundle'
                           ? 'border-accent bg-accent/10'
                           : 'border-border bg-muted/30 opacity-50'
                       }`}>
                         <div className="flex items-center gap-2 mb-1">
-                          {billing.ownedLicenses?.includes('pro_license') ? (
+                          {billing.ownedLicenses?.includes('pro_license') || billing.tier === 'elite_bundle' ? (
                             <Check className="w-4 h-4 text-accent" />
                           ) : (
                             <X className="w-4 h-4 text-muted-foreground" />
@@ -759,12 +766,12 @@ export default function Settings() {
 
                       {/* Templates License */}
                       <div className={`p-3 rounded-lg border-2 transition-all ${
-                        billing.ownedLicenses?.includes('templates_license')
+                        billing.ownedLicenses?.includes('templates_license') || billing.tier === 'elite_bundle'
                           ? 'border-secondary bg-secondary/10'
                           : 'border-border bg-muted/30 opacity-50'
                       }`}>
                         <div className="flex items-center gap-2 mb-1">
-                          {billing.ownedLicenses?.includes('templates_license') ? (
+                          {billing.ownedLicenses?.includes('templates_license') || billing.tier === 'elite_bundle' ? (
                             <Check className="w-4 h-4 text-secondary" />
                           ) : (
                             <X className="w-4 h-4 text-muted-foreground" />
@@ -776,12 +783,12 @@ export default function Settings() {
 
                       {/* Agency License */}
                       <div className={`p-3 rounded-lg border-2 transition-all ${
-                        billing.ownedLicenses?.includes('agency_license')
+                        billing.ownedLicenses?.includes('agency_license') || billing.tier === 'elite_bundle'
                           ? 'border-primary bg-primary/10'
                           : 'border-border bg-muted/30 opacity-50'
                       }`}>
                         <div className="flex items-center gap-2 mb-1">
-                          {billing.ownedLicenses?.includes('agency_license') ? (
+                          {billing.ownedLicenses?.includes('agency_license') || billing.tier === 'elite_bundle' ? (
                             <Check className="w-4 h-4 text-primary" />
                           ) : (
                             <X className="w-4 h-4 text-muted-foreground" />
@@ -793,12 +800,12 @@ export default function Settings() {
 
                       {/* Reseller License */}
                       <div className={`p-3 rounded-lg border-2 transition-all ${
-                        billing.ownedLicenses?.includes('reseller_license')
+                        billing.ownedLicenses?.includes('reseller_license') || billing.tier === 'elite_bundle'
                           ? 'border-accent bg-accent/10'
                           : 'border-border bg-muted/30 opacity-50'
                       }`}>
                         <div className="flex items-center gap-2 mb-1">
-                          {billing.ownedLicenses?.includes('reseller_license') ? (
+                          {billing.ownedLicenses?.includes('reseller_license') || billing.tier === 'elite_bundle' ? (
                             <Check className="w-4 h-4 text-accent" />
                           ) : (
                             <X className="w-4 h-4 text-muted-foreground" />
@@ -860,11 +867,23 @@ export default function Settings() {
 
                   {billing.tier === 'elite_bundle' && (
                     <div className="p-4 bg-gradient-to-r from-primary/10 to-accent/10 border-2 border-primary/30 rounded-lg">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Check className="w-5 h-5 text-accent" />
-                        <span className="font-bold text-accent">Elite Bundle Active</span>
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <Check className="w-5 h-5 text-accent" />
+                          <span className="font-bold text-accent">Elite Bundle Active</span>
+                        </div>
+                        <span className="text-xs font-bold text-primary">100% Unlocked</span>
                       </div>
-                      <p className="text-xs text-foreground/70">
+                      
+                      {/* 100% Progress Bar */}
+                      <div className="w-full h-3 bg-muted rounded-full overflow-hidden mb-2 border border-border">
+                        <div
+                          className="h-full bg-gradient-to-r from-primary via-accent to-secondary transition-all duration-700"
+                          style={{ width: '100%' }}
+                        ></div>
+                      </div>
+                      
+                      <p className="text-xs text-foreground/70 mt-2">
                         You have unlocked all features! Enjoy unlimited access to everything AdGenius AI has to offer.
                       </p>
                     </div>
@@ -1135,8 +1154,8 @@ export default function Settings() {
         </div>
       </div>
 
-      {/* Pricing Modal */}
-      {showPricingModal && (
+      {/* Pricing Modal - Hide if Elite Bundle */}
+      {showPricingModal && billing.tier !== 'elite_bundle' && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-fadeIn">
           <div className="bg-card rounded-2xl max-w-6xl w-full max-h-[90vh] overflow-y-auto border-2 border-primary/40 shadow-2xl">
             {/* Modal Header */}
