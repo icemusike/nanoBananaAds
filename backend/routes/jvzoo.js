@@ -66,15 +66,24 @@ router.post('/ipn', async (req, res) => {
     // Send appropriate email for new sales
     if (ipnData.ctransaction === 'SALE' && result.user && result.license) {
       try {
-        // Check if this is a frontend purchase (new account) or an upgrade
-        const isFrontend = result.license.productId === 'frontend';
+        // Check if this is a new account (needs password) or existing account (upgrade)
+        // Products that create new accounts with credentials:
+        // - 'frontend': Standard frontend purchase
+        // - 'elite_bundle': Elite Bundle Deal (428667) - first-time buyers
+        // FastPass Bundle (427357 -> 'fastpass_bundle') is for existing customers, so it's an upgrade
+        const isNewAccountProduct =
+          result.license.productId === 'frontend' ||
+          result.license.productId === 'elite_bundle';
 
-        if (isFrontend) {
-          // Frontend purchase: Send welcome email with password
+        // Also check if user has no password (definitively a new account)
+        const isNewAccount = isNewAccountProduct || !result.user.password;
+
+        if (isNewAccount) {
+          // New account: Send welcome email with password
           await sendWelcomeEmail(result.user, result.license);
           console.log('✓ Welcome email sent (new account)');
         } else {
-          // Upgrade purchase: Send upgrade notification (no password change)
+          // Existing account upgrade: Send upgrade notification (no password change)
           await sendUpgradeNotification(result.user, result.license);
           console.log('✓ Upgrade notification sent (existing account)');
         }

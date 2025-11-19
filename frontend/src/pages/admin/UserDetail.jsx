@@ -204,10 +204,63 @@ export default function UserDetail() {
             <p className="text-sm text-gray-900 dark:text-white">{user?.createdVia || 'signup'}</p>
           </div>
           <div>
-            <label className="text-sm text-gray-600 dark:text-gray-400">JVZoo Customer ID</label>
+            <label className="text-sm text-gray-600 dark:text-gray-400">JVZoo Customer Email</label>
             <p className="text-sm text-gray-900 dark:text-white">{user?.jvzooCustomerId || 'N/A'}</p>
           </div>
         </div>
+
+        {/* JVZoo Purchase Details - Show from most recent transaction */}
+        {user?.jvzooTransactions && user.jvzooTransactions.length > 0 && (
+          <>
+            <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">JVZoo Purchase Details</h3>
+              {(() => {
+                // Get the first SALE transaction (most recent)
+                const saleTransaction = user.jvzooTransactions.find(tx => tx.transactionType === 'SALE');
+                if (!saleTransaction) return <p className="text-sm text-gray-500 dark:text-gray-400">No purchase transactions found</p>;
+
+                return (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm text-gray-600 dark:text-gray-400">Customer Name</label>
+                      <p className="text-sm text-gray-900 dark:text-white">{saleTransaction.customerName || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm text-gray-600 dark:text-gray-400">Transaction ID</label>
+                      <p className="text-sm font-mono text-gray-900 dark:text-white">{saleTransaction.jvzooTransactionId}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm text-gray-600 dark:text-gray-400">Purchase Amount</label>
+                      <p className="text-sm text-gray-900 dark:text-white">
+                        ${saleTransaction.amount ? saleTransaction.amount.toFixed(2) : '0.00'}
+                      </p>
+                    </div>
+                    <div>
+                      <label className="text-sm text-gray-600 dark:text-gray-400">Affiliate Commission</label>
+                      <p className="text-sm text-gray-900 dark:text-white">
+                        {saleTransaction.affiliateCommission ? `$${saleTransaction.affiliateCommission.toFixed(2)}` : 'N/A'}
+                      </p>
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className="text-sm text-gray-600 dark:text-gray-400">Time of Sale</label>
+                      <p className="text-sm text-gray-900 dark:text-white">
+                        {new Date(saleTransaction.createdAt).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric'
+                        })} at {new Date(saleTransaction.createdAt).toLocaleTimeString('en-US', {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                          second: '2-digit'
+                        })}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+          </>
+        )}
       </div>
 
       {/* Usage Statistics */}
@@ -291,6 +344,7 @@ export default function UserDetail() {
                       'templates_license': 127,
                       'agency_license': 197,
                       'reseller_license': 297,
+                      'fastpass_bundle': 397,
                       'elite_bundle': 397
                     };
                     setLicenseForm({
@@ -304,7 +358,10 @@ export default function UserDetail() {
                   <optgroup label="Base Licenses">
                     <option value="frontend">Frontend ($47) - Base access, 500 credits/month</option>
                     <option value="pro_license">Pro License ($97) - Unlimited generations</option>
-                    <option value="elite_bundle">Elite Bundle ($397) - All features included</option>
+                  </optgroup>
+                  <optgroup label="Bundle Offers">
+                    <option value="elite_bundle">Elite Bundle Deal ($397) - First-time buyers, all features</option>
+                    <option value="fastpass_bundle">FastPass Bundle ($397) - Upgrade for existing customers</option>
                   </optgroup>
                   <optgroup label="Addon Licenses">
                     <option value="templates_license">Templates License ($127) - Template library access</option>
@@ -331,7 +388,8 @@ export default function UserDetail() {
                 <strong>License Structure:</strong><br/>
                 • <strong>Frontend</strong>: Base license with 500 credits/month<br/>
                 • <strong>Pro License</strong>: Unlimited generations (recommended base)<br/>
-                • <strong>Elite Bundle</strong>: Includes ALL features (Pro + Templates + Agency + Reseller)<br/>
+                • <strong>Elite Bundle Deal</strong>: First-time buyers - includes ALL features (Pro + Templates + Agency + Reseller)<br/>
+                • <strong>FastPass Bundle</strong>: Upgrade for existing FE customers - unlocks all remaining features<br/>
                 • <strong>Addons</strong>: Can be combined with any base license
               </p>
             </div>

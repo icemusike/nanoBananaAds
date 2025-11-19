@@ -59,7 +59,8 @@ export function verifyJVZooIPN(ipnData, secretKey) {
  * - Templates License (427347, 427349): Template library access
  * - Agency License (427351, 427353): Agency features (client management)
  * - Reseller License (427355, 427359): Can resell the platform
- * - Elite Bundle (427357): FE + All upgrade features unlocked
+ * - FastPass Bundle (427357): Upgrade bundle for existing FE customers - unlocks all features
+ * - Elite Bundle Deal (428667): First-time buyer bundle - creates account with all features unlocked
  */
 export function mapProductId(jvzooProductId) {
   const productMapping = {
@@ -82,8 +83,9 @@ export function mapProductId(jvzooProductId) {
     '427355': 'reseller_license',
     '427359': 'reseller_license',
 
-    // Elite Bundle (All-in-One)
-    '427357': 'elite_bundle'
+    // Bundle Offers
+    '427357': 'fastpass_bundle',      // FastPass Bundle (upgrade for existing FE customers)
+    '428667': 'elite_bundle'           // Elite Bundle Deal (first-time buyers with all features)
   };
 
   return productMapping[jvzooProductId] || 'unknown';
@@ -349,6 +351,7 @@ export async function sendWelcomeEmail(user, license) {
       'templates_license': 'Templates License',
       'agency_license': 'Agency License',
       'reseller_license': 'Reseller License',
+      'fastpass_bundle': 'FastPass Bundle (All Features Unlocked)',
       'elite_bundle': 'Elite Bundle (All Features)'
     };
 
@@ -387,6 +390,7 @@ export async function sendUpgradeNotification(user, license) {
       'templates_license': 'Templates License',
       'agency_license': 'Agency License',
       'reseller_license': 'Reseller License',
+      'fastpass_bundle': 'FastPass Bundle (All Features Unlocked)',
       'elite_bundle': 'Elite Bundle (All Features)'
     };
 

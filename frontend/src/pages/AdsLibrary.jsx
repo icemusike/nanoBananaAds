@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Search, Calendar, Tag, Trash2, Eye, Download, Loader2 } from 'lucide-react';
 import axios from 'axios';
 import AdDetailModal from '../components/AdDetailModal';
@@ -7,39 +7,104 @@ import { useToast } from '../context/ToastContext';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
-// Lazy loading image component
+// Request queue to limit concurrent image loads
+class ImageLoadQueue {
+  constructor(maxConcurrent = 3) {
+    this.maxConcurrent = maxConcurrent;
+    this.currentLoads = 0;
+    this.queue = [];
+  }
+
+  async add(loadFn) {
+    if (this.currentLoads >= this.maxConcurrent) {
+      // Wait in queue
+      await new Promise(resolve => this.queue.push(resolve));
+    }
+
+    this.currentLoads++;
+    try {
+      return await loadFn();
+    } finally {
+      this.currentLoads--;
+      // Process next in queue
+      if (this.queue.length > 0) {
+        const resolve = this.queue.shift();
+        resolve();
+      }
+    }
+  }
+}
+
+const imageLoadQueue = new ImageLoadQueue(3); // Max 3 concurrent loads
+
+// Truly lazy loading image component with Intersection Observer
 function LazyAdImage({ ad, imageDataCache, onLoadImage }) {
   const [imageData, setImageData] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [isVisible, setIsVisible] = useState(false);
+  const imgRef = useRef(null);
 
+  // Intersection Observer to detect when image comes into view
   useEffect(() => {
+    const imgElement = imgRef.current;
+    if (!imgElement) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting && !isVisible) {
+            setIsVisible(true);
+          }
+        });
+      },
+      {
+        rootMargin: '100px', // Start loading 100px before image is visible
+        threshold: 0.01
+      }
+    );
+
+    observer.observe(imgElement);
+
+    return () => {
+      if (imgElement) {
+        observer.unobserve(imgElement);
+      }
+    };
+  }, [imgRef.current]);
+
+  // Load image only when visible (with queue to prevent overwhelming browser)
+  useEffect(() => {
+    if (!isVisible) return;
+
     const loadImage = async () => {
       if (imageDataCache[ad.id]) {
         setImageData(imageDataCache[ad.id]);
         setLoading(false);
       } else {
-        const data = await onLoadImage(ad.id);
+        setLoading(true);
+        // Use queue to limit concurrent loads
+        const data = await imageLoadQueue.add(() => onLoadImage(ad.id));
         setImageData(data);
         setLoading(false);
       }
     };
     loadImage();
-  }, [ad.id, imageDataCache]);
-
-  if (loading || !imageData) {
-    return (
-      <div className="w-full h-full flex items-center justify-center bg-dark-800">
-        <Loader2 className="w-8 h-8 text-primary-400 animate-spin" />
-      </div>
-    );
-  }
+  }, [isVisible, ad.id, imageDataCache]);
 
   return (
-    <img
-      src={`data:${ad.image.imageData.mimeType};base64,${imageData}`}
-      alt={ad.adCopy.headline}
-      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-    />
+    <div ref={imgRef} className="w-full h-full">
+      {!isVisible || loading || !imageData ? (
+        <div className="w-full h-full flex items-center justify-center bg-dark-800">
+          <Loader2 className="w-8 h-8 text-primary-400 animate-spin" />
+        </div>
+      ) : (
+        <img
+          src={`data:${ad.image.imageData.mimeType};base64,${imageData}`}
+          alt={ad.adCopy.headline}
+          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+        />
+      )}
+    </div>
   );
 }
 

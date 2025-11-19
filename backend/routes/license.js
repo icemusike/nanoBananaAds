@@ -48,31 +48,43 @@ router.get('/me', authenticateUser, async (req, res) => {
       'templates_license': 'templates_license',
       'agency_license': 'agency_license',
       'reseller_license': 'reseller_license',
+      'fastpass_bundle': 'elite_bundle',  // FastPass Bundle treated as elite tier
       'elite_bundle': 'elite_bundle'
     };
 
-    // If user has Elite Bundle, that's the primary tier (it includes everything)
-    const hasEliteBundle = licenses.some(l => l.productId === 'elite_bundle');
+    // If user has any Elite Bundle (elite_bundle or fastpass_bundle), that's the primary tier
+    const hasEliteBundle = licenses.some(l =>
+      l.productId === 'elite_bundle' || l.productId === 'fastpass_bundle'
+    );
     const tier = hasEliteBundle ? 'elite_bundle' : tierMapping[primaryLicense.productId] || primaryLicense.productId;
 
     // Get all product IDs for addon detection
     const productIds = licenses.map(l => l.productId);
 
     // Determine features based on licenses
+    // Both elite_bundle and fastpass_bundle include all features
     const hasProLicense = licenses.some(l =>
-      l.productId === 'pro_license' || l.productId === 'elite_bundle'
+      l.productId === 'pro_license' ||
+      l.productId === 'elite_bundle' ||
+      l.productId === 'fastpass_bundle'
     );
 
     const hasTemplatesLicense = licenses.some(l =>
-      l.productId === 'templates_license' || l.productId === 'elite_bundle'
+      l.productId === 'templates_license' ||
+      l.productId === 'elite_bundle' ||
+      l.productId === 'fastpass_bundle'
     );
 
     const hasAgencyLicense = licenses.some(l =>
-      l.productId === 'agency_license' || l.productId === 'elite_bundle'
+      l.productId === 'agency_license' ||
+      l.productId === 'elite_bundle' ||
+      l.productId === 'fastpass_bundle'
     );
 
     const hasResellerLicense = licenses.some(l =>
-      l.productId === 'reseller_license' || l.productId === 'elite_bundle'
+      l.productId === 'reseller_license' ||
+      l.productId === 'elite_bundle' ||
+      l.productId === 'fastpass_bundle'
     );
 
     // Pro License and Elite Bundle get unlimited credits
@@ -127,10 +139,11 @@ router.get('/credits', authenticateUser, async (req, res) => {
       }
     });
 
-    // Check if user has unlimited credits (Pro License or Elite Bundle)
+    // Check if user has unlimited credits (Pro License, Elite Bundle, or FastPass Bundle)
     const hasUnlimitedCredits = licenses.some(l =>
       l.productId === 'pro_license' ||
-      l.productId === 'elite_bundle'
+      l.productId === 'elite_bundle' ||
+      l.productId === 'fastpass_bundle'
     );
 
     // If unlimited, return large number

@@ -241,7 +241,8 @@ function getMaxActivations(productId) {
     'templates_license': 1,   // Templates - 1 activation
     'agency_license': 10,     // Agency - 10 activations
     'reseller_license': 50,   // Reseller - 50 activations
-    'elite_bundle': 10,       // Elite - 10 activations
+    'fastpass_bundle': 10,    // FastPass Bundle - 10 activations
+    'elite_bundle': 10,       // Elite Bundle Deal - 10 activations
     'default': 1
   };
 
