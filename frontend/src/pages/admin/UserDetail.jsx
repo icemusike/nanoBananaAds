@@ -119,6 +119,25 @@ export default function UserDetail() {
     }
   };
 
+  const handleImpersonate = async () => {
+    if (!confirm(`You are about to log in as ${user.name}. This will open a new tab. Continue?`)) {
+      return;
+    }
+
+    try {
+      const response = await usersApi.impersonate(userId);
+      if (response.data.success) {
+        const token = response.data.token;
+        // Open app in new tab with token in query param to handle login
+        // We'll use a special route /auth/impersonate?token=...
+        const impersonateUrl = `${window.location.origin}/auth/impersonate?token=${token}`;
+        window.open(impersonateUrl, '_blank');
+      }
+    } catch (err) {
+      setError('Failed to impersonate user: ' + (err.response?.data?.message || err.message));
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -154,12 +173,24 @@ export default function UserDetail() {
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{user?.name}</h1>
           <p className="mt-2 text-gray-600 dark:text-gray-400">{user?.email}</p>
         </div>
-        <button
-          onClick={handleDeleteUser}
-          className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition"
-        >
-          Delete User
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={handleImpersonate}
+            className="px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg transition flex items-center gap-2"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+            </svg>
+            Login as User
+          </button>
+          <button
+            onClick={handleDeleteUser}
+            className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition"
+          >
+            Delete User
+          </button>
+        </div>
       </div>
 
       {/* Alerts */}

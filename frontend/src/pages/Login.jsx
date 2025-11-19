@@ -1,11 +1,12 @@
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 
 function Login() {
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const [searchParams] = useSearchParams();
+  const { login, checkAuth } = useAuth();
   const { mode } = useTheme();
   const [formData, setFormData] = useState({
     email: '',
@@ -13,6 +14,33 @@ function Login() {
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // Check for impersonation token (via query param)
+  useEffect(() => {
+    const impersonateToken = searchParams.get('token');
+    if (impersonateToken) {
+      handleImpersonation(impersonateToken);
+    }
+  }, [searchParams]);
+
+  const handleImpersonation = async (token) => {
+    try {
+      setLoading(true);
+      // Set token directly in local storage
+      localStorage.setItem('token', token);
+      
+      // Validate token and get user data
+      await checkAuth();
+      
+      // Redirect to dashboard
+      navigate('/app');
+    } catch (err) {
+      setError('Failed to login with impersonation token');
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleChange = (e) => {
     setFormData({

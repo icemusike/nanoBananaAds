@@ -16,30 +16,34 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  useEffect(() => {
-    // Check if user is logged in on mount
-    const initAuth = async () => {
-      const storedUser = authService.getStoredUser();
-      const token = authService.getToken();
-
-      if (storedUser && token) {
-        try {
-          // Verify token is still valid
-          const currentUser = await authService.getCurrentUser();
-          setUser(currentUser);
-          setIsAuthenticated(true);
-        } catch (error) {
-          console.error('Auth initialization error:', error);
-          authService.logout();
-          setUser(null);
-          setIsAuthenticated(false);
-        }
-      }
-
+  // Exposed checkAuth function
+  const checkAuth = async () => {
+    const token = authService.getToken();
+    if (!token) {
+      setUser(null);
+      setIsAuthenticated(false);
       setLoading(false);
-    };
+      return false;
+    }
 
-    initAuth();
+    try {
+      const currentUser = await authService.getCurrentUser();
+      setUser(currentUser);
+      setIsAuthenticated(true);
+      return true;
+    } catch (error) {
+      console.error('Auth verification failed:', error);
+      authService.logout();
+      setUser(null);
+      setIsAuthenticated(false);
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    checkAuth();
   }, []);
 
   const login = async (email, password) => {
@@ -67,6 +71,7 @@ export const AuthProvider = ({ children }) => {
     login,
     signup,
     logout,
+    checkAuth, // Now exposed
     isAuthenticated,
     loading
   };

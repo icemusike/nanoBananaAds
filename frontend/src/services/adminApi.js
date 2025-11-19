@@ -55,7 +55,8 @@ export const usersApi = {
   grantLicense: (userId, data) => adminApi.post(`/users/${userId}/licenses`, data),
   updateLicense: (userId, licenseId, data) => adminApi.put(`/users/${userId}/licenses/${licenseId}`, data),
   resetPassword: (userId, newPassword) => adminApi.post(`/users/${userId}/reset-password`, { newPassword }),
-  sendCredentials: (userId) => adminApi.post(`/users/${userId}/send-credentials`)
+  sendCredentials: (userId) => adminApi.post(`/users/${userId}/send-credentials`),
+  impersonate: (userId) => adminApi.post(`/users/${userId}/impersonate`)
 };
 
 // Costs API
