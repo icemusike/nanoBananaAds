@@ -1,5 +1,5 @@
 import express from 'express';
-import { verifyJVZooIPN, processTransaction, sendWelcomeEmail, sendUpgradeNotification } from '../services/jvzooService.js';
+import { verifyJVZooIPN, processTransaction, sendWelcomeEmail, sendUpgradeEmail } from '../services/jvzooService.js';
 
 const router = express.Router();
 
@@ -84,7 +84,7 @@ router.post('/ipn', async (req, res) => {
           console.log('✓ Welcome email sent (new account)');
         } else {
           // Existing account upgrade: Send upgrade notification (no password change)
-          await sendUpgradeNotification(result.user, result.license);
+          await sendUpgradeEmail(result.user, result.license);
           console.log('✓ Upgrade notification sent (existing account)');
         }
       } catch (emailError) {
