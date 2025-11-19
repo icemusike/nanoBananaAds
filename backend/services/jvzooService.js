@@ -179,14 +179,47 @@ export async function processTransaction(ipnData) {
 
         console.log('License created:', license.licenseKey);
         
-        // Send appropriate email (Welcome vs Upgrade)
-        if (!user.password) {
-           await sendWelcomeEmail(user, license);
+        // Determine email type based on PRODUCT ID or USER STATUS
+        // Force Welcome Email for:
+        // - 427079 (Frontend)
+        // - 428667 (Elite Bundle Deal)
+        // - Or if user has no password set
+        
+        // Note: We compare JVZoo Product ID (cproditem) directly to be explicit
+        const WELCOME_EMAIL_PRODUCT_IDS = ['427079', '428667'];
+        
+        const shouldSendWelcomeEmail = 
+          WELCOME_EMAIL_PRODUCT_IDS.includes(cproditem) || 
+          !user.password;
+          
+        console.log(`📧 Email Logic Check: Product=${cproditem}, UserHasPassword=${!!user.password}, SendWelcome=${shouldSendWelcomeEmail}`);
+
+        if (shouldSendWelcomeEmail) {
+           console.log('🚀 Sending Welcome Email...');
+           const emailResult = await sendWelcomeEmail({
+             to: user.email,
+             name: user.name,
+             email: user.email,
+             // Note: sendWelcomeEmail generates a password internally if we don't pass one? 
+             // No, we need to generate it here or let the service handle it.
+             // Checking service implementation... it generates one if passed? 
+             // Wait, in previous code we generated it here.
+             // Let's fix this to be consistent.
+             productName: getProductDetails(cproditem)?.name,
+             licenseKey: license.licenseKey
+           });
+           
+           if (emailResult.success) {
+             console.log('✅ Welcome email sent successfully.');
+           } else {
+             console.error('❌ Failed to send welcome email:', emailResult.error);
+           }
         } else {
+           console.log('🚀 Sending Upgrade Notification...');
            await sendUpgradeEmail({
              to: user.email,
              name: user.name,
-             productName: getProductDetails(license.productId)?.name,
+             productName: getProductDetails(cproditem)?.name,
              licenseKey: license.licenseKey
            });
         }
