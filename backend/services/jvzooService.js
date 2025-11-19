@@ -2,6 +2,7 @@ import crypto from 'crypto';
 import { PrismaClient } from '../generated/prisma/index.js';
 import { createLicense, handleRefund, handleChargeback, handleRecurringPayment, handleCancellation } from './licenseService.js';
 import { getInternalProductId, getProductDetails } from '../config/productMapping.js';
+import { sendWelcomeEmail, sendUpgradeNotification } from './emailService.js';
 
 const prisma = new PrismaClient();
 
@@ -179,9 +180,6 @@ export async function processTransaction(ipnData) {
         console.log('License created:', license.licenseKey);
         
         // Send appropriate email (Welcome vs Upgrade)
-        // If this is their first license (based on creation time or count), send welcome.
-        // However, createOrFindUser doesn't tell us if it's new.
-        // We can check user.password. If null, they are new (created just now).
         if (!user.password) {
            await sendWelcomeEmail(user, license);
         } else {
@@ -293,81 +291,7 @@ export async function processTransaction(ipnData) {
 }
 
 /**
- * Send welcome email to NEW JVZoo customer (Frontend purchase only)
- * Generates password and sends welcome email with login credentials
+ * Export email functions so they can be imported elsewhere if needed
+ * (Though typically they are used internally)
  */
-export async function sendWelcomeEmail(user, license) {
-  try {
-    // Import email service
-    const { sendWelcomeEmail: sendEmail } = await import('./emailService.js');
-
-    // Generate temporary password (since user was created via JVZoo)
-    const tempPassword = generateTempPassword();
-
-    // Hash and update password in database
-    const bcrypt = (await import('bcryptjs')).default;
-    const hashedPassword = await bcrypt.hash(tempPassword, 10);
-
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { password: hashedPassword }
-    });
-
-    // Get product name from config
-    const productName = getProductDetails(license.jvzooProductId)?.name || 'AdGenius AI License';
-
-    // Send welcome email
-    await sendEmail({
-      to: user.email,
-      name: user.name,
-      email: user.email,
-      password: tempPassword,
-      productName: productName,
-      licenseKey: license.licenseKey
-    });
-
-    console.log('✅ Welcome email sent to:', user.email);
-  } catch (error) {
-    console.error('❌ Failed to send welcome email:', error);
-    throw error;
-  }
-}
-
-/**
- * Send upgrade notification email to EXISTING customer
- * Does NOT change password - just notifies them of the upgrade
- */
-export async function sendUpgradeNotification(user, license) {
-  try {
-    // Import email service
-    const { sendUpgradeEmail } = await import('./emailService.js');
-
-    // Get product name from config
-    const productName = getProductDetails(license.jvzooProductId)?.name || 'AdGenius AI License';
-
-    // Send upgrade email (no password change)
-    await sendUpgradeEmail({
-      to: user.email,
-      name: user.name,
-      productName: productName,
-      licenseKey: license.licenseKey
-    });
-
-    console.log('✅ Upgrade notification sent to:', user.email);
-  } catch (error) {
-    console.error('❌ Failed to send upgrade notification:', error);
-    throw error;
-  }
-}
-
-/**
- * Generate a temporary password
- */
-function generateTempPassword() {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$%';
-  let password = '';
-  for (let i = 0; i < 12; i++) {
-    password += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return password;
-}
+export { sendWelcomeEmail, sendUpgradeNotification };

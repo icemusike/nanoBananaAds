@@ -1,6 +1,6 @@
 import crypto from 'crypto';
 import { PrismaClient } from '../generated/prisma/index.js';
-import { getProductDetails } from '../config/productMapping.js';
+import { PRODUCT_MAPPING } from '../config/productMapping.js';
 
 const prisma = new PrismaClient();
 
@@ -41,6 +41,9 @@ export async function createLicense({
   // Generate unique license key
   const licenseKey = generateLicenseKey(customerEmail, jvzooTransactionId, jvzooProductId);
 
+  // Get credit allocation from config
+  const creditsAllocated = getCreditsForProduct(productId);
+
   try {
     const license = await prisma.license.create({
       data: {
@@ -57,7 +60,7 @@ export async function createLicense({
         userId,
         maxActivations: getMaxActivations(productId),
         expiryDate: getExpiryDate(productId, isRecurring),
-        creditsAllocated: getCreditsForProduct(productId)
+        creditsAllocated: creditsAllocated
       }
     });
 
@@ -269,21 +272,29 @@ function getExpiryDate(productId, isRecurring) {
 
 /**
  * Get credits allocated based on product tier
- * Used when creating the license record
+ * Uses the imported PRODUCT_MAPPING configuration
  */
 function getCreditsForProduct(productId) {
-  const product = Object.values(require('../config/productMapping.js').PRODUCT_MAPPING).find(p => p.id === productId);
-  if (product) return product.credits;
+  // 1. Search by Internal ID in the mapping values
+  const productByInternalId = Object.values(PRODUCT_MAPPING).find(p => p.id === productId);
+  if (productByInternalId) {
+    return productByInternalId.credits;
+  }
 
-  // Fallback legacy defaults
+  // 2. Search by JVZoo ID (if passed directly, though we usually pass internal ID)
+  if (PRODUCT_MAPPING[productId]) {
+    return PRODUCT_MAPPING[productId].credits;
+  }
+  
+  // 3. Fallback defaults
   const creditLimits = {
-    'frontend': 500,          // Base license - 500 credits/month
-    'pro_license': -1,        // Pro - Unlimited
-    'templates_license': 0,   // Templates - 0 extra credits
-    'agency_license': 0,      // Agency - 0 extra credits
-    'reseller_license': 0,    // Reseller - 0 extra credits
-    'fastpass_bundle': -1,    // FastPass Bundle - Unlimited
-    'elite_bundle': -1,       // Elite Bundle - Unlimited
+    'frontend': 500,
+    'pro_license': -1,
+    'templates_license': 0,
+    'agency_license': 0,
+    'reseller_license': 0,
+    'fastpass_bundle': -1,
+    'elite_bundle': -1,
     'default': 0
   };
 
@@ -311,20 +322,12 @@ export async function getUserEntitlements(userId) {
   // Default free tier if no licenses
   if (licenses.length === 0) {
     creditLimit = 50; // Free tier
-  } else {
-    // Base entitlement for having any license (if not handled by summing)
-    // Actually, summing creditsAllocated is safest if we set them correctly in DB.
   }
 
-  // We'll use the config mapping to be sure, or rely on DB `creditsAllocated` if we trust it.
-  // Let's rely on the mapping for features, and DB for credits (future proofing).
-  // Actually, for features we need the mapping.
-  
-  const { PRODUCT_MAPPING } = await import('../config/productMapping.js');
   const productArray = Object.values(PRODUCT_MAPPING);
 
   licenses.forEach(license => {
-    // Sum credits
+    // Sum credits (using what's stored in DB which is the source of truth for that license)
     if (license.creditsAllocated === -1) {
       isUnlimited = true;
     } else {
@@ -364,15 +367,13 @@ export async function consumeCredits(userId, amount = 1) {
 
     // 1. Check for Monthly Reset
     const now = new Date();
-    // Use the fields we added to Schema (creditsUsedPeriod, nextCreditReset)
-    // If they are null (migration issue), treat as now.
     let nextReset = user.nextCreditReset;
     
     if (!nextReset || now >= nextReset) {
       // Reset credits
       nextReset = new Date(now);
-      nextReset.setMonth(nextReset.getMonth() + 1);
       nextReset.setDate(1);
+      nextReset.setMonth(nextReset.getMonth() + 1);
       nextReset.setHours(0, 0, 0, 0);
 
       await prisma.user.update({
@@ -382,8 +383,7 @@ export async function consumeCredits(userId, amount = 1) {
           nextCreditReset: nextReset
         }
       });
-      // Reset local tracking
-      user.creditsUsedPeriod = 0; 
+      user.creditsUsedPeriod = 0;
     }
 
     // 2. Check Entitlements
