@@ -3,6 +3,7 @@ import { PrismaClient } from '../generated/prisma/index.js';
 import { createLicense, handleRefund, handleChargeback, handleRecurringPayment, handleCancellation } from './licenseService.js';
 import { getInternalProductId, getProductDetails } from '../config/productMapping.js';
 import { sendWelcomeEmail, sendUpgradeEmail } from './emailService.js';
+import bcrypt from 'bcryptjs'; // Needed for password hashing
 
 const prisma = new PrismaClient();
 
@@ -121,6 +122,18 @@ export async function createOrFindUser(ipnData) {
 }
 
 /**
+ * Generate a temporary password
+ */
+function generateTempPassword() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$%';
+  let password = '';
+  for (let i = 0; i < 12; i++) {
+    password += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return password;
+}
+
+/**
  * Process JVZoo IPN transaction
  */
 export async function processTransaction(ipnData) {
@@ -185,7 +198,6 @@ export async function processTransaction(ipnData) {
         // - 428667 (Elite Bundle Deal)
         // - Or if user has no password set
         
-        // Note: We compare JVZoo Product ID (cproditem) directly to be explicit
         const WELCOME_EMAIL_PRODUCT_IDS = ['427079', '428667'];
         
         const shouldSendWelcomeEmail = 
@@ -196,15 +208,23 @@ export async function processTransaction(ipnData) {
 
         if (shouldSendWelcomeEmail) {
            console.log('🚀 Sending Welcome Email...');
+           
+           // Generate new credentials
+           const tempPassword = generateTempPassword();
+           
+           // Update user password in DB
+           const hashedPassword = await bcrypt.hash(tempPassword, 10);
+           await prisma.user.update({
+             where: { id: user.id },
+             data: { password: hashedPassword }
+           });
+           console.log('🔑 Generated temporary password and updated user record');
+
            const emailResult = await sendWelcomeEmail({
              to: user.email,
              name: user.name,
              email: user.email,
-             // Note: sendWelcomeEmail generates a password internally if we don't pass one? 
-             // No, we need to generate it here or let the service handle it.
-             // Checking service implementation... it generates one if passed? 
-             // Wait, in previous code we generated it here.
-             // Let's fix this to be consistent.
+             password: tempPassword, // Pass the PLAIN text password
              productName: getProductDetails(cproditem)?.name,
              licenseKey: license.licenseKey
            });
