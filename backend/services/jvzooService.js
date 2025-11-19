@@ -2,7 +2,7 @@ import crypto from 'crypto';
 import { PrismaClient } from '../generated/prisma/index.js';
 import { createLicense, handleRefund, handleChargeback, handleRecurringPayment, handleCancellation } from './licenseService.js';
 import { getInternalProductId, getProductDetails } from '../config/productMapping.js';
-import { sendWelcomeEmail, sendUpgradeNotification } from './emailService.js';
+import { sendWelcomeEmail, sendUpgradeEmail } from './emailService.js';
 
 const prisma = new PrismaClient();
 
@@ -183,7 +183,12 @@ export async function processTransaction(ipnData) {
         if (!user.password) {
            await sendWelcomeEmail(user, license);
         } else {
-           await sendUpgradeNotification(user, license);
+           await sendUpgradeEmail({
+             to: user.email,
+             name: user.name,
+             productName: getProductDetails(license.productId)?.name,
+             licenseKey: license.licenseKey
+           });
         }
         
         break;
@@ -291,7 +296,6 @@ export async function processTransaction(ipnData) {
 }
 
 /**
- * Export email functions so they can be imported elsewhere if needed
- * (Though typically they are used internally)
+ * Export email functions
  */
-export { sendWelcomeEmail, sendUpgradeNotification };
+export { sendWelcomeEmail, sendUpgradeEmail };
