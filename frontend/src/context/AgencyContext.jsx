@@ -35,15 +35,15 @@ export function AgencyProvider({ children }) {
   // CRITICAL FIX: Ensure Elite Bundle always returns TRUE for hasAgencyLicense
   const hasAgencyLicense = hasAgencyFeatures ||
                            isAgency ||
-                           isElite ||
+                           isElite || // isElite is now correctly mapped in LicenseContext
                            license?.features?.agency_features === true ||
                            license?.features?.agency_license === true ||
-                           license?.license?.tier === 'agency_license' ||
-                           license?.license?.tier === 'elite_bundle';
+                           license?.license?.tier === 'agency' ||
+                           license?.license?.tier === 'elite'; // FIXED: Changed from 'elite_bundle' to 'elite'
 
   const agencyLicense = hasAgencyLicense ? {
     isActive: true,
-    tier: isElite ? 'elite_bundle' : 'agency_license'
+    tier: isElite ? 'elite' : 'agency'
   } : null;
 
   // No longer need checkAgencyLicense function - using LicenseContext instead

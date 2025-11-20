@@ -1,10 +1,4 @@
-/**
- * AdGenius AI - License Context
- *
- * Global license state management for the entire application
- */
-
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
@@ -202,11 +196,11 @@ export function LicenseProvider({ children }) {
     // Computed properties
     hasLicense: !!license,
     isFrontend: license?.license?.tier === 'frontend',
-    isPro: license?.license?.tier === 'pro_license',
-    hasTemplates: license?.license?.tier === 'templates_license' || license?.features?.templates_library,
-    isAgency: license?.license?.tier === 'agency_license' || license?.features?.agency_license,
-    isReseller: license?.license?.tier === 'reseller_license' || license?.features?.reseller_license,
-    isElite: license?.license?.tier === 'elite_bundle',
+    isPro: license?.license?.tier === 'pro',
+    hasTemplates: license?.license?.tier === 'templates' || license?.features?.templates_library,
+    isAgency: license?.license?.tier === 'agency' || license?.features?.agency_license,
+    isReseller: license?.license?.tier === 'reseller' || license?.features?.reseller_license,
+    isElite: license?.license?.tier === 'elite', // FIXED: Changed from 'elite_bundle' to 'elite'
     hasUnlimitedCredits: license?.features?.unlimited_credits || false,
 
     // Feature helpers
