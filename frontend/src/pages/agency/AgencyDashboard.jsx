@@ -2,10 +2,12 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Users, FolderKanban, ImagePlus, TrendingUp, Plus, ArrowRight } from 'lucide-react';
 import { useAgency } from '../../context/AgencyContext';
+import { useLicense } from '../../context/LicenseContext';
 import axios from 'axios';
 
 export default function AgencyDashboard() {
   const { hasAgencyLicense, clients, fetchClients, loading: licenseLoading } = useAgency();
+  const { tier } = useLicense();
   const [stats, setStats] = useState({
     totalClients: 0,
     activeClients: 0,
@@ -15,11 +17,14 @@ export default function AgencyDashboard() {
   const [recentActivity, setRecentActivity] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // Check for Elite Bundle or Agency License
+  const hasAccess = hasAgencyLicense || tier === 'elite_bundle';
+
   useEffect(() => {
-    if (hasAgencyLicense) {
+    if (hasAccess) {
       loadDashboardData();
     }
-  }, [hasAgencyLicense]);
+  }, [hasAccess]);
 
   const loadDashboardData = async () => {
     try {
@@ -67,7 +72,7 @@ export default function AgencyDashboard() {
   }
 
   // Only show upgrade modal after license has loaded and user doesn't have access
-  if (!hasAgencyLicense) {
+  if (!hasAccess) {
     return (
       <div className="container mx-auto px-4 py-12">
         <div className="max-w-2xl mx-auto text-center">

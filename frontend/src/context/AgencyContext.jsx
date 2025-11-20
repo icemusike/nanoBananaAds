@@ -32,6 +32,7 @@ export function AgencyProvider({ children }) {
 
   // Use license context to determine if user has agency license
   // Check both the computed properties AND the raw features object
+  // CRITICAL FIX: Ensure Elite Bundle always returns TRUE for hasAgencyLicense
   const hasAgencyLicense = hasAgencyFeatures ||
                            isAgency ||
                            isElite ||
