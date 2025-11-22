@@ -105,9 +105,14 @@ router.post('/login', async (req, res) => {
       });
     }
 
-    // Find user
-    const user = await prisma.user.findUnique({
-      where: { email: email.toLowerCase() }
+    // Find user (case-insensitive to handle legacy data)
+    const user = await prisma.user.findFirst({
+      where: {
+        email: {
+          equals: email,
+          mode: 'insensitive'
+        }
+      }
     });
 
     if (!user) {
@@ -238,9 +243,14 @@ router.post('/forgot-password', async (req, res) => {
       });
     }
 
-    // Find user
-    const user = await prisma.user.findUnique({
-      where: { email: email.toLowerCase() }
+    // Find user (case-insensitive to handle legacy data)
+    const user = await prisma.user.findFirst({
+      where: {
+        email: {
+          equals: email,
+          mode: 'insensitive'
+        }
+      }
     });
 
     // Always return success (security: don't reveal if email exists)

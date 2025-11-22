@@ -64,10 +64,18 @@ export async function createOrFindUser(ipnData) {
     ctransaction
   } = ipnData;
 
+  // Normalize email to lowercase for consistency
+  const normalizedEmail = ccustemail.toLowerCase();
+
   try {
-    // Check if user already exists
-    let user = await prisma.user.findUnique({
-      where: { email: ccustemail }
+    // Check if user already exists (case-insensitive)
+    let user = await prisma.user.findFirst({
+      where: {
+        email: {
+          equals: normalizedEmail,
+          mode: 'insensitive'
+        }
+      }
     });
 
     if (user) {
@@ -78,7 +86,7 @@ export async function createOrFindUser(ipnData) {
         user = await prisma.user.update({
           where: { id: user.id },
           data: {
-            jvzooCustomerId: ccustemail, // Use email as customer ID
+            jvzooCustomerId: normalizedEmail, // Use normalized email as customer ID
             jvzooTransactionId: user.jvzooTransactionId || ctransaction,
             createdVia: user.createdVia || 'jvzoo'
           }
@@ -95,11 +103,11 @@ export async function createOrFindUser(ipnData) {
 
     user = await prisma.user.create({
       data: {
-        email: ccustemail,
+        email: normalizedEmail,
         name: fullName,
         password: null, // Will set on first login
         createdVia: 'jvzoo',
-        jvzooCustomerId: ccustemail,
+        jvzooCustomerId: normalizedEmail,
         jvzooTransactionId: ctransaction,
         emailVerified: true, // Auto-verify JVZoo purchases
         // Set default preferences
